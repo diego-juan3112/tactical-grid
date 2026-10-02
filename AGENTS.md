@@ -62,10 +62,13 @@ dinamico, reglas, acciones y sucesores. `algoritmos` consume contratos del domin
 Pygame ni contiene mapas, costos o posiciones codificados. `interfaz` consume estado y resultados para
 visualizarlos; no contiene reglas ni algoritmos. No se permiten dependencias circulares.
 
-E0.3 modela el estado solo a alto nivel: `Escenario` contiene datos estaticos y `EstadoJuego` contiene unidades,
-turno, posicion o portador del recurso y estado general de la partida. Una `Unidad` tiene identificador, bando,
-tipo y posicion. E1.1 concretara el modelo interno: igualdad, hashing, inmutabilidad, copia, representacion
-canonica y representacion para estados visitados. E0.3 no bloquea esas decisiones ni las reglas detalladas de transicion.
+E1.1 define el modelo del estado: `Escenario` contiene datos estaticos y `EstadoJuego` contiene unidades, turno,
+posicion del recurso cuando no tiene portador, identificador del portador y estado general de la partida. Una
+`Unidad` tiene identificador, bando, tipo y posicion actual. `EstadoJuego` y `Unidad` son inmutables y hashables;
+las unidades se normalizan por identificador, de modo que su orden de almacenamiento no altera la identidad logica.
+Las posiciones afectan acciones y transiciones, el turno determina que bando actua y el portador distingue estados
+visualmente iguales que pueden exigir decisiones distintas. El estado no codifica dimensiones ni posiciones fijas:
+esa informacion pertenece al escenario cargado. Las reglas detalladas de transicion se definen en historias posteriores.
 
 Todo codigo propio, archivos, clases, funciones, variables, comentarios y documentacion se escribe en
 espanol. Las claves del JSON son una excepcion: son un contrato externo y se conservan literalmente.

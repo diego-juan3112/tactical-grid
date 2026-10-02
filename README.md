@@ -30,7 +30,9 @@ Uvicorn -> servidor ASGI aislado
 pytest -> prueba escenario, juego, algoritmos y servidor sin Pygame
 ```
 
-`Escenario` conserva informacion estatica: dimensiones, terrenos, bases, recurso, configuracion y unidades iniciales. `EstadoJuego` conserva informacion dinamica: unidades, turno actual, posicion o portador del recurso y estado general de la partida. `Unidad` representa identificador, bando, tipo y posicion. E0.3 define esta separacion solo a alto nivel; E1.1 concretara el modelo interno, incluida la igualdad, hashing, inmutabilidad, copia, representacion canonica y representacion de estados visitados. E0.3 no bloquea esas decisiones. No se define el estado global solo como una coordenada.
+`Escenario` conserva la informacion estatica: dimensiones, terrenos, bases, posicion inicial del recurso, configuracion y unidades iniciales. `EstadoJuego` conserva la informacion dinamica: unidades, turno actual, posicion del recurso cuando no tiene portador, identificador del portador y estado general de la partida. `Unidad` representa identificador, bando, tipo y posicion actual.
+
+E1.1 define `EstadoJuego` y `Unidad` como objetos inmutables y hashables. Las unidades se almacenan en una tupla canonica ordenada por identificador, por lo que su orden de entrada no modifica la identidad logica del estado. Las posiciones determinan acciones y transiciones disponibles; el turno determina que bando puede actuar; y el portador distingue situaciones visualmente iguales que requieren decisiones distintas. Cuando no hay portador, la posicion del recurso tambien forma parte del estado. El modelo no contiene dimensiones ni posiciones fijas: esas propiedades pertenecen al escenario cargado.
 
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 
