@@ -12,23 +12,37 @@ from .validador import ErrorValidacionEscenario, validar_contenido_escenario
 def cargar_escenario(ruta: str | Path) -> Escenario:
     """Lee, valida y convierte un archivo JSON en un ``Escenario`` inmutable.
 
-    Proposito: separar carga externa, validacion y representacion interna de escenarios. Preconditions:
-    ``ruta`` identifica un archivo JSON legible. Postcondiciones: devuelve un escenario completamente
-    validado o lanza una excepcion sin modificar ningun estado existente. Complejidad: O(F*C + U) temporal
-    y espacial por la decodificacion y conversion. Uso de IA: Si. Intervencion de IA: Codex propuso la
-    implementacion inicial conforme al contrato del PDF. Validacion del estudiante: pendiente de revision
-    del equipo; cubierta por pruebas automatizadas de carga y consultas.
+    Proposito: separar carga externa, validacion y representacion interna de escenarios. Precondiciones:
+    ``ruta`` identifica un archivo JSON legible, codificado en UTF-8 con o sin BOM. Postcondiciones:
+    devuelve un escenario completamente validado (incluidos ``version`` y ``prueba``) o lanza
+    ``ErrorValidacionEscenario`` con un mensaje claro, sin modificar ningun estado existente; los valores
+    no estandar ``NaN``/``Infinity`` se rechazan. Complejidad: O(F*C + U) temporal y espacial por la
+    decodificacion y conversion. Uso de IA: Si. Intervencion de IA: Codex propuso la implementacion
+    inicial conforme al contrato del PDF; Claude (Sonnet 5) agrego la captura del campo ``version``;
+    Claude (Opus 5.5) agrego la lectura UTF-8 con BOM, el error claro para archivos no UTF-8 y el rechazo
+    de ``NaN``/``Infinity``. Validacion del estudiante: pendiente de revision del equipo; cubierta por
+    pruebas automatizadas de carga del ejemplo del enunciado, dimensiones distintas de 20x20, campos
+    adicionales propios, codificacion y constantes no estandar.
     """
     try:
-        with Path(ruta).open(encoding="utf-8") as archivo:
-            contenido = json.load(archivo)
+        with Path(ruta).open(encoding="utf-8-sig") as archivo:
+            contenido = json.load(archivo, parse_constant=_rechazar_constante_no_estandar)
     except OSError as error:
         raise ErrorValidacionEscenario(f"No se pudo leer el escenario: {error}") from error
+    except UnicodeDecodeError as error:
+        raise ErrorValidacionEscenario(
+            f"El archivo debe estar codificado en UTF-8 (byte invalido en la posicion {error.start})."
+        ) from error
     except json.JSONDecodeError as error:
         raise ErrorValidacionEscenario(f"El archivo no contiene JSON valido: {error.msg}") from error
 
     validar_contenido_escenario(contenido)
     return _crear_escenario(contenido)
+
+
+def _rechazar_constante_no_estandar(constante: str) -> float:
+    # json acepta NaN e Infinity aunque no son JSON estandar, y NaN supera la comparacion "costo <= 0".
+    raise ErrorValidacionEscenario(f"El valor '{constante}' no es un numero JSON valido.")
 
 
 def _crear_escenario(contenido: Mapping[str, object]) -> Escenario:
@@ -59,6 +73,7 @@ def _crear_escenario(contenido: Mapping[str, object]) -> Escenario:
     prueba = contenido.get("prueba")
     assert isinstance(recurso, Mapping)
     return Escenario(
+        version=contenido["version"],
         filas=mapa["filas"],
         columnas=mapa["columnas"],
         tipos_terreno=tipos,

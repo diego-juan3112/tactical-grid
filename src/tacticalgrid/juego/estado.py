@@ -37,12 +37,13 @@ def crear_estado_inicial(escenario: Escenario) -> EstadoJuego:
     """Construye el estado dinamico inicial a partir de un escenario ya validado.
 
     Proposito: separar la representacion estatica cargada del estado que cambiara durante la partida.
-    Preconditions: ``escenario`` fue construido por la capa de escenario y cumple sus invariantes.
+    Precondiciones: ``escenario`` fue construido por la capa de escenario y cumple sus invariantes.
     Postcondiciones: devuelve un ``EstadoJuego`` independiente, sin leer JSON ni iniciar Pygame.
     Complejidad: O(U log U) temporal y O(U) espacial, donde U es el numero de unidades iniciales.
     Uso de IA: Si.
     Intervencion de IA: Codex propuso esta conversion inicial sin introducir reglas de movimiento y actualizo
-    su ubicacion a la capa de juego conforme a E0.3.
+    su ubicacion a la capa de juego conforme a E0.3; Claude (Sonnet 5) tradujo el encabezado de
+    precondiciones a espanol.
     Validacion del estudiante: cubierta por pruebas automatizadas de construccion e identidad del estado.
     """
     unidades = tuple(

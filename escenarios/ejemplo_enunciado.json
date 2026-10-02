@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "mapa": {
+    "filas": 4,
+    "columnas": 4
+  },
+  "tipos_terreno": {
+    "camino": {"costo": 1, "transitable": true},
+    "pasto": {"costo": 2, "transitable": true},
+    "bosque": {"costo": 4, "transitable": true},
+    "pantano": {"costo": 7, "transitable": true},
+    "muro": {"transitable": false}
+  },
+  "terreno": [
+    ["camino", "camino", "pasto", "pasto"],
+    ["camino", "muro", "bosque", "pasto"],
+    ["camino", "camino", "pantano", "pasto"],
+    ["pasto", "pasto", "camino", "camino"]
+  ],
+  "bases": {
+    "A": {"fila": 0, "columna": 0},
+    "B": {"fila": 3, "columna": 3}
+  },
+  "recurso": {"fila": 2, "columna": 2},
+  "unidades": [
+    {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 1},
+    {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 1, "columna": 0},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 3, "columna": 2},
+    {"id": "B2", "bando": "B", "tipo": "estandar", "fila": 2, "columna": 3}
+  ],
+  "turno": "A",
+  "juego": {
+    "portador_recurso": null,
+    "profundidad_maxima_minimax": 4
+  },
+  "prueba": {
+    "modo": "busqueda",
+    "unidad_inicio": "A1",
+    "objetivo": {"fila": 3, "columna": 2}
+  }
+}
