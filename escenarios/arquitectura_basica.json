@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "mapa": {"filas": 20, "columnas": 20},
+  "tipos_terreno": {
+    "camino": {"costo": 1, "transitable": true},
+    "bosque": {"costo": 4, "transitable": true},
+    "muro": {"transitable": false}
+  },
+  "terreno": [
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"]
+  ],
+  "bases": {"A": {"fila": 0, "columna": 0}, "B": {"fila": 19, "columna": 19}},
+  "recurso": {"fila": 10, "columna": 10},
+  "unidades": [
+    {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 1},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 19, "columna": 18}
+  ],
+  "turno": "A",
+  "juego": {"portador_recurso": null, "profundidad_maxima_minimax": 4}
+}
