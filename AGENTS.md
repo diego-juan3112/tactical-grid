@@ -1,7 +1,7 @@
 # AGENTS.md — TacticalGrid
 
-Guía de contexto para cualquier asistente de IA (o persona nueva) que colabore en este proyecto. Resuelve la
-historia **E0.1**. Este archivo es un resumen operativo.
+Guía de contexto para cualquier asistente de IA (o persona nueva) que colabore en este proyecto. Resume las
+decisiones estables aprobadas hasta la historia **E0.3**.
 
 ## Propósito del proyecto
 
@@ -32,49 +32,92 @@ Cualquier código o sugerencia de IA debe respetar esto sin excepción:
 
 ## Arquitectura y stack técnico
 
-**[PENDIENTE DE APROBACIÓN]** — el stack técnico y la estructura concreta de carpetas se definen en la
-historia **E0.3**. Hasta que esa historia se cierre:
+- **Python 3.12 o compatible:** permite expresar con claridad los algoritmos de busqueda y decision, mantener codigo legible y modificable, e integrar Pygame y pytest.
+- **Pygame:** TacticalGrid es un entorno tactico 2D en cuadricula; permite visualizar tablero, terrenos, unidades, caminos y resultados. Es suficiente para observar el sistema inteligente, no para un videojuego comercial, y se aisla exclusivamente en `src/tacticalgrid/interfaz/`.
+- **pytest:** permite pruebas automatizadas y reproducibles de escenario, juego y algoritmos sin abrir Pygame.
+- **JSON:** contrato externo para escenarios intercambiables.
+- **Uvicorn:** servidor ASGI para el punto tecnico aislado en `src/tacticalgrid/servidor/`; no sustituye `.venv` ni introduce un framework web.
+- **.venv:** entorno virtual local obligatorio para instalar y ejecutar dependencias.
+- **Git:** control de versiones.
 
-- Respetar la separación de 4 capas descrita arriba al proponer cualquier estructura.
-- Cuando E0.3 quede resuelta, **este archivo debe actualizarse** reemplazando esta sección con: lenguaje,
-  librerías principales, estructura real de carpetas, y comandos de instalación/ejecución/test.
+La estructura real es:
+
+```text
+src/tacticalgrid/
+├── escenario/    # carga, validacion y representacion estatica desde JSON
+├── juego/        # estado dinamico y futuras reglas del dominio
+├── algoritmos/   # resultados y futuras estrategias de busqueda/decision
+├── interfaz/     # visualizacion Pygame
+└── servidor/      # punto ASGI aislado para Uvicorn
+tests/
+├── escenario/
+├── juego/
+├── algoritmos/
+└── servidor/
+escenarios/
+```
+
+`escenario` carga, valida y provee datos estaticos, costos y transitabilidad. `juego` representa el estado
+dinamico, reglas, acciones y sucesores. `algoritmos` consume contratos del dominio: no lee JSON, no conoce
+Pygame ni contiene mapas, costos o posiciones codificados. `interfaz` consume estado y resultados para
+visualizarlos; no contiene reglas ni algoritmos. No se permiten dependencias circulares.
+
+E0.3 modela el estado solo a alto nivel: `Escenario` contiene datos estaticos y `EstadoJuego` contiene unidades,
+turno, posicion o portador del recurso y estado general de la partida. Una `Unidad` tiene identificador, bando,
+tipo y posicion. E1.1 concretara el modelo interno: igualdad, hashing, inmutabilidad, copia, representacion
+canonica y representacion para estados visitados. E0.3 no bloquea esas decisiones ni las reglas detalladas de transicion.
+
+Todo codigo propio, archivos, clases, funciones, variables, comentarios y documentacion se escribe en
+espanol. Las claves del JSON son una excepcion: son un contrato externo y se conservan literalmente.
 
 ## Escenarios JSON
 
 ### Dónde viven
 
-Los escenarios JSON de desarrollo y prueba viven en `scenarios/` (carpeta en la raíz del repo). Deben
-incluir, como mínimo: un escenario ≥ 20×20, un escenario donde una ruta con menos movimientos sea más
-costosa que una más larga, y un escenario donde BFS y UCS produzcan caminos distintos.
+Los escenarios JSON de desarrollo y prueba viven en `escenarios/` (carpeta en la raíz del repo). Deben
+incluir, como mínimo, un escenario ≥ 20×20. Los escenarios comparativos de ruta corta/costo y BFS/UCS
+se agregan junto con la implementacion de esos algoritmos, para no declarar resultados inexistentes.
 
 ### Cómo ejecutarlos
 
-**[PENDIENTE DE APROBACIÓN]** — depende del stack elegido en E0.3.
+Crear y activar un entorno virtual, e instalar las dependencias de desarrollo:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e '.[desarrollo]'
+```
+
+Ejecutar pruebas: `python -m pytest`.
+
+El punto de entrada funcional de la interfaz minima es `tacticalgrid`; requiere un entorno grafico y se
+cierra mediante el control de cierre de la ventana. El servidor ASGI se ejecuta con `python -m uvicorn tacticalgrid.servidor.asgi:aplicacion --reload`. La instalacion, pytest y este comando ASGI se verificaron en Linux dentro de un entorno virtual temporal.
 
 ### Campos obligatorios (referencia rápida)
 
 | Campo | Descripción |
 |---|---|
 | `version` | Versión del formato de escenario. |
-| `map.rows` / `map.columns` | Dimensiones de la cuadrícula. |
-| `land_types` | Catálogo de terrenos, costos y transitabilidad. |
-| `land` | Matriz que describe cada celda del mapa. |
-| `base.A` / `base.B` | Posiciones de las bases. |
-| `resource` | Posición del recurso cuando no está siendo transportado. |
-| `units` | Listado de unidades, bando, tipo y posición. |
-| `turn` | Bando que debe actuar. |
-| `game.resource_carrier` | ID de la unidad que transporta el recurso, o `null`. |
-| `test` | Configuración opcional para ejecutar `search`, `match` o `adversarial`. |
+| `mapa.filas` / `mapa.columnas` | Dimensiones de la cuadrícula. |
+| `tipos_terreno` | Catálogo de terrenos, costos y transitabilidad. |
+| `terreno` | Matriz que describe cada celda del mapa. |
+| `bases.A` / `bases.B` | Posiciones de las bases. |
+| `recurso` | Posición del recurso cuando no está siendo transportado. |
+| `unidades` | Listado de unidades, bando, tipo y posición. |
+| `turno` | Bando que debe actuar. |
+| `juego.portador_recurso` | ID de la unidad que transporta el recurso, o `null`. |
+| `prueba` | Configuración opcional para ejecutar `busqueda`, `partida` o `adversarial`. |
 
 Se pueden agregar campos propios siempre que no alteren el significado de los obligatorios. Los nombres de
-campo definidos por la especificación (en ingles, tal como están) deben respetarse literalmente.
+campo definidos por la especificación deben respetarse literalmente.
 
 ### Validación obligatoria antes de aplicar un escenario
 
-Filas/columnas positivas y consistentes · todos los terrenos usados existen en `land_types` · terrenos
+Filas/columnas positivas y consistentes · todos los terrenos usados existen en `tipos_terreno` · terrenos
 transitables tienen costo positivo · bases/recurso/unidades dentro del mapa · ninguna unidad sobre celda no
 transitable · IDs de unidad únicos · cada unidad pertenece a `A` o `B` · `turno` es `A` o `B` ·
-`resource_carrier` (si no es `null`) identifica una unidad existente.
+`portador_recurso` (si no es `null`) identifica una unidad existente.
 
 ## Algoritmos que cubre el proyecto (mapa completo)
 
@@ -96,8 +139,9 @@ En este orden de complejidad creciente:
 - **Minimax/alfa-beta:** nodos generados, nodos evaluados, nodos podados, profundidad alcanzada, tiempo,
   acción seleccionada, valor obtenido.
 
-Toda métrica debe exponerse en una estructura equivalente a la de ejemplo del PDF (campo `algorithm`,
-`success`, `road`, `cost`, `generated_states`, `expanded_states`, `maximum_limit(maxima_frontera)`), para que los experimentos sean reproducibles y comparables.
+Toda metrica debe exponer informacion equivalente: algoritmo, exito, camino, longitud, costo cuando
+corresponda, estados generados, estados expandidos, maximo de frontera y tiempo. Para Minimax/alfa-beta:
+nodos generados, nodos evaluados, nodos podados, profundidad alcanzada, tiempo, accion seleccionada y valor obtenido.
 
 ## Convención de documentación de métodos
 
@@ -132,7 +176,6 @@ exige este nivel de detalle para métodos triviales.
 
 ## Cuándo actualizar este archivo
 
-- Al cerrar **E0.3** (arquitectura/stack): reemplazar las secciones marcadas `[PENDIENTE DE APROBACIÓN]`.
 - Si cambia la estructura de carpetas, el formato de escenarios, o se agregan convenciones nuevas del
   equipo.
 - Este archivo describe reglas y contexto estables; no es el lugar para el detalle de cada historia

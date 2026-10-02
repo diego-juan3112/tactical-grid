@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tacticalgrid"
+version = "0.1.0"
+description = "Base arquitectonica del proyecto TacticalGrid."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pygame>=2.6",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+desarrollo = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+tacticalgrid = "tacticalgrid.interfaz.aplicacion:ejecutar_aplicacion"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
