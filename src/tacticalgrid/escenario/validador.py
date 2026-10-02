@@ -11,15 +11,21 @@ def validar_contenido_escenario(contenido: object) -> None:
     """Valida integralmente un contenido JSON antes de aplicarlo.
 
     Proposito: comprobar el contrato externo y rechazar escenarios inconsistentes antes de crear un
-    ``Escenario``. Preconditions: ``contenido`` es el valor decodificado desde JSON. Postcondiciones:
-    si retorna, se cumplen las invariantes estructurales validadas; si falla, no se crea ni altera estado
-    de juego alguno. Complejidad: O(F*C + U) temporal y O(U) espacial, donde F y C son dimensiones y U
+    ``Escenario``. Precondiciones: ``contenido`` es el valor decodificado desde JSON. Postcondiciones:
+    si retorna, se cumplen las invariantes estructurales validadas (incluidas ``version`` como cadena no
+    vacia y ``prueba`` como objeto o null cuando esta presente); si falla, no se crea ni altera estado de
+    juego alguno. Complejidad: O(F*C + U) temporal y O(U) espacial, donde F y C son dimensiones y U
     unidades. Uso de IA: Si. Intervencion de IA: Codex propuso la validacion inicial a partir del contrato
-    del PDF. Validacion del estudiante: pendiente de revision del equipo; cubierta por pruebas de carga.
+    del PDF; Claude (Sonnet 5) agrego la validacion de tipo del campo ``version``; Claude (Opus 5.5)
+    agrego el rechazo de un ``prueba`` que no sea objeto, que antes se descartaba en silencio. Validacion
+    del estudiante: pendiente de revision del equipo; cubierta por pruebas de carga.
     """
     raiz = _exigir_diccionario(contenido, "El escenario debe ser un objeto JSON.")
     for campo in ("version", "mapa", "tipos_terreno", "terreno", "bases", "recurso", "unidades", "turno", "juego"):
         _exigir_campo(raiz, campo)
+
+    if not isinstance(raiz["version"], str) or not raiz["version"]:
+        raise ErrorValidacionEscenario("El campo 'version' debe ser una cadena no vacia.")
 
     mapa = _exigir_diccionario(raiz["mapa"], "El campo 'mapa' debe ser un objeto.")
     filas = _exigir_entero_positivo(mapa, "filas")
@@ -77,6 +83,8 @@ def validar_contenido_escenario(contenido: object) -> None:
         raise ErrorValidacionEscenario("El campo 'juego.portador_recurso' es obligatorio.")
     if juego["portador_recurso"] is not None and juego["portador_recurso"] not in identificadores:
         raise ErrorValidacionEscenario("El portador_recurso debe identificar una unidad existente o ser null.")
+    if raiz.get("prueba") is not None and not isinstance(raiz["prueba"], Mapping):
+        raise ErrorValidacionEscenario("El campo opcional 'prueba' debe ser un objeto o null.")
 
 
 def _exigir_diccionario(valor: object, mensaje: str) -> Mapping[str, object]:

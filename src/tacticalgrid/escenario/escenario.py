@@ -29,6 +29,7 @@ class UnidadInicial:
 class Escenario:
     """Informacion estatica validada que provee el escenario externo al dominio."""
 
+    version: str
     filas: int
     columnas: int
     tipos_terreno: Mapping[str, TipoTerreno]
