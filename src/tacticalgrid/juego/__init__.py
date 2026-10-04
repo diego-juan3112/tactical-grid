@@ -3,6 +3,7 @@
 from .accion import Accion
 from .estado import EstadoJuego, crear_estado_inicial
 from .problema import Problema, ProblemaNavegacion
+from .partida import acciones_para_unidad, preparar_turno, unidades_seleccionables
 from .reglas import (
     acciones_validas,
     aplicar_accion,
@@ -20,6 +21,7 @@ __all__ = [
     "Problema",
     "ProblemaNavegacion",
     "Unidad",
+    "acciones_para_unidad",
     "acciones_validas",
     "aplicar_accion",
     "costo_accion",
@@ -28,4 +30,6 @@ __all__ = [
     "es_terminal",
     "generar_sucesores",
     "obtener_ganador",
+    "preparar_turno",
+    "unidades_seleccionables",
 ]
