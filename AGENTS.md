@@ -68,7 +68,18 @@ posicion del recurso cuando no tiene portador, identificador del portador y esta
 las unidades se normalizan por identificador, de modo que su orden de almacenamiento no altera la identidad logica.
 Las posiciones afectan acciones y transiciones, el turno determina que bando actua y el portador distingue estados
 visualmente iguales que pueden exigir decisiones distintas. El estado no codifica dimensiones ni posiciones fijas:
-esa informacion pertenece al escenario cargado. Las reglas detalladas de transicion se definen en historias posteriores.
+esa informacion pertenece al escenario cargado.
+
+E1.2 define el modelo de transicion en `juego/reglas.py` y `juego/problema.py`. Una `Accion` mueve una unidad
+una celda ortogonal (orden fijo: arriba, abajo, izquierda, derecha). En la partida actua solo el bando en turno; el
+destino debe estar dentro del mapa, ser transitable y estar libre; entrar en la celda del recurso libre lo recoge; el
+recurso viaja con su portador; el turno pasa al otro bando. **Condicion objetivo:** gana el bando cuyo portador esta en
+su propia base (`estado_partida = "victoria_<bando>"`); una partida terminada o un bando con todas sus unidades
+bloqueadas no tiene acciones. **Costo:** el del terreno de la celda destino, leido del escenario. `Problema` es el
+contrato comun para los algoritmos de busqueda (`estado_inicial`, `acciones`, `resultado`, `es_objetivo`, `costo`);
+`ProblemaNavegacion` mueve una sola unidad hasta una celda, sin cambiar el turno y sin que las demas unidades
+bloqueen (se ignora al adversario). Robo del recurso, intercepcion y otras acciones adversariales quedan para
+historias posteriores.
 
 Todo codigo propio, archivos, clases, funciones, variables, comentarios y documentacion se escribe en
 espanol. Las claves del JSON son una excepcion: son un contrato externo y se conservan literalmente.
