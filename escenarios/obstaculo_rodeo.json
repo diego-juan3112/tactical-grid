@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "descripcion": "Variante pequena: el objetivo esta a 3 celdas en linea recta de A1, pero un muro en forma de U obliga a salir por la abertura inferior y rodearlo. Sirve para observar como la heuristica Manhattan subestima.",
+  "mapa": {
+    "filas": 8,
+    "columnas": 7
+  },
+  "tipos_terreno": {
+    "camino": {"costo": 1, "transitable": true},
+    "pasto": {"costo": 2, "transitable": true},
+    "bosque": {"costo": 4, "transitable": true},
+    "pantano": {"costo": 7, "transitable": true},
+    "muro": {"transitable": false}
+  },
+  "terreno": [
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "pasto", "camino", "camino", "camino"],
+    ["camino", "muro", "muro", "muro", "muro", "muro", "camino"],
+    ["camino", "muro", "camino", "camino", "camino", "muro", "camino"],
+    ["camino", "muro", "camino", "camino", "camino", "muro", "camino"],
+    ["camino", "muro", "camino", "camino", "camino", "muro", "camino"],
+    ["camino", "muro", "muro", "camino", "muro", "muro", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino"]
+  ],
+  "bases": {
+    "A": {"fila": 7, "columna": 0},
+    "B": {"fila": 0, "columna": 6}
+  },
+  "recurso": {"fila": 1, "columna": 3},
+  "unidades": [
+    {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 4, "columna": 3},
+    {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 7, "columna": 1},
+    {"id": "A3", "bando": "A", "tipo": "estandar", "fila": 7, "columna": 2},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 0, "columna": 5},
+    {"id": "B2", "bando": "B", "tipo": "estandar", "fila": 1, "columna": 6},
+    {"id": "B3", "bando": "B", "tipo": "estandar", "fila": 0, "columna": 4}
+  ],
+  "turno": "A",
+  "juego": {
+    "portador_recurso": null,
+    "profundidad_maxima_minimax": 4
+  },
+  "prueba": {
+    "modo": "busqueda",
+    "unidad_inicio": "A1",
+    "objetivo": {"fila": 1, "columna": 3}
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "descripcion": "Variante pequena: la ruta recta de A1 al objetivo tiene 8 movimientos por pantano (costo 50); rodear por el camino superior toma 12 movimientos y cuesta 12. BFS y UCS deben elegir rutas distintas.",
+  "mapa": {
+    "filas": 5,
+    "columnas": 9
+  },
+  "tipos_terreno": {
+    "camino": {"costo": 1, "transitable": true},
+    "pasto": {"costo": 2, "transitable": true},
+    "bosque": {"costo": 4, "transitable": true},
+    "pantano": {"costo": 7, "transitable": true},
+    "muro": {"transitable": false}
+  },
+  "terreno": [
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "muro", "muro", "muro", "muro", "muro", "muro", "muro", "camino"],
+    ["camino", "pantano", "pantano", "pantano", "pantano", "pantano", "pantano", "pantano", "camino"],
+    ["pasto", "muro", "muro", "muro", "muro", "muro", "muro", "muro", "pasto"],
+    ["pasto", "pasto", "pasto", "pasto", "pasto", "pasto", "pasto", "pasto", "pasto"]
+  ],
+  "bases": {
+    "A": {"fila": 0, "columna": 0},
+    "B": {"fila": 4, "columna": 8}
+  },
+  "recurso": {"fila": 2, "columna": 4},
+  "unidades": [
+    {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 2, "columna": 0},
+    {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 0},
+    {"id": "A3", "bando": "A", "tipo": "estandar", "fila": 4, "columna": 0},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 2, "columna": 8},
+    {"id": "B2", "bando": "B", "tipo": "estandar", "fila": 4, "columna": 8},
+    {"id": "B3", "bando": "B", "tipo": "estandar", "fila": 0, "columna": 8}
+  ],
+  "turno": "A",
+  "juego": {
+    "portador_recurso": null,
+    "profundidad_maxima_minimax": 4
+  },
+  "prueba": {
+    "modo": "busqueda",
+    "unidad_inicio": "A1",
+    "objetivo": {"fila": 2, "columna": 8}
+  }
+}
