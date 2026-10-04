@@ -36,6 +36,8 @@ E1.1 define `EstadoJuego` y `Unidad` como objetos inmutables y hashables. Las un
 
 E1.2 define acciones, sucesores, condicion objetivo y costo. Cada accion mueve una unidad del bando en turno una celda ortogonal a una celda dentro del mapa, transitable y libre; al entrar en la celda del recurso libre la unidad lo recoge, y el recurso viaja con ella. Un bando gana cuando su portador llega a su propia base. El costo de una accion es el costo del terreno destino declarado en `tipos_terreno`, por lo que cambiar un costo en el JSON cambia el comportamiento sin tocar codigo. Los algoritmos de busqueda consumen el contrato `Problema`; `ProblemaNavegacion` lleva una unidad a una celda objetivo ignorando al adversario.
 
+E2.3 agrega un set propio de escenarios en `escenarios/` para desarrollar y depurar algoritmos antes de recibir los del profesor: un mapa de 20 x 20 con todos los tipos de terreno y variantes pequenas. En `campo_20x20.json` y `ruta_corta_vs_economica.json` la ruta con menos movimientos es mas costosa que una mas larga, por lo que BFS y UCS deben producir caminos distintos (caso reutilizable en E5.2). Las pruebas de `tests/escenario/test_escenarios_propios.py` comprueban estas propiedades sobre el modelo de E1.2, con los costos leidos del JSON.
+
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 
 ## Estructura
@@ -97,4 +99,17 @@ Para salir del entorno virtual en Windows o Linux:
 deactivate
 ```
 
-`escenarios/arquitectura_basica.json` es un escenario valido de 20 x 20. Los escenarios comparativos de BFS/UCS se incorporaran con esas implementaciones, sin anticipar resultados que aun no existen.
+## Escenarios
+
+Todos los escenarios viven en `escenarios/` y usan el formato JSON comun. El campo propio `descripcion` explica el proposito de cada uno; `prueba` indica la navegacion a resolver (unidad y objetivo) o el modo de juego.
+
+| Archivo | Tamano | Proposito |
+|---|---|---|
+| `ejemplo_enunciado.json` | 4 x 4 | Ejemplo literal del enunciado. |
+| `arquitectura_basica.json` | 20 x 20 | Mapa abierto, todo camino; comprueba carga y exploracion en 20 x 20. |
+| `campo_20x20.json` | 20 x 20 | Mapa principal de desarrollo: anillo de camino, lago de pantano con el recurso en una isla, bosques y muros. Ruta mas corta de A1 al recurso: 16 movimientos, costo 42; ruta mas economica: 34 movimientos, costo 34. |
+| `ruta_corta_vs_economica.json` | 5 x 9 | BFS vs. UCS: la ruta recta por pantano tiene 8 movimientos y cuesta 50; rodear por camino toma 12 movimientos y cuesta 12. Con el pantano a costo 1, ambas coinciden. |
+| `obstaculo_rodeo.json` | 8 x 7 | El objetivo esta a distancia Manhattan 3, pero un muro en U obliga a un recorrido de 15 movimientos (caso 3: obstaculo y heuristica). |
+| `recurso_en_transporte.json` | 6 x 8 | Partida con `portador_recurso` = `A2` (caso 6: estado compuesto). |
+
+Los numeros de la tabla son verificados por pytest con un calculo de referencia sobre el modelo del juego; no son resultados de BFS ni UCS, que se implementan en historias posteriores.
