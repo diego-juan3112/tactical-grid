@@ -145,11 +145,14 @@ def desplazar_unidad(escenario: Escenario, estado: EstadoJuego, accion: Accion) 
     comparten la partida por turnos y la navegacion de una sola unidad.
     Precondiciones: ``accion`` fue generada por ``generar_movimientos`` o ``acciones_validas`` para ``estado``.
     Postcondiciones: la unidad indicada queda en ``accion.destino``; si el recurso estaba libre en esa celda,
-    la unidad pasa a ser su portador y ``posicion_recurso`` queda en ``None``; si el portador queda en su base,
-    ``estado_partida`` pasa a ``"victoria_<bando>"``. El turno se conserva y ``estado`` no se modifica.
+    la unidad pasa a ser su portador y ``posicion_recurso`` queda en ``None``; ``estado_partida`` es
+    ``"victoria_<bando>"`` si el portador queda en su base y vuelve a ``"en_curso"`` si una victoria previa ya no
+    se cumple (solo ocurre en navegacion, donde la unidad puede seguir moviendose). El turno se conserva y
+    ``estado`` no se modifica.
     Complejidad: O(U log U) temporal y O(U) espacial por la reconstruccion canonica de la tupla de unidades.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion.
+    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion; en E4.1 corrigio que la
+    marca de victoria quedara fija al salir el portador de su base, lo que duplicaba estados en navegacion.
     Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
     pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
     """
@@ -165,7 +168,9 @@ def desplazar_unidad(escenario: Escenario, estado: EstadoJuego, accion: Accion) 
     sucesor = replace(estado, unidades=unidades, portador_recurso=portador, posicion_recurso=posicion_recurso)
     ganador = obtener_ganador(escenario, sucesor)
     if ganador is not None:
-        sucesor = replace(sucesor, estado_partida=f"victoria_{ganador}")
+        return replace(sucesor, estado_partida=f"victoria_{ganador}")
+    if sucesor.estado_partida.startswith("victoria_"):
+        return replace(sucesor, estado_partida=EN_CURSO)
     return sucesor
 
 
