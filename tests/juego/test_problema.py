@@ -62,3 +62,20 @@ def test_problema_rechaza_unidad_inexistente_u_objetivo_fuera_del_mapa() -> None
         ProblemaNavegacion(escenario, "Z9", Posicion(0, 0))
     with pytest.raises(ValueError):
         ProblemaNavegacion(escenario, "A1", Posicion(4, 0))
+
+
+def test_la_marca_de_victoria_no_queda_fija_si_el_portador_sale_de_su_base() -> None:
+    """En navegacion la unidad puede seguir moviendose; el estado debe reflejar solo la situacion actual."""
+    problema = ProblemaNavegacion(cargar_escenario(EJEMPLO_ENUNCIADO), "A1", Posicion(3, 3))
+    estado = problema.estado_inicial
+    # A1 recoge el recurso en (2, 2), lo lleva a su base (0, 0) y vuelve a salir hacia (0, 1).
+    recorrido = [Posicion(0, 0), Posicion(1, 0), Posicion(2, 0), Posicion(2, 1), Posicion(2, 2)]
+    recorrido += [Posicion(2, 1), Posicion(2, 0), Posicion(1, 0), Posicion(0, 0), Posicion(0, 1)]
+    estados = []
+    for destino in recorrido:
+        estado = problema.resultado(estado, Accion("A1", problema.posicion(estado), destino))
+        estados.append(estado)
+
+    assert estados[4].portador_recurso == "A1"
+    assert estados[8].estado_partida == "victoria_A"
+    assert estados[9].estado_partida == "en_curso"

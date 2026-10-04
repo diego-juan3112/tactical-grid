@@ -76,7 +76,7 @@ destino debe estar dentro del mapa, ser transitable y estar libre; entrar en la 
 recurso viaja con su portador; el turno pasa al otro bando. **Condicion objetivo:** gana el bando cuyo portador esta en
 su propia base (`estado_partida = "victoria_<bando>"`); una partida terminada o un bando con todas sus unidades
 bloqueadas no tiene acciones. **Costo:** el del terreno de la celda destino, leido del escenario. `Problema` es el
-contrato comun para los algoritmos de busqueda (`estado_inicial`, `acciones`, `resultado`, `es_objetivo`, `costo`);
+contrato comun para los algoritmos de busqueda (`estado_inicial`, `acciones`, `resultado`, `es_objetivo`, `costo`, `posicion`);
 `ProblemaNavegacion` mueve una sola unidad hasta una celda, sin cambiar el turno y sin que las demas unidades
 bloqueen (se ignora al adversario). Robo del recurso, intercepcion y otras acciones adversariales quedan para
 historias posteriores.
@@ -163,6 +163,13 @@ En este orden de complejidad creciente:
 Toda metrica debe exponer informacion equivalente: algoritmo, exito, camino, longitud, costo cuando
 corresponda, estados generados, estados expandidos, maximo de frontera y tiempo. Para Minimax/alfa-beta:
 nodos generados, nodos evaluados, nodos podados, profundidad alcanzada, tiempo, accion seleccionada y valor obtenido.
+
+Todo algoritmo de busqueda debe usar la instrumentacion comun de `algoritmos/instrumentacion.py` (E4.1) en lugar de
+contar por su cuenta: `Nodo` para el arbol, `expandir` para generar hijos (cuenta la expansion y acumula el costo del
+JSON) y `MedidorBusqueda` para los contadores y el resultado. Convencion: un estado **generado** es uno incorporado a
+la frontera (el inicial cuenta); uno descartado por repetido no cuenta. Se llama `registrar_generado` al agregar a la
+frontera y `observar_frontera(len(frontera))` tras cada cambio de tamano; el algoritmo termina con
+`medidor.finalizar(problema, nodo_objetivo_o_None)`.
 
 ## Convención de documentación de métodos
 

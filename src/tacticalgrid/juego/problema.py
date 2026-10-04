@@ -22,6 +22,8 @@ class Problema(Protocol):
 
     def costo(self, estado: EstadoJuego, accion: Accion) -> int | float: ...
 
+    def posicion(self, estado: EstadoJuego) -> Posicion: ...
+
 
 class ProblemaNavegacion:
     """Lleva una unidad desde su posicion actual hasta una celda objetivo ignorando al adversario.
@@ -71,7 +73,11 @@ class ProblemaNavegacion:
 
     def es_objetivo(self, estado: EstadoJuego) -> bool:
         """Condicion objetivo: la unidad navegante ocupa la celda objetivo."""
-        return buscar_unidad(estado, self.identificador_unidad).posicion == self.objetivo
+        return self.posicion(estado) == self.objetivo
+
+    def posicion(self, estado: EstadoJuego) -> Posicion:
+        """Posicion de la unidad navegante; con ella se reporta el camino de una busqueda."""
+        return buscar_unidad(estado, self.identificador_unidad).posicion
 
     def costo(self, estado: EstadoJuego, accion: Accion) -> int | float:
         """Costo del paso: el del terreno destino segun el JSON cargado."""
