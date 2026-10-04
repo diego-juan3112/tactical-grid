@@ -1,6 +1,6 @@
 """Reglas de transicion de la partida: acciones validas, sucesores, condicion objetivo y costo.
 
-Reglas deterministas definidas en E1.2:
+Reglas deterministas definidas en E1.2 y E1.3:
 
 - En cada turno el bando en ``turno_actual`` elige una de sus unidades y la mueve una celda en direccion
   ortogonal (arriba, abajo, izquierda, derecha). No hay movimientos diagonales.
@@ -9,8 +9,10 @@ Reglas deterministas definidas en E1.2:
 - El recurso viaja con su portador. Si el portador entra en la base de su propio bando, ese bando gana.
 - Tras cada accion el turno pasa al otro bando.
 - El costo de una accion es el costo del terreno de la celda destino, leido del escenario cargado.
-- Una partida terminada no tiene acciones validas. Un bando sin movimientos posibles (todas sus unidades
-  bloqueadas) tampoco tiene acciones validas en ese estado.
+- Una partida terminada no tiene acciones validas. Una unidad bloqueada no aporta acciones; si todo el bando
+  esta bloqueado, se pasa el turno al adversario si puede actuar, o se declara empate si ambos estan bloqueados.
+- La intercepcion transfiere el recurso a una unidad adversaria sin eliminar unidades ni cambiar el turno.
+- La ausencia de ruta es resultado de busqueda y no modifica el estado del juego.
 """
 
 from dataclasses import replace
@@ -22,6 +24,7 @@ from .estado import EstadoJuego
 from .unidad import Unidad
 
 EN_CURSO = "en_curso"
+EMPATE_BLOQUEO = "empate_bloqueo"
 BANDOS = ("A", "B")
 
 
@@ -45,8 +48,20 @@ def obtener_ganador(escenario: Escenario, estado: EstadoJuego) -> str | None:
 
 
 def es_terminal(escenario: Escenario, estado: EstadoJuego) -> bool:
-    """Indica si la partida termino porque algun bando ya cumplio la condicion objetivo."""
-    return obtener_ganador(escenario, estado) is not None
+    """Indica si hay victoria o empate por bloqueo total.
+
+    Proposito: centralizar el reconocimiento de los resultados terminales de la partida.
+    Precondiciones: ``estado`` es coherente con ``escenario``.
+    Postcondiciones: devuelve verdadero para una victoria vigente o ``empate_bloqueo``; no modifica el estado.
+    Complejidad: O(U) temporal y O(1) espacial, donde U es la cantidad de unidades.
+    Uso de IA: Si.
+    Intervencion de IA: Codex extendio la condicion existente para reconocer el empate aprobado en E1.3.
+    Validacion del estudiante: se reviso manualmente la implementacion contra los criterios de aceptacion de E1.3.
+    Se ejecutaron las pruebas especificas de reglas de juego y la suite completa del proyecto; se verificaron los
+    casos de bloqueo individual, pase automatico, empate por bloqueo total, intercepcion valida e invalida,
+    intercepcion en base propia y preservacion de la inmutabilidad del estado.
+    """
+    return estado.estado_partida == EMPATE_BLOQUEO or obtener_ganador(escenario, estado) is not None
 
 
 def generar_movimientos(
@@ -78,7 +93,8 @@ def acciones_validas(escenario: Escenario, estado: EstadoJuego) -> tuple[Accion,
     Proposito: definir el conjunto de acciones validas de la partida, comun a Minimax, alfa-beta y la interfaz.
     Precondiciones: ``estado`` es coherente con ``escenario``.
     Postcondiciones: devuelve una tupla vacia si la partida termino o si todas las unidades del bando en
-    turno estan bloqueadas; en otro caso, los movimientos de cada unidad del bando, recorridas en orden de
+    turno estan bloqueadas; una unidad bloqueada no impide acciones de sus aliadas. En otro caso, devuelve los
+    movimientos de cada unidad del bando, recorridas en orden de
     identificador y, para cada una, en el orden de ``DESPLAZAMIENTOS``. No modifica el estado.
     Complejidad: O(U) temporal y espacial: el conjunto de ocupadas se calcula una vez y cada unidad aporta a
     lo sumo cuatro acciones.
@@ -96,6 +112,71 @@ def acciones_validas(escenario: Escenario, estado: EstadoJuego) -> tuple[Accion,
         if unidad.bando == estado.turno_actual
         for accion in generar_movimientos(escenario, unidad, ocupadas)
     )
+
+
+def resolver_bloqueo_turno(escenario: Escenario, estado: EstadoJuego) -> EstadoJuego:
+    """Aplica el pase automatico o empate cuando el bando activo no tiene acciones.
+
+    Proposito: resolver de manera determinista el bloqueo del bando activo sin generar pases recursivos.
+    Precondiciones: ``estado`` es coherente con ``escenario`` y sus unidades representan la situacion actual.
+    Postcondiciones: conserva el estado si hay acciones activas o la partida ya termino; pasa el turno una vez
+    si solo el adversario puede actuar; si ninguno puede, devuelve un estado con ``empate_bloqueo``. El original
+    no se modifica.
+    Complejidad: O(U) temporal y espacial, por consultar las acciones de ambos bandos y copiar el estado.
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento la transicion conforme a las decisiones aprobadas para E1.3.
+    Validacion del estudiante: se reviso manualmente la implementacion contra los criterios de aceptacion de E1.3.
+    Se ejecutaron las pruebas especificas de reglas de juego y la suite completa del proyecto; se verificaron los
+    casos de bloqueo individual, pase automatico, empate por bloqueo total, intercepcion valida e invalida,
+    intercepcion en base propia y preservacion de la inmutabilidad del estado.
+    """
+    if es_terminal(escenario, estado) or acciones_validas(escenario, estado):
+        return estado
+    turno_adversario = _otro_bando(estado.turno_actual)
+    estado_adversario = replace(estado, turno_actual=turno_adversario)
+    if acciones_validas(escenario, estado_adversario):
+        return estado_adversario
+    return replace(estado, estado_partida=EMPATE_BLOQUEO)
+
+
+def resolver_intercepcion(
+    escenario: Escenario, estado: EstadoJuego, identificador_interceptor: str
+) -> EstadoJuego:
+    """Transfiere atomicamente el recurso del portador actual a una unidad adversaria.
+
+    Proposito: aplicar la consecuencia de dominio de una intercepcion ya establecida, sin definir su accion espacial.
+    Precondiciones: la partida esta en curso, hay un portador existente y el interceptor existe, pertenece al otro
+    bando y no es el portador actual.
+    Postcondiciones: devuelve un nuevo estado con el interceptor como portador y ``posicion_recurso=None``;
+    conserva unidades y turno, y registra la victoria si el nuevo portador esta en su propia base. No muta el estado
+    original. Condiciones invalidas lanzan ``ValueError``.
+    Complejidad: O(U) temporal y espacial para localizar las unidades y crear el estado inmutable.
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento la transferencia atomica conforme a las decisiones aprobadas para E1.3.
+    Validacion del estudiante: se reviso manualmente la implementacion contra los criterios de aceptacion de E1.3.
+    Se ejecutaron las pruebas especificas de reglas de juego y la suite completa del proyecto; se verificaron los
+    casos de bloqueo individual, pase automatico, empate por bloqueo total, intercepcion valida e invalida,
+    intercepcion en base propia y preservacion de la inmutabilidad del estado.
+    """
+    if estado.estado_partida != EN_CURSO or es_terminal(escenario, estado):
+        raise ValueError("No se puede interceptar fuera de una partida en curso.")
+    if estado.portador_recurso is None:
+        raise ValueError("No hay un portador actual del recurso para interceptar.")
+    portador = _buscar_unidad(estado, estado.portador_recurso)
+    interceptor = _buscar_unidad(estado, identificador_interceptor)
+    if portador is None:
+        raise ValueError(f"No existe el portador '{estado.portador_recurso}' en el estado.")
+    if interceptor is None:
+        raise ValueError(f"No existe la unidad interceptora '{identificador_interceptor}' en el estado.")
+    if interceptor.identificador == portador.identificador:
+        raise ValueError("La unidad portadora actual no puede interceptarse a si misma.")
+    if interceptor.bando == portador.bando:
+        raise ValueError("La unidad interceptora debe pertenecer al bando contrario al portador.")
+    sucesor = replace(estado, portador_recurso=identificador_interceptor, posicion_recurso=None)
+    ganador = obtener_ganador(escenario, sucesor)
+    if ganador is not None:
+        return replace(sucesor, estado_partida=f"victoria_{ganador}")
+    return sucesor
 
 
 def es_accion_valida(escenario: Escenario, estado: EstadoJuego, accion: Accion) -> bool:
