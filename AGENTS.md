@@ -88,6 +88,14 @@ intercepcion transfiere el recurso a una unidad adversaria existente, y la conse
 turno. Si el nuevo portador esta en su propia base, la transicion registra su victoria. Una futura accion de
 intercepcion debe alternar el turno una sola vez mediante el mecanismo normal.
 
+E3.1 orquesta los turnos paso a paso en la capa `juego`; el consumidor exterior repite las operaciones y el dominio
+no ejecuta una partida completa en un bucle. La seleccion de unidad/accion es transitoria y no forma parte de
+`EstadoJuego`. Solo son seleccionables las unidades del bando activo que tengan acciones legales; una unidad activa
+bloqueada puede consultarse y devuelve cero acciones, pero no es seleccionable. `aplicar_accion()` es la autoridad
+para alternar tras una accion normal y `resolver_bloqueo_turno()` para el pase automatico. Ningun orquestador vuelve
+a cambiar el turno despues de esas funciones. A y B usan las mismas reglas; MAX/MIN son roles de algoritmos
+adversariales, no capacidades distintas de los bandos.
+
 Todo codigo propio, archivos, clases, funciones, variables, comentarios y documentacion se escribe en
 espanol. Las claves del JSON son una excepcion: son un contrato externo y se conservan literalmente.
 
