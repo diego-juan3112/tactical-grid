@@ -61,6 +61,12 @@ E2.3 agrega un set propio de escenarios en `escenarios/` para desarrollar y depu
 
 E4.1 agrega la instrumentacion comun de busqueda en `algoritmos/instrumentacion.py`, para que BFS, DFS, UCS, A* y Beam Search reporten resultados comparables sin duplicar codigo. `Nodo` guarda estado, padre, accion, costo acumulado y profundidad; `expandir` genera los hijos en el orden de las acciones, con el costo leido del escenario, y cuenta la expansion; `MedidorBusqueda` lleva estados generados (incorporados a la frontera, incluido el inicial), estados expandidos, maximo de frontera y tiempo, y construye el `ResultadoBusqueda`. `ResultadoBusqueda.a_diccionario()` devuelve la estructura del enunciado (`algoritmo`, `exito`, `camino`, `costo`, `estados_generados`, `estados_expandidos`, `maximo_frontera`) mas `longitud` y `tiempo_segundos`; el resultado tambien conserva las acciones para el verificador de soluciones.
 
+## BFS — E4.2
+
+BFS es una busqueda no informada: usa una frontera FIFO y explora los estados por niveles. Con cada accion equivalente a un movimiento, encuentra una solucion con la menor cantidad de movimientos. El costo del terreno no afecta el orden ni desempata rutas; `ResultadoBusqueda.costo` aun informa la suma real de costos del camino y `longitud` informa sus movimientos.
+
+La implementacion consume `Problema`, marca el `EstadoJuego` completo como descubierto al encolarlo y descarta estados repetidos. Esto evita ciclos y conserva diferencias de estado relevantes, como el portador del recurso. Mantiene el orden de acciones del problema para resultados deterministas. Cada `Nodo` conserva padre y accion; `MedidorBusqueda.finalizar()` reconstruye camino y acciones. Si la frontera se agota, el resultado indica fracaso, con camino y acciones vacios y costo `None`; los contadores y el tiempo reflejan la exploracion realizada. BFS reutiliza las metricas E4.1 y no depende de dimensiones, coordenadas ni escenarios particulares.
+
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 
 ## Estructura
