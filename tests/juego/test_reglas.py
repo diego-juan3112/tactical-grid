@@ -16,6 +16,8 @@ from tacticalgrid.juego.reglas import (
     es_terminal,
     generar_sucesores,
     obtener_ganador,
+    resolver_bloqueo_turno,
+    resolver_intercepcion,
 )
 from tacticalgrid.juego.unidad import Unidad
 
@@ -164,6 +166,163 @@ def test_bando_bloqueado_no_tiene_acciones(tmp_path, contenido_escenario_valido)
     escenario = _cargar(tmp_path, contenido_escenario_valido)
 
     assert acciones_validas(escenario, crear_estado_inicial(escenario)) == ()
+
+
+def _escenario_con_unidades(tmp_path, contenido, unidades):
+    contenido["unidades"] = unidades
+    return _cargar(tmp_path, contenido)
+
+
+def test_unidad_bloqueada_no_impide_acciones_de_su_bando(tmp_path, contenido_escenario_valido) -> None:
+    escenario = _escenario_con_unidades(
+        tmp_path,
+        contenido_escenario_valido,
+        [
+            {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 0},
+            {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 1, "columna": 0},
+            {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 1, "columna": 2},
+        ],
+    )
+    estado = crear_estado_inicial(escenario)
+
+    acciones = acciones_validas(escenario, estado)
+
+    assert acciones == (Accion("A2", Posicion(1, 0), Posicion(1, 1)),)
+    assert estado.turno_actual == "A"
+    with pytest.raises(ValueError):
+        aplicar_accion(escenario, estado, Accion("A1", Posicion(0, 0), Posicion(0, 1)))
+    assert estado.turno_actual == "A"
+    assert estado == crear_estado_inicial(escenario)
+
+
+def _estado_bloqueado(unidades, turno="A"):
+    return EstadoJuego(
+        unidades=tuple(unidades),
+        turno_actual=turno,
+        posicion_recurso=Posicion(0, 2),
+        portador_recurso=None,
+    )
+
+
+def _unidades_bloqueo_total(incluir_b2=False):
+    unidades = [
+        Unidad("A1", "A", "estandar", Posicion(0, 0)),
+        Unidad("A2", "A", "estandar", Posicion(1, 0)),
+        Unidad("A3", "A", "estandar", Posicion(1, 1)),
+        Unidad("B1", "B", "estandar", Posicion(1, 2)),
+    ]
+    if incluir_b2:
+        unidades.append(Unidad("B2", "B", "estandar", Posicion(0, 2)))
+    return tuple(unidades)
+
+
+def test_bloqueo_de_bando_pasa_turno_al_adversario_que_puede_actuar(tmp_path, contenido_escenario_valido) -> None:
+    escenario = _cargar(tmp_path, contenido_escenario_valido)
+    estado = _estado_bloqueado(_unidades_bloqueo_total())
+
+    assert acciones_validas(escenario, estado) == ()
+    resultado = resolver_bloqueo_turno(escenario, estado)
+
+    assert resultado == EstadoJuego(estado.unidades, "B", estado.posicion_recurso, None, estado.estado_partida)
+    assert estado.turno_actual == "A"
+    assert acciones_validas(escenario, resultado)
+
+
+def test_bloqueo_total_termina_en_empate_sin_pases_repetidos(tmp_path, contenido_escenario_valido) -> None:
+    escenario = _cargar(tmp_path, contenido_escenario_valido)
+    estado = _estado_bloqueado(_unidades_bloqueo_total(incluir_b2=True))
+
+    assert acciones_validas(escenario, estado) == ()
+    resultado = resolver_bloqueo_turno(escenario, estado)
+
+    assert resultado.estado_partida == "empate_bloqueo"
+    assert resolver_bloqueo_turno(escenario, resultado) == resultado
+    assert es_terminal(escenario, resultado)
+    assert acciones_validas(escenario, resultado) == ()
+    assert resultado in {resultado}
+
+
+def test_intercepcion_transfiere_el_recurso_sin_cambiar_turno_ni_eliminar_unidades(ruta_escenario_valido) -> None:
+    escenario = cargar_escenario(ruta_escenario_valido)
+    estado = EstadoJuego(
+        unidades=(
+            Unidad("A1", "A", "estandar", Posicion(1, 0)),
+            Unidad("B1", "B", "estandar", Posicion(0, 2)),
+        ),
+        turno_actual="A",
+        posicion_recurso=None,
+        portador_recurso="A1",
+    )
+
+    resultado = resolver_intercepcion(escenario, estado, "B1")
+
+    assert resultado.portador_recurso == "B1"
+    assert resultado.posicion_recurso is None
+    assert {unidad.identificador for unidad in resultado.unidades} == {"A1", "B1"}
+    assert resultado.turno_actual == estado.turno_actual
+    assert estado.portador_recurso == "A1"
+    assert resultado.estado_partida == "en_curso"
+    assert not es_terminal(escenario, resultado)
+    assert hash(resultado)
+    assert resultado in {resultado}
+
+
+def test_intercepcion_en_base_registra_victoria_del_nuevo_portador(ruta_escenario_valido) -> None:
+    escenario = cargar_escenario(ruta_escenario_valido)
+    estado = EstadoJuego(
+        unidades=(
+            Unidad("A1", "A", "estandar", Posicion(1, 0)),
+            Unidad("B1", "B", "estandar", escenario.bases["B"]),
+        ),
+        turno_actual="A",
+        posicion_recurso=None,
+        portador_recurso="A1",
+    )
+    unidades_antes = estado.unidades
+
+    resultado = resolver_intercepcion(escenario, estado, "B1")
+
+    assert resultado.portador_recurso == "B1"
+    assert resultado.posicion_recurso is None
+    assert resultado.estado_partida == "victoria_B"
+    assert obtener_ganador(escenario, resultado) == "B"
+    assert es_terminal(escenario, resultado) is True
+    assert resultado.turno_actual == estado.turno_actual
+    assert resultado.unidades == unidades_antes
+    assert estado.portador_recurso == "A1"
+    assert estado.estado_partida == "en_curso"
+
+
+@pytest.mark.parametrize("interceptor", ["Z9", "A1", "A2"])
+def test_intercepcion_rechaza_interceptores_invalidos(ruta_escenario_valido, interceptor) -> None:
+    escenario = cargar_escenario(ruta_escenario_valido)
+    estado = EstadoJuego(
+        unidades=(
+            Unidad("A1", "A", "estandar", Posicion(1, 0)),
+            Unidad("A2", "A", "estandar", Posicion(1, 1)),
+            Unidad("B1", "B", "estandar", Posicion(1, 2)),
+        ),
+        turno_actual="A",
+        posicion_recurso=None,
+        portador_recurso="A1",
+    )
+
+    with pytest.raises(ValueError):
+        resolver_intercepcion(escenario, estado, interceptor)
+    assert estado.portador_recurso == "A1"
+
+
+def test_reglas_de_borde_son_deterministas_y_resultados_hashables(tmp_path, contenido_escenario_valido) -> None:
+    escenario = _cargar(tmp_path, contenido_escenario_valido)
+    estado = _estado_bloqueado(_unidades_bloqueo_total())
+
+    resultado_1 = resolver_bloqueo_turno(escenario, estado)
+    resultado_2 = resolver_bloqueo_turno(escenario, EstadoJuego(
+        tuple(reversed(estado.unidades)), estado.turno_actual, estado.posicion_recurso, estado.portador_recurso
+    ))
+
+    assert resultado_1 == resultado_2
+    assert len({resultado_1, resultado_2}) == 1
 
 
 def test_generar_sucesores_conserva_el_orden_de_las_acciones(ruta_escenario_valido) -> None:

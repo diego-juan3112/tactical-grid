@@ -74,12 +74,19 @@ E1.2 define el modelo de transicion en `juego/reglas.py` y `juego/problema.py`. 
 una celda ortogonal (orden fijo: arriba, abajo, izquierda, derecha). En la partida actua solo el bando en turno; el
 destino debe estar dentro del mapa, ser transitable y estar libre; entrar en la celda del recurso libre lo recoge; el
 recurso viaja con su portador; el turno pasa al otro bando. **Condicion objetivo:** gana el bando cuyo portador esta en
-su propia base (`estado_partida = "victoria_<bando>"`); una partida terminada o un bando con todas sus unidades
-bloqueadas no tiene acciones. **Costo:** el del terreno de la celda destino, leido del escenario. `Problema` es el
-contrato comun para los algoritmos de busqueda (`estado_inicial`, `acciones`, `resultado`, `es_objetivo`, `costo`, `posicion`);
-`ProblemaNavegacion` mueve una sola unidad hasta una celda, sin cambiar el turno y sin que las demas unidades
-bloqueen (se ignora al adversario). Robo del recurso, intercepcion y otras acciones adversariales quedan para
-historias posteriores.
+su propia base (`estado_partida = "victoria_<bando>"`). **Costo:** el del terreno de la celda destino, leido del
+escenario. `Problema` es el contrato comun para los algoritmos de busqueda (`estado_inicial`, `acciones`, `resultado`,
+`es_objetivo`, `costo`, `posicion`); `ProblemaNavegacion` mueve una sola unidad hasta una celda, sin cambiar el turno
+y sin que las demas unidades bloqueen (se ignora al adversario).
+
+E1.3 fija las reglas de borde: una unidad individual bloqueada no genera acciones ni provoca un pase; otras unidades
+del mismo bando pueden actuar. Si el bando activo completo no tiene acciones, se pasa automaticamente el turno al
+adversario si este puede actuar; si ninguno puede, la partida termina con `estado_partida = "empate_bloqueo"`. La
+ausencia de ruta produce un `ResultadoBusqueda` con `exito = false`, `camino` y `acciones` vacios, y `costo = None`;
+no modifica `EstadoJuego`, por lo que unidades, turno, recurso y `estado_partida` permanecen iguales. E1.3 no elimina unidades; una
+intercepcion transfiere el recurso a una unidad adversaria existente, y la consecuencia de intercepcion conserva el
+turno. Si el nuevo portador esta en su propia base, la transicion registra su victoria. Una futura accion de
+intercepcion debe alternar el turno una sola vez mediante el mecanismo normal.
 
 Todo codigo propio, archivos, clases, funciones, variables, comentarios y documentacion se escribe en
 espanol. Las claves del JSON son una excepcion: son un contrato externo y se conservan literalmente.
