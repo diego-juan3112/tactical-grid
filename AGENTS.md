@@ -89,8 +89,11 @@ espanol. Las claves del JSON son una excepcion: son un contrato externo y se con
 ### Dónde viven
 
 Los escenarios JSON de desarrollo y prueba viven en `escenarios/` (carpeta en la raíz del repo). Deben
-incluir, como mínimo, un escenario ≥ 20×20. Los escenarios comparativos de ruta corta/costo y BFS/UCS
-se agregan junto con la implementacion de esos algoritmos, para no declarar resultados inexistentes.
+incluir, como mínimo, un escenario ≥ 20×20. E2.3 agrega el set propio (`campo_20x20.json`,
+`ruta_corta_vs_economica.json`, `obstaculo_rodeo.json`, `recurso_en_transporte.json`); el catalogo esta en el README.
+Cada escenario propio declara su proposito en el campo adicional `descripcion` y, en modo `busqueda`, la unidad y el
+objetivo en `prueba`. Las propiedades de diseno (ruta corta mas costosa, BFS/UCS distintos, rodeo obligado) se verifican
+en `tests/escenario/test_escenarios_propios.py`: si se edita un escenario, esas pruebas deben seguir pasando.
 
 ### Cómo ejecutarlos
 
