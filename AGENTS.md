@@ -133,6 +133,10 @@ transitables tienen costo positivo · bases/recurso/unidades dentro del mapa · 
 transitable · IDs de unidad únicos · cada unidad pertenece a `A` o `B` · `turno` es `A` o `B` ·
 `portador_recurso` (si no es `null`) identifica una unidad existente.
 
+Toda regla incumplida lanza `ErrorValidacionEscenario` (nunca otra excepcion) con un mensaje que nombra el campo,
+el elemento (celda, unidad, terreno) y el valor recibido. La validacion ocurre completa antes de construir el
+`Escenario`, por lo que una carga fallida no reemplaza ni altera el escenario vigente (E2.2).
+
 ## Algoritmos que cubre el proyecto (mapa completo)
 
 En este orden de complejidad creciente:
