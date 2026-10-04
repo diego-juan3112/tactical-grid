@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "descripcion": "Variante pequena para la partida: A2 ya transporta el recurso (portador_recurso no es null) y debe llevarlo a la base A (0, 0). Sirve para probar la partida por turnos y el estado compuesto: la misma posicion sin portador seria un estado distinto.",
+  "mapa": {
+    "filas": 6,
+    "columnas": 8
+  },
+  "tipos_terreno": {
+    "camino": {"costo": 1, "transitable": true},
+    "pasto": {"costo": 2, "transitable": true},
+    "bosque": {"costo": 4, "transitable": true},
+    "pantano": {"costo": 7, "transitable": true},
+    "muro": {"transitable": false}
+  },
+  "terreno": [
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"],
+    ["camino", "pasto", "pasto", "bosque", "bosque", "pasto", "pasto", "camino"],
+    ["camino", "pasto", "muro", "camino", "camino", "muro", "pasto", "camino"],
+    ["camino", "pasto", "muro", "camino", "camino", "muro", "pasto", "camino"],
+    ["camino", "pasto", "pasto", "pantano", "pantano", "pasto", "pasto", "camino"],
+    ["camino", "camino", "camino", "camino", "camino", "camino", "camino", "camino"]
+  ],
+  "bases": {
+    "A": {"fila": 0, "columna": 0},
+    "B": {"fila": 5, "columna": 7}
+  },
+  "recurso": {"fila": 3, "columna": 3},
+  "unidades": [
+    {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 2},
+    {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 3, "columna": 3},
+    {"id": "A3", "bando": "A", "tipo": "estandar", "fila": 5, "columna": 0},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 2, "columna": 1},
+    {"id": "B2", "bando": "B", "tipo": "estandar", "fila": 0, "columna": 4},
+    {"id": "B3", "bando": "B", "tipo": "estandar", "fila": 5, "columna": 6}
+  ],
+  "turno": "A",
+  "juego": {
+    "portador_recurso": "A2",
+    "profundidad_maxima_minimax": 4
+  },
+  "prueba": {
+    "modo": "partida"
+  }
+}
