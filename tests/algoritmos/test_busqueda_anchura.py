@@ -65,7 +65,9 @@ def test_bfs_elige_dos_movimientos_costosos_sobre_ruta_larga_barata(tmp_path) ->
     }
     ruta_escenario = tmp_path / "costo_vs_movimientos.json"
     ruta_escenario.write_text(json.dumps(contenido), encoding="utf-8")
-    problema = ProblemaNavegacion(cargar_escenario(ruta_escenario), "A1", Posicion(1, 2))
+    problema = ProblemaNavegacion(
+        cargar_escenario(ruta_escenario), "A1", Posicion(1, 2)
+    )
 
     resultado = busqueda_anchura(problema)
 
