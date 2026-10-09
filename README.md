@@ -240,6 +240,48 @@ cantidad de movimientos y atraviesa el pantano; UCS reduce el costo acumulado y 
 camino. Ninguno de los dos criterios sustituye al otro: la elección depende de si el problema pide menor
 profundidad o menor costo según los terrenos del escenario.
 
+## A* con Manhattan — E6.1
+
+A* usa una cola de prioridad minima ordenada por `f(n) = g(n) + h(n)`. `g(n)` es el costo real acumulado que
+`Nodo` y `expandir()` calculan desde `Problema.costo()`; `h(n)` es una cota del costo restante; `f(n)` decide que
+nodo vigente se extrae primero. El algoritmo conserva el mejor `g` conocido por `EstadoJuego` completo, reinserta
+una mejora estricta y descarta las entradas obsoletas mediante su `g`, no mediante `f`. Un contador monotono
+resuelve empates sin comparar nodos ni estados.
+
+La heuristica implementada es:
+
+```text
+h(n) = (|fila_n - fila_objetivo| + |columna_n - columna_objetivo|) * costo_minimo_paso
+```
+
+`ProblemaNavegacion` calcula una sola vez `costo_minimo_paso` como el menor costo de los terrenos transitables del
+escenario validado. El escalamiento es necesario porque el contrato admite costos positivos menores que 1: usar la
+distancia Manhattan sin escalar podria sobreestimar. Con las reglas actuales, cada accion de navegacion mueve una
+celda ortogonal y cuesta al menos esa cota. Por ello Manhattan escalada es admisible; tambien es consistente porque
+un paso reduce la distancia a lo sumo en uno y su costo es al menos `costo_minimo_paso`.
+
+La heuristica consulta la posicion de la unidad navegante, pero los diccionarios del algoritmo conservan la
+identidad completa de `EstadoJuego`. Estados con igual posicion y distinto portador, recurso, turno u otras unidades
+no se fusionan. Obstaculos y terrenos caros no se incorporan a `h`: mantienen la correccion, aunque reducen su
+capacidad de orientar la busqueda. La demostracion de admisibilidad debe revisarse si aparecen diagonales, saltos,
+costos no positivos o reglas de costo por unidad inferiores a la cota utilizada.
+
+Con V estados alcanzables, E transiciones examinadas, U unidades por estado y una solucion de profundidad d, la
+cota implementada es `O(E * (U log U + U) + (V + E) log E + d * U)` temporal y
+`O((V + E) * U + d)` espacial. Incluye la reconstruccion canonica de estados, hashing, evaluaciones heuristicas,
+reinserciones y entradas obsoletas. El calculo aritmetico de Manhattan es O(1), pero localizar la unidad actual en
+el estado cuesta O(U).
+
+Ejecucion y comparacion de costos:
+
+```bash
+python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo a_estrella
+python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs
+```
+
+A* y UCS deben obtener el mismo costo optimo bajo estas condiciones; no se exige que coincidan el camino, las
+metricas ni el tiempo. La opcion `ambos` conserva su significado anterior y ejecuta solamente BFS y UCS.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
@@ -260,6 +302,7 @@ Otras selecciones disponibles son:
 ```bash
 python3 main.py --algoritmo bfs
 python3 main.py --algoritmo ucs
+python3 main.py --algoritmo a_estrella
 python3 main.py --algoritmo ambos
 ```
 
