@@ -91,16 +91,176 @@ print(busqueda_costo_uniforme(problema).a_diccionario())
 
 BFS devuelve 8 movimientos y costo 50; UCS devuelve 12 movimientos y costo 12. Para ejecutar la cobertura automatizada: `python3 -m pytest tests/algoritmos/test_busqueda_costo_uniforme.py`.
 
-### Ejecución desde consola
+## E5.2 — Caso mínimo 2: ruta corta vs. ruta económica
 
-Desde la raíz del repositorio:
+### Propósito del experimento
+
+Este caso compara BFS y UCS sobre el mismo escenario, estado inicial, unidad y objetivo para demostrar que
+minimizar la cantidad de movimientos no equivale necesariamente a minimizar el costo acumulado. Se reutiliza
+`ruta_corta_vs_economica.json`, creado en E2.3; BFS proviene de E4.2, UCS de E5.1 y ambos reportan las métricas
+comunes definidas en E4.1. Las características generales de los algoritmos se describen en las secciones
+anteriores; aquí se documenta el experimento concreto y reproducible.
+
+### Configuración reproducible
+
+- Escenario: `escenarios/ruta_corta_vs_economica.json` (5 filas por 9 columnas).
+- Unidad: `A1`, con posición inicial `(2, 0)`.
+- Objetivo posicional: `(2, 8)`.
+- Movimientos: una celda ortogonal por acción, dentro del mapa y sobre terreno transitable.
+- Costo de cada acción: costo del terreno de la celda destino; la posición inicial no se cobra.
+
+Desde la raíz del repositorio, la comparación se ejecuta con:
 
 ```bash
-python3 main.py
+python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos
+```
+
+### Representación del mapa
+
+```text
+      0 1 2 3 4 5 6 7 8
+F0    C C C C C C C C C
+F1    C # # # # # # # C
+F2    A S S S S S S S G
+F3    P # # # # # # # P
+F4    P P P P P P P P P
+```
+
+`A` identifica el inicio y `G` el objetivo de la búsqueda; no son tipos de terreno. `C` es camino de costo 1,
+`S` es pantano de costo 7, `P` es pasto de costo 2 y `#` es muro no transitable. El catálogo también declara
+bosque de costo 4, aunque ninguna celda de esta matriz lo utiliza.
+
+### Resultados esperados y observados
+
+Los resultados esperados son valores de referencia establecidos mediante el análisis del escenario, sus reglas
+de movimiento y sus costos; no se presentan como una predicción histórica anterior a las primeras ejecuciones.
+Los resultados observados provienen de ejecutar las implementaciones actuales sobre el mismo
+`ProblemaNavegacion`.
+
+| Resultado | BFS: movimientos | BFS: costo | UCS: movimientos | UCS: costo |
+|---|---:|---:|---:|---:|
+| Esperado de referencia | 8 | 50 | 12 | 12 |
+| Observado | 8 | 50 | 12 | 12 |
+
+Los valores esperados y observados coinciden.
+
+### Resultado observado con BFS
+
+La ejecución produce el siguiente camino:
+
+```text
+(2, 0) → (2, 1) → (2, 2) → (2, 3) → (2, 4)
+       → (2, 5) → (2, 6) → (2, 7) → (2, 8)
+```
+
+El camino contiene 9 posiciones y 8 movimientos. Entrar en las siete celdas de pantano cuesta 49 y entrar en
+la celda final de camino cuesta 1: `7 + 7 + 7 + 7 + 7 + 7 + 7 + 1 = 50`. La posición inicial no representa
+una acción y no se suma. BFS elige este corredor directo porque explora por niveles y la primera solución tiene
+la menor profundidad, medida en movimientos; el costo acumulado no ordena su frontera.
+
+### Resultado observado con UCS
+
+La misma ejecución produce este recorrido:
+
+```text
+(2, 0) → (1, 0) → (0, 0) → (0, 1) → (0, 2)
+       → (0, 3) → (0, 4) → (0, 5) → (0, 6)
+       → (0, 7) → (0, 8) → (1, 8) → (2, 8)
+```
+
+El camino contiene 13 posiciones y 12 movimientos. Todos los destinos son celdas de camino, por lo que su
+costo es `12 × 1 = 12`. UCS prioriza el costo acumulado `g(n)` y prefiere el corredor superior: realiza cuatro
+movimientos adicionales, pero evita el pantano. La cantidad de movimientos y el costo de los movimientos son
+magnitudes distintas.
+
+### Comparación verificada
+
+| Métrica | BFS | UCS |
+|---|---|---|
+| Encuentra solución | Sí | Sí |
+| Movimientos | 8 | 12 |
+| Costo acumulado | 50 | 12 |
+| Estrategia | Menor profundidad | Menor costo acumulado |
+| Corredor | Directo | Superior |
+
+En términos cuantitativos, UCS realiza `12 - 8 = 4` movimientos adicionales. Reduce el costo en
+`50 - 12 = 38`, equivalente a `(38 / 50) × 100 = 76 %` respecto del costo obtenido por BFS en este caso. Estos
+valores describen este escenario y no constituyen una proporción general entre los algoritmos.
+
+### Explicación de la diferencia
+
+En teoría, BFS usa una frontera FIFO y explora todos los estados de una profundidad antes de avanzar a la
+siguiente. Por eso, cuando cada acción representa un movimiento, optimiza la cantidad de movimientos, pero no
+usa el costo acumulado para decidir qué nodo expandir. UCS ordena su frontera por `g(n)`, la suma de los costos
+de las acciones. Como el escenario exige costos positivos, extraer el objetivo vigente de la cola de prioridad
+conserva la garantía de obtener una solución de costo mínimo para el modelo implementado.
+
+En el experimento, el corredor directo tiene menos movimientos, pero atraviesa terreno costoso. El corredor
+superior es más largo y solo entra en celdas de costo 1. Por eso BFS selecciona el primero y UCS el segundo. La
+ruta económica depende de los costos declarados en el JSON: si cambian, puede cambiar la prioridad de UCS sin
+modificar el algoritmo. Ambos resultados se obtienen a partir del mismo `ProblemaNavegacion`, con idénticos
+escenario, estado inicial, unidad, objetivo y reglas de movimiento y costo.
+
+### Particularidad del recurso
+
+El recurso está inicialmente en `(2, 4)`. La ruta directa de BFS entra en esa celda y la transición común lo
+asigna a `A1`; la ruta superior de UCS no pasa por allí. La recogida modifica el estado dinámico, pero el objetivo
+de este problema de navegación consiste únicamente en ubicar `A1` en `(2, 8)`, y las reglas de movimiento y costo
+siguen siendo las mismas para ambos algoritmos. El caso compara rutas de navegación, no estrategias completas de
+partida.
+
+### Demostración complementaria en el escenario 20×20
+
+El caso 5×9 facilita la revisión manual de cada transición y costo. Como complemento, `campo_20x20.json` demuestra
+el mismo principio sobre un mapa que satisface el requisito dimensional general del proyecto. Ambos algoritmos
+parten de `A1` en `(1, 2)` y buscan el objetivo `(9, 10)`:
+
+```bash
+python3 -B main.py escenarios/campo_20x20.json --algoritmo ambos
+```
+
+| Métrica observada | BFS | UCS |
+|---|---:|---:|
+| Movimientos | 16 | 34 |
+| Costo acumulado | 45 | 34 |
+
+Los recorridos observados son diferentes. El cálculo de referencia confirma que existe una ruta de 16 movimientos
+con costo 42, pero no es la que devuelve BFS con el orden actual. BFS minimiza profundidad y conserva el orden de
+descubrimiento de sus sucesores; no usa el costo para desempatar entre soluciones de 16 movimientos. Por eso su
+resultado observado cuesta 45. UCS sí prioriza el costo acumulado y devuelve 34 movimientos con costo 34.
+
+El escenario 5×9 se conserva como caso mínimo didáctico y el 20×20 como demostración complementaria. Esta
+documentación no presupone una excepción académica para el tamaño 5×9; su aceptación como escenario principal de
+evaluación requiere confirmación externa.
+
+### Conclusión académica
+
+BFS y UCS encuentran caminos diferentes sobre el mismo mapa porque optimizan criterios distintos. BFS reduce la
+cantidad de movimientos y atraviesa el pantano; UCS reduce el costo acumulado y acepta un recorrido más largo por
+camino. Ninguno de los dos criterios sustituye al otro: la elección depende de si el problema pide menor
+profundidad o menor costo según los terrenos del escenario.
+
+## Ejecución desde consola
+
+Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
+`escenarios/campo_20x20.json`:
+
+```bash
+python3 -B main.py
+```
+
+La demostración E5.2 selecciona explícitamente el escenario 5×9 y ambos algoritmos:
+
+```bash
+python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos
+```
+
+Otras selecciones disponibles son:
+
+```bash
 python3 main.py --algoritmo bfs
 python3 main.py --algoritmo ucs
 python3 main.py --algoritmo ambos
-python3 main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos
 ```
 
 Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`
@@ -179,9 +339,11 @@ Todos los escenarios viven en `escenarios/` y usan el formato JSON comun. El cam
 |---|---|---|
 | `ejemplo_enunciado.json` | 4 x 4 | Ejemplo literal del enunciado. |
 | `arquitectura_basica.json` | 20 x 20 | Mapa abierto, todo camino; comprueba carga y exploracion en 20 x 20. |
-| `campo_20x20.json` | 20 x 20 | Mapa principal de desarrollo: anillo de camino, lago de pantano con el recurso en una isla, bosques y muros. Ruta mas corta de A1 al recurso: 16 movimientos, costo 42; ruta mas economica: 34 movimientos, costo 34. |
+| `campo_20x20.json` | 20 x 20 | Mapa principal de desarrollo: anillo de camino, lago de pantano con el recurso en una isla, bosques y muros. BFS observado: 16 movimientos y costo 45; el calculo de referencia encuentra como minimo 42 entre las rutas de 16 movimientos. UCS observado: 34 movimientos y costo 34. |
 | `ruta_corta_vs_economica.json` | 5 x 9 | BFS vs. UCS: la ruta recta por pantano tiene 8 movimientos y cuesta 50; rodear por camino toma 12 movimientos y cuesta 12. Con el pantano a costo 1, ambas coinciden. |
 | `obstaculo_rodeo.json` | 8 x 7 | El objetivo esta a distancia Manhattan 3, pero un muro en U obliga a un recorrido de 15 movimientos (caso 3: obstaculo y heuristica). |
 | `recurso_en_transporte.json` | 6 x 8 | Partida con `portador_recurso` = `A2` (caso 6: estado compuesto). |
 
-Los numeros de la tabla son verificados por pytest con un calculo de referencia y con las implementaciones de BFS y UCS sobre el modelo del juego.
+Las propiedades de los escenarios se verifican con un calculo de referencia y con las implementaciones de BFS y
+UCS sobre el modelo del juego. Cuando el resultado observado depende del desempate del algoritmo, la tabla lo
+distingue del optimo de referencia.
