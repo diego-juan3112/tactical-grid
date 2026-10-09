@@ -42,16 +42,18 @@ class ProblemaNavegacion:
     ) -> None:
         """Define un problema de navegacion sobre un escenario cargado.
 
-        Proposito: fijar de forma inequivoca estado inicial, unidad que actua y celda objetivo.
-        Precondiciones: ``escenario`` fue validado por la capa de escenario.
-        Postcondiciones: ``estado_inicial`` es el estado dado o el inicial del escenario; se lanza
-        ``ValueError`` si la unidad no existe o si el objetivo esta fuera del mapa.
-        Complejidad: O(U log U) temporal y O(U) espacial al construir el estado inicial.
-        Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion.
-        Validacion del estudiante: el estudiante valido con pytest la construccion, el rechazo de unidad u
-        objetivo invalidos y la exploracion completa de los escenarios del repositorio
-        (tests/juego/test_problema.py y tests/juego/test_espacio_estados.py).
+        Purpose: fijar de forma inequivoca estado inicial, unidad que actua, celda objetivo y la cota inferior
+        de costo que puede usar una heuristica sobre esta navegacion.
+        Preconditions: ``escenario`` fue validado por la capa de escenario.
+        Postconditions: ``estado_inicial`` es el estado dado o el inicial del escenario; ``costo_minimo_paso``
+        contiene el menor costo de terreno transitable; se lanza ``ValueError`` si la unidad no existe o si el
+        objetivo esta fuera del mapa.
+        Complexity: O(U log U + T) temporal y O(U) espacial al construir y normalizar el estado inicial y
+        recorrer los T tipos de terreno.
+        AI usage: Yes.
+        AI intervention: Claude (Opus 5.5) propuso la construccion original; Codex incorporo en E6.1 el calculo
+        unico de la cota minima de costo desde el escenario validado y actualizo esta documentacion.
+        Student validation: pendiente de revision humana del cambio de E6.1.
         """
         if not escenario.contiene_posicion(objetivo):
             raise ValueError(f"El objetivo {objetivo} esta fuera de los limites del escenario.")
@@ -60,6 +62,29 @@ class ProblemaNavegacion:
         self.objetivo = objetivo
         self.estado_inicial = estado_inicial if estado_inicial is not None else crear_estado_inicial(escenario)
         buscar_unidad(self.estado_inicial, identificador_unidad)
+        self._costo_minimo_paso = min(
+            terreno.costo
+            for terreno in escenario.tipos_terreno.values()
+            if terreno.transitable and terreno.costo is not None
+        )
+
+    @property
+    def costo_minimo_paso(self) -> int | float:
+        """Devuelve la cota inferior de costo para cualquier transicion de navegacion.
+
+        Purpose: exponer a las heuristicas el menor costo transitable del escenario sin acoplar los algoritmos
+        al catalogo de terrenos ni duplicar su lectura.
+        Preconditions: el problema fue construido con un ``Escenario`` validado, cuyos terrenos transitables
+        tienen costos individuales numericos, positivos y finitos.
+        Postconditions: devuelve siempre el mismo valor positivo calculado durante la construccion; no modifica
+        el problema ni el escenario.
+        Complexity: O(1) temporal y O(1) espacial por consulta.
+        AI usage: Yes.
+        AI intervention: Codex implemento esta propiedad y aclaro en E6.1 que la finitud individual no garantiza
+        por si sola que productos o acumulaciones posteriores sean representables.
+        Student validation: pendiente de revision humana del equipo.
+        """
+        return self._costo_minimo_paso
 
     def acciones(self, estado: EstadoJuego) -> tuple[Accion, ...]:
         """Devuelve los movimientos de la unidad navegante a celdas adyacentes, dentro del mapa y transitables."""
