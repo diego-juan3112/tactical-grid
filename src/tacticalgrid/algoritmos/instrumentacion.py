@@ -23,6 +23,7 @@ Uso tipico dentro de un algoritmo::
     return medidor.finalizar(problema, None)
 """
 
+import math
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -68,6 +69,26 @@ class Nodo:
         return tuple(reversed(nodos))
 
 
+def es_valor_finito(valor: object) -> bool:
+    """Indica si un valor puede utilizarse con seguridad en la aritmetica de costos.
+
+    Purpose: centralizar la comprobacion numerica que impide propagar infinitos o NaN en las busquedas.
+    Preconditions: ``valor`` es el resultado o un operando de una operacion de costo.
+    Postconditions: devuelve ``True`` solo para enteros o flotantes no booleanos que ``math.isfinite`` puede
+    confirmar como finitos; cualquier tipo o magnitud no soportada devuelve ``False`` sin filtrar excepciones.
+    Complexity: O(1) temporal y espacial.
+    AI usage: Yes.
+    AI intervention: Codex implemento la guarda comun durante el cierre del riesgo numerico de E6.1.
+    Student validation: pendiente de revision humana del cambio de E6.1.
+    """
+    if isinstance(valor, bool) or not isinstance(valor, (int, float)):
+        return False
+    try:
+        return math.isfinite(valor)
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
 def expandir(problema: Problema, nodo: Nodo, medidor: "MedidorBusqueda") -> tuple[Nodo, ...]:
     """Genera los nodos hijos de ``nodo`` y registra una expansion en ``medidor``.
 
@@ -76,26 +97,37 @@ def expandir(problema: Problema, nodo: Nodo, medidor: "MedidorBusqueda") -> tupl
     Precondiciones: ``nodo.estado`` es un estado valido de ``problema``.
     Postcondiciones: incrementa en 1 los estados expandidos; devuelve un hijo por cada accion de
     ``problema.acciones`` en el mismo orden, con ``costo_acumulado`` = costo del padre + ``problema.costo``
-    (leido del escenario cargado) y profundidad + 1. No registra estados generados: cada algoritmo lo hace al
-    incorporar un hijo a su frontera.
+    (leido del escenario cargado) y profundidad + 1. Lanza ``ValueError`` si la suma no es finita o excede el
+    rango numerico soportado. No registra estados generados: cada algoritmo lo hace al incorporar un hijo.
     Complejidad: O(b * T) temporal y O(b) espacial, donde b es el numero de acciones y T el costo de una
     transicion del problema.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion en E4.1.
-    Validacion del estudiante: cubierto por las pruebas de tests/algoritmos/test_instrumentacion.py, que
+    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion en E4.1; Codex agrego en
+    E6.1 el rechazo controlado de acumulaciones no finitas.
+    Validacion del estudiante: pendiente de revision humana del cambio numerico de E6.1; las pruebas existentes
     comprueban orden de hijos, costo acumulado desde el JSON y conteo de expansiones.
     """
     medidor.registrar_expandido()
-    return tuple(
-        Nodo(
-            estado=problema.resultado(nodo.estado, accion),
-            padre=nodo,
-            accion=accion,
-            costo_acumulado=nodo.costo_acumulado + problema.costo(nodo.estado, accion),
-            profundidad=nodo.profundidad + 1,
+    hijos = []
+    for accion in problema.acciones(nodo.estado):
+        estado = problema.resultado(nodo.estado, accion)
+        costo_paso = problema.costo(nodo.estado, accion)
+        try:
+            costo_acumulado = nodo.costo_acumulado + costo_paso
+        except OverflowError as error:
+            raise ValueError("El costo acumulado excede el rango numerico finito soportado.") from error
+        if not es_valor_finito(costo_acumulado):
+            raise ValueError("El costo acumulado excede el rango numerico finito soportado.")
+        hijos.append(
+            Nodo(
+                estado=estado,
+                padre=nodo,
+                accion=accion,
+                costo_acumulado=costo_acumulado,
+                profundidad=nodo.profundidad + 1,
+            )
         )
-        for accion in problema.acciones(nodo.estado)
-    )
+    return tuple(hijos)
 
 
 class MedidorBusqueda:

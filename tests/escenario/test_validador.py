@@ -59,10 +59,15 @@ CASOS_INVALIDOS: dict[str, tuple[Mutacion, str]] = {
         r"La celda \(1, 2\) de 'terreno' usa 'lava', que no esta declarado en 'tipos_terreno'",
     ),
     "catalogo_vacio": (_poner("tipos_terreno", {}), r"'tipos_terreno' no puede estar vacio"),
-    # Terrenos transitables tienen costo positivo.
-    "costo_cero": (_poner("tipos_terreno.camino.costo", 0), r"'camino' debe tener un costo numerico positivo y tiene 0"),
+    # Terrenos transitables tienen costo numerico, positivo y finito.
+    "costo_cero": (_poner("tipos_terreno.camino.costo", 0), r"'camino'.*costo numerico positivo y finito.*0"),
     "costo_negativo": (_poner("tipos_terreno.camino.costo", -1), r"'camino' debe tener un costo numerico positivo"),
-    "costo_ausente": (_borrar("tipos_terreno.camino.costo"), r"'camino' debe tener un costo numerico positivo y tiene None"),
+    "costo_booleano": (_poner("tipos_terreno.camino.costo", True), r"'camino' debe tener un costo numerico positivo"),
+    "costo_entero_fuera_de_rango_float": (
+        _poner("tipos_terreno.camino.costo", 10**400),
+        r"'camino'.*positivo y finito",
+    ),
+    "costo_ausente": (_borrar("tipos_terreno.camino.costo"), r"'camino'.*costo numerico positivo y finito.*None"),
     "costo_texto": (_poner("tipos_terreno.camino.costo", "2"), r"'camino' debe tener un costo numerico positivo"),
     "transitable_no_booleano": (_poner("tipos_terreno.camino.transitable", "si"), r"'camino' debe declarar 'transitable'"),
     # Bases, recurso y unidades dentro del mapa.
@@ -118,6 +123,33 @@ def test_escenario_valido_no_lanza_error(contenido_escenario_valido) -> None:
     validar_contenido_escenario(contenido_escenario_valido)
 
 
+@pytest.mark.parametrize("costo", [1, 0.5, 0.1])
+def test_costos_positivos_finitos_son_aceptados(contenido_escenario_valido, costo) -> None:
+    contenido_escenario_valido["tipos_terreno"]["camino"]["costo"] = costo
+
+    validar_contenido_escenario(contenido_escenario_valido)
+
+
+@pytest.mark.parametrize("costo", [float("nan"), float("inf"), float("-inf")])
+def test_validador_rechaza_costos_no_finitos(contenido_escenario_valido, costo) -> None:
+    contenido_escenario_valido["tipos_terreno"]["camino"]["costo"] = costo
+
+    with pytest.raises(ErrorValidacionEscenario, match=r"'camino'.*positivo y finito"):
+        validar_contenido_escenario(contenido_escenario_valido)
+
+
+@pytest.mark.parametrize("literal", ["1e400", "-1e400"])
+def test_cargador_rechaza_exponentes_json_que_desbordan_a_infinito(
+    tmp_path, contenido_escenario_valido, literal
+) -> None:
+    texto = json.dumps(contenido_escenario_valido).replace('"costo": 2', f'"costo": {literal}')
+    ruta = tmp_path / "costo_no_finito.json"
+    ruta.write_text(texto, encoding="utf-8")
+
+    with pytest.raises(ErrorValidacionEscenario, match=r"'camino'.*positivo y finito"):
+        cargar_escenario(ruta)
+
+
 def test_portador_valido_es_aceptado(contenido_escenario_valido) -> None:
     contenido_escenario_valido["juego"]["portador_recurso"] = "B1"
 
@@ -148,6 +180,26 @@ def test_carga_fallida_no_altera_el_escenario_cargado_previamente(tmp_path, cont
     contenido_escenario_valido["juego"]["portador_recurso"] = "Z9"
     ruta_invalida = tmp_path / "invalido.json"
     ruta_invalida.write_text(json.dumps(contenido_escenario_valido), encoding="utf-8")
+
+    try:
+        vigente = cargar_escenario(ruta_invalida)
+    except ErrorValidacionEscenario:
+        pass
+
+    assert vigente == referencia
+
+
+def test_costo_no_finito_no_altera_el_escenario_cargado_previamente(
+    tmp_path, contenido_escenario_valido
+) -> None:
+    ruta_valida = tmp_path / "valido.json"
+    ruta_valida.write_text(json.dumps(contenido_escenario_valido), encoding="utf-8")
+    vigente = cargar_escenario(ruta_valida)
+    referencia = cargar_escenario(ruta_valida)
+
+    texto = json.dumps(contenido_escenario_valido).replace('"costo": 2', '"costo": 1e400')
+    ruta_invalida = tmp_path / "costo_no_finito.json"
+    ruta_invalida.write_text(texto, encoding="utf-8")
 
     try:
         vigente = cargar_escenario(ruta_invalida)

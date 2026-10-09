@@ -1,5 +1,6 @@
 """Pruebas del problema de navegacion compartido por los algoritmos de busqueda."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -48,6 +49,21 @@ def test_navegacion_ignora_unidades_que_ocupan_el_objetivo(problema) -> None:
 def test_costo_de_navegacion_proviene_del_terreno(problema) -> None:
     # (0, 2) es pasto, cuyo costo en el JSON del enunciado es 2.
     assert problema.costo(problema.estado_inicial, Accion("A1", Posicion(0, 1), Posicion(0, 2))) == 2
+
+
+def test_costo_minimo_paso_ignora_terrenos_no_transitables(problema) -> None:
+    assert problema.costo_minimo_paso == 1
+
+
+def test_costo_minimo_paso_admite_costos_decimales(tmp_path) -> None:
+    contenido = json.loads(EJEMPLO_ENUNCIADO.read_text(encoding="utf-8"))
+    contenido["tipos_terreno"]["camino"]["costo"] = 0.5
+    ruta = tmp_path / "costo_decimal.json"
+    ruta.write_text(json.dumps(contenido), encoding="utf-8")
+
+    problema = ProblemaNavegacion(cargar_escenario(ruta), "A1", Posicion(3, 2))
+
+    assert problema.costo_minimo_paso == 0.5
 
 
 def test_resultado_rechaza_acciones_invalidas(problema) -> None:
