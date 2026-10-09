@@ -57,7 +57,7 @@ La selección es transitoria y no integra `EstadoJuego`, por lo que no altera su
 
 E2.2 completa el validador de escenarios. Antes de construir el `Escenario` se comprueban todas las reglas del enunciado: dimensiones consistentes con la matriz, terrenos declarados, costos positivos, posiciones dentro del mapa, unidades sobre celdas transitables, ids unicos, bandos y turno validos, y portador existente. Cualquier incumplimiento lanza `ErrorValidacionEscenario` con un mensaje que nombra el campo, el elemento y el valor recibido. Como la validacion ocurre completa antes de aplicar nada, una carga fallida no reemplaza ni altera el escenario vigente.
 
-E2.3 agrega un set propio de escenarios en `escenarios/` para desarrollar y depurar algoritmos antes de recibir los del profesor: un mapa de 20 x 20 con todos los tipos de terreno y variantes pequenas. En `campo_20x20.json` y `ruta_corta_vs_economica.json` la ruta con menos movimientos es mas costosa que una mas larga, por lo que BFS y UCS deben producir caminos distintos (caso reutilizable en E5.2). Las pruebas de `tests/escenario/test_escenarios_propios.py` comprueban estas propiedades sobre el modelo de E1.2, con los costos leidos del JSON.
+E2.3 agrega un set propio de escenarios en `escenarios/` para desarrollar y depurar algoritmos antes de recibir los del profesor: un mapa de 20 x 20 con todos los tipos de terreno y variantes pequenas. En `campo_20x20.json` y `ruta_corta_vs_economica.json` la ruta con menos movimientos es mas costosa que una mas larga, por lo que BFS y UCS producen caminos distintos. Las pruebas de `tests/escenario/test_escenarios_propios.py` comprueban estas propiedades sobre el modelo de E1.2, con los costos leidos del JSON.
 
 E4.1 agrega la instrumentacion comun de busqueda en `algoritmos/instrumentacion.py`, para que BFS, DFS, UCS, A* y Beam Search reporten resultados comparables sin duplicar codigo. `Nodo` guarda estado, padre, accion, costo acumulado y profundidad; `expandir` genera los hijos en el orden de las acciones, con el costo leido del escenario, y cuenta la expansion; `MedidorBusqueda` lleva estados generados (incorporados a la frontera, incluido el inicial), estados expandidos, maximo de frontera y tiempo, y construye el `ResultadoBusqueda`. `ResultadoBusqueda.a_diccionario()` devuelve la estructura del enunciado (`algoritmo`, `exito`, `camino`, `costo`, `estados_generados`, `estados_expandidos`, `maximo_frontera`) mas `longitud` y `tiempo_segundos`; el resultado tambien conserva las acciones para el verificador de soluciones.
 
@@ -66,6 +66,49 @@ E4.1 agrega la instrumentacion comun de busqueda en `algoritmos/instrumentacion.
 BFS es una busqueda no informada: usa una frontera FIFO y explora los estados por niveles. Con cada accion equivalente a un movimiento, encuentra una solucion con la menor cantidad de movimientos. El costo del terreno no afecta el orden ni desempata rutas; `ResultadoBusqueda.costo` aun informa la suma real de costos del camino y `longitud` informa sus movimientos.
 
 La implementacion consume `Problema`, marca el `EstadoJuego` completo como descubierto al encolarlo y descarta estados repetidos. Esto evita ciclos y conserva diferencias de estado relevantes, como el portador del recurso. Mantiene el orden de acciones del problema para resultados deterministas. Cada `Nodo` conserva padre y accion; `MedidorBusqueda.finalizar()` reconstruye camino y acciones. Si la frontera se agota, el resultado indica fracaso, con camino y acciones vacios y costo `None`; los contadores y el tiempo reflejan la exploracion realizada. BFS reutiliza las metricas E4.1 y no depende de dimensiones, coordenadas ni escenarios particulares.
+
+## UCS — E5.1
+
+UCS usa una cola de prioridad minima ordenada exclusivamente por el costo acumulado `g(n)`. Los costos provienen de `Problema.costo()` y, en `ProblemaNavegacion`, de la celda destino declarada en `tipos_terreno` del JSON. Por eso puede elegir mas movimientos que BFS cuando el costo total resulta menor.
+
+La implementacion conserva el mejor costo conocido por `EstadoJuego`, reinserta un estado ante una mejora estricta y descarta al extraer las entradas obsoletas. Un contador monotono resuelve empates sin comparar nodos ni estados y mantiene el orden de insercion. El inicial y cada insercion o reinsercion aceptada cuentan como generados; solo `expandir()` cuenta estados cuyos sucesores se analizan. `maximo_frontera` mide la cantidad de entradas presentes en la cola, incluidas las obsoletas aun no extraidas. `ResultadoBusqueda` incluye exito, camino, acciones, longitud, costo, generados, expandidos, maximo de frontera y tiempo.
+
+Con cola binaria y reinserciones, las operaciones propias de UCS cuestan `O((V + E) log E)`, pero el modelo agrega el procesamiento de cada `EstadoJuego`. Si `U` es la cantidad de unidades y `d` la profundidad de la solucion, la cota completa es `O(E * U log U + (V + E) log E + d * U)` temporal y `O((V + E) * U + d)` espacial. Cada transicion reconstruye y ordena la tupla de unidades, el hash de un estado procesa sus unidades y la reconstruccion final consulta la posicion sobre cada estado del camino. La frontera puede incluir reinserciones y entradas obsoletas pendientes.
+
+Ejemplo reproducible sobre el escenario de comparacion:
+
+```python
+from tacticalgrid.algoritmos import busqueda_anchura, busqueda_costo_uniforme
+from tacticalgrid.escenario import Posicion, cargar_escenario
+from tacticalgrid.juego import ProblemaNavegacion
+
+escenario = cargar_escenario("escenarios/ruta_corta_vs_economica.json")
+problema = ProblemaNavegacion(escenario, "A1", Posicion(2, 8))
+
+print(busqueda_anchura(problema).a_diccionario())
+print(busqueda_costo_uniforme(problema).a_diccionario())
+```
+
+BFS devuelve 8 movimientos y costo 50; UCS devuelve 12 movimientos y costo 12. Para ejecutar la cobertura automatizada: `python3 -m pytest tests/algoritmos/test_busqueda_costo_uniforme.py`.
+
+### Ejecución desde consola
+
+Desde la raíz del repositorio:
+
+```bash
+python3 main.py
+python3 main.py --algoritmo bfs
+python3 main.py --algoritmo ucs
+python3 main.py --algoritmo ambos
+python3 main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos
+```
+
+Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`
+del escenario. Para elegirlos explícitamente, use `--unidad ID` y `--objetivo FILA COLUMNA`; por ejemplo:
+
+```bash
+python3 main.py --algoritmo ucs --unidad A1 --objetivo 9 10
+```
 
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 
@@ -141,4 +184,4 @@ Todos los escenarios viven en `escenarios/` y usan el formato JSON comun. El cam
 | `obstaculo_rodeo.json` | 8 x 7 | El objetivo esta a distancia Manhattan 3, pero un muro en U obliga a un recorrido de 15 movimientos (caso 3: obstaculo y heuristica). |
 | `recurso_en_transporte.json` | 6 x 8 | Partida con `portador_recurso` = `A2` (caso 6: estado compuesto). |
 
-Los numeros de la tabla son verificados por pytest con un calculo de referencia sobre el modelo del juego; no son resultados de BFS ni UCS, que se implementan en historias posteriores.
+Los numeros de la tabla son verificados por pytest con un calculo de referencia y con las implementaciones de BFS y UCS sobre el modelo del juego.
