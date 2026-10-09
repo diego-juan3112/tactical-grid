@@ -18,9 +18,10 @@ def busqueda_costo_uniforme(problema: Problema) -> ResultadoBusqueda:
     Preconditions: problema implementa el contrato Problema; sus estados son hashables y sus costos de
     transicion son positivos.
     Postconditions: devuelve la solucion de costo acumulado minimo o un resultado de fracaso si la frontera se
-    agota; conserva el problema y sus estados sin modificaciones. Una mejora estricta se inserta nuevamente y
-    cuenta como estado generado; una entrada obsoleta conserva su lugar en el tamano fisico de la frontera hasta
-    extraerse, pero se descarta sin comprobar objetivo ni contar una expansion.
+    agota; la expansion comun lanza ``ValueError`` antes de propagar un costo acumulado no finito. Conserva el
+    problema y sus estados sin modificaciones. Una mejora estricta se inserta nuevamente y cuenta como estado
+    generado; una entrada obsoleta se descarta sin comprobar objetivo ni contar una expansion. La guarda de
+    finitud no elimina el redondeo propio de las operaciones representables con ``float``.
     Complexity: O(E * U log U + (V + E) log E + d * U) temporal y O((V + E) * U + d) espacial en el peor
     caso, donde V son estados alcanzables, E transiciones examinadas, U unidades por EstadoJuego y d la
     profundidad de la solucion. Ademas de las operaciones de la cola, cada transicion reconstruye y canoniza
@@ -28,10 +29,9 @@ def busqueda_costo_uniforme(problema: Problema) -> ResultadoBusqueda:
     reconstruccion final consulta la posicion en cada uno de los d estados en O(d * U). La frontera puede
     conservar reinserciones y entradas obsoletas.
     AI usage: Yes.
-    AI intervention: Codex implemento UCS, la gestion de mejoras y entradas obsoletas, su integracion con E4.1,
-    las pruebas automatizadas y esta documentacion.
-    Student validation: pendiente de revision del equipo; Codex ejecuto las pruebas automatizadas especificas y
-    la suite del proyecto indicadas en la historia E5.1.
+    AI intervention: Codex implemento UCS, la gestion de mejoras y entradas obsoletas, su integracion con E4.1 y
+    documento en E6.1 el fallo controlado que aporta la expansion comun ante desbordamientos.
+    Student validation: pendiente de revision humana del cambio numerico de E6.1.
     """
     medidor = MedidorBusqueda("UCS")
     raiz = Nodo(problema.estado_inicial)

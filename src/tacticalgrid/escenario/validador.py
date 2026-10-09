@@ -1,5 +1,6 @@
 """Validacion del contrato JSON de escenarios antes de construir el dominio."""
 
+import math
 from collections.abc import Mapping
 
 BANDOS_VALIDOS = ("A", "B")
@@ -15,7 +16,8 @@ def validar_contenido_escenario(contenido: object) -> None:
     Proposito: comprobar el contrato externo y rechazar escenarios inconsistentes antes de crear un
     ``Escenario``, de modo que la carga sea todo o nada. Reglas: campos obligatorios presentes; ``version``
     cadena no vacia; filas y columnas enteras positivas y consistentes con la matriz ``terreno``; todo terreno
-    usado existe en ``tipos_terreno``; todo terreno transitable tiene costo positivo; bases, recurso y unidades
+    usado existe en ``tipos_terreno``; todo terreno transitable tiene costo numerico, positivo y finito; bases,
+    recurso y unidades
     dentro del mapa; ninguna unidad sobre celda no transitable; identificadores de unidad unicos; cada unidad
     pertenece a ``A`` o ``B``; ``turno`` es ``A`` o ``B``; ``juego.portador_recurso`` es null o identifica una
     unidad existente; ``prueba``, si esta presente, es un objeto o null.
@@ -31,10 +33,10 @@ def validar_contenido_escenario(contenido: object) -> None:
     agrego la validacion de tipo del campo ``version``; Claude (Opus 5.5) agrego el rechazo de un ``prueba``
     que no sea objeto y, en E2.2, reescribio los mensajes para que indiquen el elemento y el valor que fallan,
     y corrigio los ``TypeError`` que producian valores no hashables en ``bando``, ``turno`` y
-    ``portador_recurso``.
-    Validacion del estudiante: cubierto por las pruebas de tests/escenario/test_validador.py, con un caso de
-    rechazo por cada regla del criterio de aceptacion, la comprobacion de que el contenido no se modifica y la
-    de que una carga fallida no altera un escenario cargado previamente.
+    ``portador_recurso``; Codex agrego en E6.1 el rechazo de costos no finitos y de enteros que desbordan la
+    conversion numerica requerida para comprobarlos.
+    Validacion del estudiante: pendiente de revision humana del cambio de E6.1; existen pruebas automatizadas en
+    tests/escenario/test_validador.py para las reglas del contrato y la atomicidad de la carga.
     """
     raiz = _exigir_diccionario(contenido, "El escenario debe ser un objeto JSON.")
     for campo in ("version", "mapa", "tipos_terreno", "terreno", "bases", "recurso", "unidades", "turno", "juego"):
@@ -82,9 +84,15 @@ def _validar_catalogo(valor: object) -> Mapping[str, Mapping[str, object]]:
             raise ErrorValidacionEscenario(f"El terreno '{nombre}' debe declarar 'transitable' como true o false.")
         if datos["transitable"]:
             costo = datos.get("costo")
-            if isinstance(costo, bool) or not isinstance(costo, (int, float)) or costo <= 0:
+            es_numero = not isinstance(costo, bool) and isinstance(costo, (int, float))
+            try:
+                es_finito = es_numero and math.isfinite(costo)
+            except (OverflowError, TypeError, ValueError):
+                es_finito = False
+            if not es_numero or not es_finito or costo <= 0:
                 raise ErrorValidacionEscenario(
-                    f"El terreno transitable '{nombre}' debe tener un costo numerico positivo y tiene {costo!r}."
+                    f"El terreno transitable '{nombre}' debe tener un costo numerico positivo y finito "
+                    f"y tiene {costo!r}."
                 )
     return catalogo
 
