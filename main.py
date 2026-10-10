@@ -9,7 +9,14 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent
 sys.path.insert(0, str(RAIZ / "src"))
 
-from tacticalgrid.algoritmos import busqueda_a_estrella, busqueda_anchura, busqueda_costo_uniforme
+from tacticalgrid.algoritmos import (
+    ancho_haz_desde_prueba,
+    busqueda_a_estrella,
+    busqueda_anchura,
+    busqueda_costo_uniforme,
+    busqueda_haz,
+    validar_ancho_haz,
+)
 from tacticalgrid.escenario import (
     ErrorValidacionEscenario,
     Posicion,
@@ -78,6 +85,29 @@ def construir_problema(escenario, unidad=None, destino=None):
     problema = ProblemaNavegacion(escenario, unidad, objetivo)
 
     return problema, unidad, objetivo
+
+
+def resolver_anchos_haz(anchos_consola, escenario):
+    """Determina los anchos k con los que se ejecutara Beam Search.
+
+    Purpose: permitir cambiar k sin modificar codigo, desde la consola (``--k``) o desde el JSON (``prueba.k``).
+    Preconditions: ``anchos_consola`` es ``None`` o una lista de valores leidos por argparse; ``escenario`` fue
+    cargado y validado.
+    Postconditions: devuelve los anchos de consola si se indicaron (tienen prioridad) o, si no, una tupla con
+    ``prueba.k``; lanza ``ValueError`` si ningun origen define k o si algun valor no es un entero mayor o igual
+    que 1. No modifica el escenario.
+    Complexity: O(K) temporal y espacial, donde K es la cantidad de anchos indicados.
+    AI usage: Yes.
+    AI intervention: Claude (Opus 5.5) implemento esta funcion y la opcion ``beam`` del ejecutor en E7.1.
+    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
+    tests/algoritmos/test_busqueda_haz.py ejecutan ``main.py`` con ``--k``, con ``prueba.k`` y sin ninguno.
+    """
+    if anchos_consola:
+        return tuple(validar_ancho_haz(k) for k in anchos_consola)
+    desde_json = ancho_haz_desde_prueba(escenario.configuracion_prueba)
+    if desde_json is None:
+        raise ValueError("Beam Search necesita un ancho: indique --k (por ejemplo --k 1 2 4 8) o defina 'prueba.k' en el JSON.")
+    return (desde_json,)
 
 
 def mostrar_resultado(nombre, resultado):
@@ -158,8 +188,8 @@ def mostrar_comparacion(resultados):
 def main():
     """Carga el escenario y ejecuta los algoritmos seleccionados.
 
-    Purpose: ofrecer un ejecutor de consola para BFS, UCS, A* o la comparación existente BFS/UCS sobre un
-    escenario y una navegación elegidos.
+    Purpose: ofrecer un ejecutor de consola para BFS, UCS, A*, Beam Search (con uno o varios anchos k) o la
+    comparación existente BFS/UCS sobre un escenario y una navegación elegidos.
     Preconditions: los argumentos de consola respetan el formato declarado y la ruta apunta a un escenario
     legible; los datos del escenario se validan en ``cargar_escenario``.
     Postconditions: devuelve 0 tras mostrar los resultados y, para ``ambos``, su comparación; devuelve 1 y
@@ -168,7 +198,7 @@ def main():
     O(L) temporal y espacial para un camino de L posiciones.
     AI usage: Yes.
     AI intervention: Codex documentó el flujo y agregó la comparación final de E5.1; en E6.1 incorporó A* sin
-    alterar la semántica de la opción ``ambos``.
+    alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -186,9 +216,18 @@ def main():
 
     parser.add_argument(
         "--algoritmo",
-        choices=["bfs", "ucs", "a_estrella", "ambos"],
+        choices=["bfs", "ucs", "a_estrella", "beam", "ambos"],
         default="ucs",
         help="Algoritmo de búsqueda (predeterminado: ucs)",
+    )
+
+    parser.add_argument(
+        "--k",
+        nargs="+",
+        type=int,
+        metavar="K",
+        help="Ancho del haz para --algoritmo beam; admite varios valores (por ejemplo --k 1 2 4 8). "
+        "Si se omite, se usa 'prueba.k' del JSON.",
     )
 
     parser.add_argument(
@@ -229,6 +268,11 @@ def main():
         print(f"Unidad: {unidad}")
         print(f"Origen: ({origen.fila}, {origen.columna})")
         print(f"Destino: ({objetivo.fila}, {objetivo.columna})")
+
+        if args.algoritmo == "beam":
+            for k in resolver_anchos_haz(args.k, escenario):
+                mostrar_resultado(f"beam search (k={k})", busqueda_haz(problema, k))
+            return 0
 
         seleccionados = (
             {nombre: ALGORITMOS[nombre] for nombre in ("bfs", "ucs")}
