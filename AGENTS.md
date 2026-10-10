@@ -110,6 +110,10 @@ Cada escenario propio declara su proposito en el campo adicional `descripcion` y
 objetivo en `prueba`. Las propiedades de diseno (ruta corta mas costosa, BFS/UCS distintos, rodeo obligado) se verifican
 en `tests/escenario/test_escenarios_propios.py`: si se edita un escenario, esas pruebas deben seguir pasando.
 
+Campo propio `prueba.k` (E7.1): ancho del haz de Beam Search, entero mayor o igual que 1. Es opcional; la consola
+(`main.py --algoritmo beam --k ...`) tiene prioridad sobre el JSON. Se lee con `ancho_haz_desde_prueba`, sin que la
+capa de algoritmos abra archivos.
+
 ### Cómo ejecutarlos
 
 Crear y activar un entorno virtual, e instalar las dependencias de desarrollo:
