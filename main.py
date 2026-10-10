@@ -185,6 +185,33 @@ def mostrar_comparacion(resultados):
     print(f"Caminos: {caminos}")
 
 
+def mostrar_comparacion_haz(resultados):
+    """Resume en una tabla los resultados de Beam Search con distintos anchos k.
+
+    Purpose: facilitar el caso minimo 5 (E7.2), comparando en una sola vista como cambian la solucion y la
+    exploracion al variar k sobre el mismo problema.
+    Preconditions: ``resultados`` es un diccionario no vacio ``{k: ResultadoBusqueda}`` con resultados de E4.1.
+    Postconditions: imprime una fila por k, en orden creciente, con solucion, movimientos, costo, estados
+    generados y expandidos, maximo de frontera y tiempo; no modifica los resultados ni ejecuta busquedas.
+    Complexity: O(K log K) temporal por ordenar los K anchos y O(1) espacial adicional por fila.
+    AI usage: Yes.
+    AI intervention: Claude (Opus 5.5) propuso e implemento esta tabla en E7.2.
+    Student validation: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
+    tests/algoritmos/test_caso_minimo_5.py comprueba que la tabla aparece con los valores del experimento.
+    """
+    print(f"\n{'=' * 78}")
+    print("COMPARACIÓN BEAM SEARCH POR ANCHO k")
+    print("=" * 78)
+    print(f"{'k':>4} {'Solución':>9} {'Movs':>5} {'Costo':>6} {'Generados':>10} {'Expandidos':>11} {'Frontera':>9} {'Tiempo (s)':>11}")
+    for k in sorted(resultados):
+        r = resultados[k]
+        costo = "-" if r.costo is None else r.costo
+        print(
+            f"{k:>4} {'Sí' if r.exito else 'No':>9} {r.longitud:>5} {costo:>6} {r.estados_generados:>10} "
+            f"{r.estados_expandidos:>11} {r.maximo_frontera:>9} {r.tiempo_segundos:>11.6f}"
+        )
+
+
 def main():
     """Carga el escenario y ejecuta los algoritmos seleccionados.
 
@@ -198,7 +225,8 @@ def main():
     O(L) temporal y espacial para un camino de L posiciones.
     AI usage: Yes.
     AI intervention: Codex documentó el flujo y agregó la comparación final de E5.1; en E6.1 incorporó A* sin
-    alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``.
+    alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``, y en
+    E7.2 la tabla comparativa cuando se indican varios anchos.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -270,8 +298,12 @@ def main():
         print(f"Destino: ({objetivo.fila}, {objetivo.columna})")
 
         if args.algoritmo == "beam":
+            resultados_haz = {}
             for k in resolver_anchos_haz(args.k, escenario):
-                mostrar_resultado(f"beam search (k={k})", busqueda_haz(problema, k))
+                resultados_haz[k] = busqueda_haz(problema, k)
+                mostrar_resultado(f"beam search (k={k})", resultados_haz[k])
+            if len(resultados_haz) > 1:
+                mostrar_comparacion_haz(resultados_haz)
             return 0
 
         seleccionados = (
