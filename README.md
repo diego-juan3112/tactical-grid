@@ -282,6 +282,35 @@ python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs
 A* y UCS deben obtener el mismo costo optimo bajo estas condiciones; no se exige que coincidan el camino, las
 metricas ni el tiempo. La opcion `ambos` conserva su significado anterior y ejecuta solamente BFS y UCS.
 
+## Beam Search — E7.1
+
+`algoritmos/busqueda_haz.py` implementa Beam Search por niveles con ancho `k`. En cada nivel se expanden todos los
+nodos del haz, sus hijos se ordenan por `f(n) = g(n) + h(n)` (Manhattan escalada de E6.1 por defecto; la heuristica
+es un parametro, de modo que la segunda heuristica de E6.2 se puede usar sin cambiar el algoritmo) y solo los `k`
+mejores pasan al siguiente nivel; el resto se olvida. Un estado que ya entro en un haz no vuelve a entrar. El objetivo
+se comprueba al formar cada haz y los empates se resuelven por orden de generacion, por lo que el resultado es
+determinista. Reporta las metricas de E4.1 con el nombre `BEAM_SEARCH_K<k>`; un estado cuenta como generado cuando
+entra al haz, por lo que el maximo de frontera nunca supera `k`.
+
+Beam Search no es completo ni optimo. Con `k = 1` actua como una busqueda voraz; con `k` mayor que cualquier nivel no
+poda y se comporta como BFS (minimo numero de movimientos, eligiendo el objetivo de menor `f` en ese nivel). Por eso
+aumentar `k` no siempre reduce el costo. Resultados reproducibles (`tests/algoritmos/test_busqueda_haz.py`):
+
+| Escenario | k = 1 | k = 2 | k = 4 | k = 8 | UCS (optimo) |
+|---|---|---|---|---|---|
+| `ejemplo_enunciado.json` | costo 12, 6 mov. | costo 7, 6 mov. | costo 14, 4 mov. | costo 14, 4 mov. | costo 7 |
+| `ruta_corta_vs_economica.json` | costo 12, 12 mov. | costo 12, 12 mov. | costo 50, 8 mov. | costo 50, 8 mov. | costo 12 |
+| `obstaculo_rodeo.json` | costo 20, 19 mov. | sin solucion | costo 16, 15 mov. | costo 16, 15 mov. | costo 16 |
+| `campo_20x20.json` | sin solucion | sin solucion | costo 40, 34 mov. | costo 46, 36 mov. | costo 34 |
+
+`k` se configura sin modificar codigo: desde la consola con `--k` (admite varios valores) o desde el JSON con el
+campo propio `prueba.k`. La consola tiene prioridad sobre el JSON; un `k` que no sea un entero mayor o igual que 1 se
+rechaza con un mensaje claro.
+
+```bash
+python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8
+```
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
@@ -303,6 +332,7 @@ Otras selecciones disponibles son:
 python3 main.py --algoritmo bfs
 python3 main.py --algoritmo ucs
 python3 main.py --algoritmo a_estrella
+python3 main.py --algoritmo beam --k 4
 python3 main.py --algoritmo ambos
 ```
 
