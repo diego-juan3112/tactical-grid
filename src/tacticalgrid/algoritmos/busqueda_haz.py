@@ -20,6 +20,7 @@ Decisiones de diseno:
 """
 
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 
 from tacticalgrid.juego.estado import EstadoJuego
 from tacticalgrid.juego.problema import ProblemaNavegacion
@@ -31,6 +32,20 @@ from .resultado_busqueda import ResultadoBusqueda
 Heuristica = Callable[[ProblemaNavegacion, EstadoJuego], int | float]
 
 CLAVE_ANCHO_HAZ = "k"
+
+
+@dataclass(frozen=True)
+class NivelHaz:
+    """Registro de un nivel de Beam Search: candidatos conservados y descartados, cada uno con su ``f = g + h``.
+
+    Ambas tuplas estan ordenadas por ``f`` (y por orden de generacion en empates). El nivel 0 es el haz inicial,
+    que solo contiene la raiz. Sirve para analizar en que nivel se pierde un camino (E7.2) y para visualizar la
+    exploracion, sin que el algoritmo dependa de quien lo observa.
+    """
+
+    nivel: int
+    conservados: tuple[tuple[int | float, Nodo], ...]
+    descartados: tuple[tuple[int | float, Nodo], ...]
 
 
 def validar_ancho_haz(k: object) -> int:
@@ -101,7 +116,10 @@ def _evaluar(problema: ProblemaNavegacion, nodo: Nodo, heuristica: Heuristica) -
 
 
 def busqueda_haz(
-    problema: ProblemaNavegacion, k: int, heuristica: Heuristica = heuristica_manhattan
+    problema: ProblemaNavegacion,
+    k: int,
+    heuristica: Heuristica = heuristica_manhattan,
+    observador: Callable[["NivelHaz"], None] | None = None,
 ) -> ResultadoBusqueda:
     """Busca una solucion conservando en cada nivel solo los ``k`` candidatos de menor ``g + h``.
 
@@ -114,14 +132,17 @@ def busqueda_haz(
     resultado de fracaso si el haz queda vacio. El algoritmo del resultado es ``BEAM_SEARCH_K<k>``. Cada haz tiene
     a lo sumo ``k`` nodos, ningun estado entra dos veces en un haz y el maximo de frontera es menor o igual que
     ``k``. No garantiza costo minimo ni encontrar solucion cuando existe; si ``k`` supera el tamano de todos los
-    niveles, la solucion tiene el minimo numero de movimientos, como BFS. No modifica el problema.
+    niveles, la solucion tiene el minimo numero de movimientos, como BFS. No modifica el problema. Si se pasa
+    ``observador``, se le entrega un :class:`NivelHaz` por el haz inicial y por cada nivel formado, en orden, sin
+    alterar el resultado ni las metricas.
     Complexity: con profundidad de exploracion d, factor de ramificacion b y U unidades por estado, cada nivel
     expande a lo sumo k nodos y evalua a lo sumo k * b candidatos: O(d * k * b * (T + U + log(k * b))) temporal,
     donde T es el costo de una transicion, y O(k * b + V_h + d) espacial, donde V_h son los estados que entraron
     en algun haz (conjunto de visitados) y d la longitud del camino reconstruido.
     AI usage: Yes.
     AI intervention: Claude (Opus 5.5) propuso el diseno por niveles, el criterio f = g + h, la convencion de
-    metricas para el haz, la implementacion y esta documentacion en E7.1.
+    metricas para el haz, la implementacion y esta documentacion en E7.1, y agrego en E7.2 el ``observador``
+    opcional que permite analizar que candidatos conserva y descarta cada nivel.
     Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_busqueda_haz.py ejecutan k = 1, 2, 4 y 8 sobre los escenarios del repositorio y
     verifican la legalidad y el costo de cada solucion, el limite del haz, el caso sin solucion y la coincidencia
@@ -132,8 +153,11 @@ def busqueda_haz(
     raiz = Nodo(problema.estado_inicial)
     haz = [(_evaluar(problema, raiz, heuristica), raiz)]
     en_algun_haz = {raiz.estado}
+    nivel = 0
     medidor.registrar_generado()
     medidor.observar_frontera(len(haz))
+    if observador is not None:
+        observador(NivelHaz(nivel=nivel, conservados=tuple(haz), descartados=()))
 
     while haz:
         objetivos = [(evaluacion, nodo) for evaluacion, nodo in haz if problema.es_objetivo(nodo.estado)]
@@ -154,10 +178,19 @@ def busqueda_haz(
                     candidatos[hijo.estado] = (evaluacion, orden, hijo)
                 orden += 1
 
-        mejores = sorted(candidatos.values(), key=lambda candidato: (candidato[0], candidato[1]))[:k]
-        haz = [(evaluacion, hijo) for evaluacion, _, hijo in mejores]
+        ordenados = sorted(candidatos.values(), key=lambda candidato: (candidato[0], candidato[1]))
+        haz = [(evaluacion, hijo) for evaluacion, _, hijo in ordenados[:k]]
         en_algun_haz.update(hijo.estado for _, hijo in haz)
         medidor.registrar_generado(len(haz))
         medidor.observar_frontera(len(haz))
+        nivel += 1
+        if observador is not None:
+            observador(
+                NivelHaz(
+                    nivel=nivel,
+                    conservados=tuple(haz),
+                    descartados=tuple((evaluacion, hijo) for evaluacion, _, hijo in ordenados[k:]),
+                )
+            )
 
     return medidor.finalizar(problema, None)

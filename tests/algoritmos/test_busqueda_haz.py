@@ -257,3 +257,25 @@ def test_consola_sin_k_explica_como_configurarlo() -> None:
 
     assert salida.returncode == 1
     assert "--k" in salida.stderr and "prueba.k" in salida.stderr
+
+
+@pytest.mark.parametrize("k", ANCHOS_DEL_ENUNCIADO)
+def test_observador_recibe_cada_nivel_sin_alterar_el_resultado(k) -> None:
+    problema = _problema("campo_20x20.json")
+    niveles = []
+
+    observado = busqueda_haz(problema, k, observador=niveles.append)
+    sin_observar = busqueda_haz(problema, k)
+
+    assert (observado.exito, observado.camino, observado.costo, observado.estados_generados, observado.estados_expandidos) == (
+        sin_observar.exito,
+        sin_observar.camino,
+        sin_observar.costo,
+        sin_observar.estados_generados,
+        sin_observar.estados_expandidos,
+    )
+    assert [nivel.nivel for nivel in niveles] == list(range(len(niveles)))
+    assert niveles[0].conservados[0][1].estado == problema.estado_inicial
+    assert all(len(nivel.conservados) <= k for nivel in niveles)
+    # Los conservados entran al haz como generados; los descartados no cuentan.
+    assert sum(len(nivel.conservados) for nivel in niveles) == observado.estados_generados

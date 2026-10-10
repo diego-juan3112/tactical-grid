@@ -303,6 +303,9 @@ aumentar `k` no siempre reduce el costo. Resultados reproducibles (`tests/algori
 | `obstaculo_rodeo.json` | costo 20, 19 mov. | sin solucion | costo 16, 15 mov. | costo 16, 15 mov. | costo 16 |
 | `campo_20x20.json` | sin solucion | sin solucion | costo 40, 34 mov. | costo 46, 36 mov. | costo 34 |
 
+El parametro opcional `observador` de `busqueda_haz` recibe un `NivelHaz` por cada nivel (candidatos conservados y
+descartados con su `f`) sin alterar el resultado; se usa en el analisis de E7.2 y sirve para visualizar la exploracion.
+
 `k` se configura sin modificar codigo: desde la consola con `--k` (admite varios valores) o desde el JSON con el
 campo propio `prueba.k`. La consola tiene prioridad sobre el JSON; un `k` que no sea un entero mayor o igual que 1 se
 rechaza con un mensaje claro.
@@ -310,6 +313,135 @@ rechaza con un mensaje claro.
 ```bash
 python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8
 ```
+
+## E7.2 — Caso mínimo 5: efecto de k en Beam Search
+
+### Propósito del experimento
+
+Este caso analiza cómo cambia Beam Search (E7.1) al variar el ancho del haz `k` sobre el mismo escenario, estado
+inicial, unidad y objetivo. Se busca observar qué ocurre con la exploración y con la solución cuando se restringe
+la cantidad de alternativas conservadas y, en particular, identificar el momento exacto en que el haz descarta un
+camino que después habría sido conveniente. Las afirmaciones de esta sección están fijadas como pruebas en
+`tests/algoritmos/test_caso_minimo_5.py`.
+
+### Configuración reproducible
+
+- Escenario: `escenarios/campo_20x20.json` (20 filas por 20 columnas), creado en E2.3.
+- Unidad: `A1`, con posición inicial `(1, 2)`. Objetivo posicional: `(9, 10)`, la isla del recurso.
+- Anchos evaluados: `k = 1, 2, 4, 8`.
+- Orden de los candidatos: `f(n) = g(n) + h(n)` con Manhattan escalada de E6.1; empates por orden de generación
+  (las acciones se generan arriba, abajo, izquierda, derecha).
+- Referencias sobre el mismo problema: UCS (costo óptimo) y BFS (mínimo número de movimientos).
+
+```bash
+python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8
+```
+
+La consola imprime cada resultado y, al final, una tabla comparativa por `k`.
+
+### Representación del mapa
+
+```text
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
+F0    P C C C C C C C C C C C C C C C C C C C
+F1    P C A C C C C C C C C C C C C C C C C P
+F2    P C P P P P P P P P P P P P P P P P C P
+F3    P C P B B B P P P P P P P P P P P P C P
+F4    P C P B B B B B B B B B # # # # # P C P
+F5    P C P B B B B B B B B B B B P P P P C P
+F6    P C P P P P S S S S S S S S P P P P C P
+F7    P C P P P P S S S S S S S S P P P P C P
+F8    P C P P P P S S S S S S S S P P P P C P
+F9    P C P P P P S S S C G S S S P P P P C P
+F10   P C P P P P S S S C C C C C C C C C C P
+F11   P C P P P P S S S S S S S S P C P P C P
+F12   P C P P # P S S S S S S S S P C P P C P
+F13   P C P P # P S S S S S S S S P C C C C P
+F14   P C P P # P P P P P P P P P P P P P C P
+F15   P C P P # P P P P P P P P P B B B P C P
+F16   P C P P # P P P P P P P P P B B B P C P
+F17   P C P P P P P P P P P P P P B B B P C P
+F18   P C C C C C C C C C C C C C C C C C C P
+F19   C C C C C C C C C C C C C C C C C C C P
+```
+
+`A` es el inicio y `G` el objetivo. `C` es camino (costo 1), `P` pasto (2), `B` bosque (4), `S` pantano (7) y `#`
+muro. La ruta óptima (UCS, costo 34) recorre la carretera de la fila 1 hasta la columna 18, baja por la columna 18
+hasta la fila 10 y entra a la isla por la carretera de la fila 10.
+
+### Resultados observados
+
+| k | Solución | Movimientos | Costo | Estados generados | Estados expandidos | Máximo de frontera | Niveles |
+|---:|:---:|---:|---:|---:|---:|---:|---:|
+| 1 | No | — | — | 74 | 74 | 1 | 74 |
+| 2 | No | — | — | 137 | 137 | 2 | 70 |
+| 4 | Sí | 34 | 40 | 137 | 133 | 4 | 34 |
+| 8 | Sí | 36 | 46 | 284 | 276 | 8 | 36 |
+| UCS (referencia) | Sí | 34 | 34 | 374 | 333 | — | — |
+| BFS (referencia) | Sí | 16 | 45 | — | — | — | — |
+
+El tiempo se reporta en consola, pero no se fija en la tabla porque depende de la máquina.
+
+### Dónde se descarta el camino conveniente
+
+Para cada `k` se comparó, nivel por nivel, el contenido del haz con los estados de la ruta óptima de UCS (el estado
+de profundidad `i` de esa ruta debería estar en el nivel `i` del haz). Ningún `k` entre 1 y 8 conserva la ruta de
+costo 34:
+
+| k | Nivel | Estado de la ruta óptima descartado | `f` del descartado | `f` del último conservado |
+|---:|---:|:---:|---:|---:|
+| 1 | 9 | `(1, 11)` | 18 | 17 |
+| 2 | 9 | `(1, 11)` | 18 | 18 |
+| 4 | 11 | `(1, 13)` | 22 | 22 |
+| 8 | 12 | `(1, 14)` | 24 | 24 |
+
+- **k = 1.** En el nivel 9 la unidad está en `(1, 10)`, sobre la carretera. Bajar a `(2, 10)` (pasto) da
+  `f = g + h = 10 + 7 = 17`; seguir a `(1, 11)` da `9 + 9 = 18`. La heurística premia acercarse en vertical a la isla
+  e ignora que debajo están el bosque y el pantano, así que el único lugar del haz se lo queda el desvío. A partir de
+  ahí la unidad rodea el lago por el oeste y el sur, y en el nivel 74 queda en `(15, 5)` rodeada de celdas que ya
+  pasaron por el haz: el haz se vacía y la búsqueda termina **sin solución**, aunque el objetivo es alcanzable.
+- **k = 2.** El segundo lugar del nivel 9 lo ocupa `(0, 10)`, que empata con `(1, 11)` en `f = 18` y se generó antes
+  (la acción "arriba" se genera antes que "derecha"). La ruta óptima se pierde por **empate** y el haz termina
+  atrapado en la misma zona que con `k = 1`.
+- **k = 4.** Conserva la carretera más tiempo, pero en el nivel 11 descarta `(1, 13)` (`f = 22`), otra vez por empate
+  con el último conservado. Continúa por el pasto de la fila 2 y llega con **costo 40**: seis más que el óptimo.
+- **k = 8.** En el nivel 12 la mitad del haz está ocupada por celdas del oeste (columnas 2 a 4, `f` entre 21 y 23),
+  que Manhattan considera prometedoras porque se acercan a la isla, pero el lago les cierra el paso. Esos lugares
+  desplazan a `(1, 14)` y la solución final cuesta **46**, peor que con `k = 4`.
+
+### Efecto sobre la exploración
+
+Restringir `k` limita la memoria: el máximo de frontera es exactamente `k` en los cuatro casos. Sin embargo, los
+estados generados y expandidos no crecen de forma monótona: `k = 4` genera lo mismo que `k = 2` (137) porque
+encuentra el objetivo en 34 niveles, mientras que `k = 2` explora 70 niveles hasta quedarse sin candidatos. `k = 8`
+explora más que todos (284 generados), porque mantiene ramas que no llevan a ninguna parte. Todas las variantes
+exploran menos que UCS (374 generados), que es la contrapartida de no garantizar la solución óptima.
+
+### Caso complementario: aumentar k empeora el costo
+
+En `ruta_corta_vs_economica.json` (caso mínimo 2), ocurre lo contrario: la poda ayuda.
+
+| k | Movimientos | Costo |
+|---:|---:|---:|
+| 1 | 12 | 12 |
+| 2 | 12 | 12 |
+| 4 | 8 | 50 |
+| 8 | 8 | 50 |
+
+En el nivel 1, desde `(2, 0)`, los candidatos son camino `(1, 0)` con `f = 10`, pasto `(3, 0)` con `f = 11` y pantano
+`(2, 1)` con `f = 14`. Con `k = 1` y `k = 2` el pantano se descarta y solo sobrevive el rodeo barato (costo 12, igual
+que UCS). Con `k = 4` el pantano también entra al haz; como Beam Search avanza por niveles y se detiene en el primer
+nivel que contiene el objetivo, el corredor de pantano llega en el nivel 8, antes que el rodeo (nivel 12), y la
+solución cuesta 50, la misma que BFS.
+
+### Conclusión académica
+
+`k` controla cuánta memoria usa Beam Search, pero no cuánto se acerca a la solución óptima. Un haz estrecho puede
+descartar el camino conveniente en un único nivel —por una heurística que ignora obstáculos y terrenos caros, o por un
+simple empate resuelto por el orden de las acciones— y quedar sin solución aunque exista. Un haz más ancho conserva
+más alternativas, pero también más candidatos engañosos, y al detenerse en el primer nivel que contiene el objetivo
+favorece los caminos cortos aunque sean caros. En el límite, sin poda, Beam Search se comporta como BFS. Por eso el
+efecto de `k` depende del escenario y debe evaluarse experimentalmente, no suponerse monótono.
 
 ## Ejecución desde consola
 
