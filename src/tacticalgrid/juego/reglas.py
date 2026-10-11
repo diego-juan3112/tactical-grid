@@ -21,6 +21,7 @@ from tacticalgrid.escenario.escenario import Escenario, Posicion
 
 from .accion import DESPLAZAMIENTOS, Accion
 from .estado import EstadoJuego
+from .recurso import bando_que_entrego_recurso, recoger_recurso
 from .unidad import Unidad
 
 EN_CURSO = "en_curso"
@@ -37,14 +38,12 @@ def obtener_ganador(escenario: Escenario, estado: EstadoJuego) -> str | None:
     Postcondiciones: devuelve ``"A"`` o ``"B"`` si hay ganador y ``None`` en otro caso; no modifica nada.
     Complejidad: O(U) temporal y O(1) espacial, donde U es el numero de unidades.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion a partir del enunciado.
+    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion a partir del enunciado;
+    Claude (Sonnet 5.5) la delego en ``recurso.bando_que_entrego_recurso`` en E3.2, sin cambiar su resultado.
     Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
     pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
     """
-    portador = _buscar_unidad(estado, estado.portador_recurso) if estado.portador_recurso else None
-    if portador is not None and portador.posicion == escenario.bases[portador.bando]:
-        return portador.bando
-    return None
+    return bando_que_entrego_recurso(escenario, estado)
 
 
 def es_terminal(escenario: Escenario, estado: EstadoJuego) -> bool:
@@ -232,8 +231,9 @@ def desplazar_unidad(escenario: Escenario, estado: EstadoJuego, accion: Accion) 
     ``estado`` no se modifica.
     Complejidad: O(U log U) temporal y O(U) espacial por la reconstruccion canonica de la tupla de unidades.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion; en E4.1 corrigio que la
-    marca de victoria quedara fija al salir el portador de su base, lo que duplicaba estados en navegacion.
+    Intervencion de IA: Claude (Opus 5.5) implemento la implementacion y su documentacion; en E4.1 corrigio que la
+    marca de victoria quedara fija al salir el portador de su base, lo que duplicaba estados en navegacion;
+    Claude (Sonnet 5.5) movio la regla de recogida a ``recurso.recoger_recurso`` en E3.2, sin cambiar su efecto.
     Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
     pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
     """
@@ -241,12 +241,7 @@ def desplazar_unidad(escenario: Escenario, estado: EstadoJuego, accion: Accion) 
         replace(unidad, posicion=accion.destino) if unidad.identificador == accion.identificador_unidad else unidad
         for unidad in estado.unidades
     )
-    portador = estado.portador_recurso
-    posicion_recurso = estado.posicion_recurso
-    if portador is None and posicion_recurso == accion.destino:
-        portador = accion.identificador_unidad
-        posicion_recurso = None
-    sucesor = replace(estado, unidades=unidades, portador_recurso=portador, posicion_recurso=posicion_recurso)
+    sucesor = recoger_recurso(replace(estado, unidades=unidades), accion.identificador_unidad, accion.destino)
     ganador = obtener_ganador(escenario, sucesor)
     if ganador is not None:
         return replace(sucesor, estado_partida=f"victoria_{ganador}")
