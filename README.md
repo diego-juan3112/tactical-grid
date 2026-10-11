@@ -94,7 +94,144 @@ Ejemplo verificado en `tests/algoritmos/test_busqueda_profundidad.py`, en un map
 
 En el escenario predeterminado `campo_20x20.json` (de (1, 2) a (9, 10)), DFS expande menos estados que BFS (102 frente a 186), pero devuelve un camino mucho peor (98 movimientos y costo 283, frente a 16 movimientos y costo 45). Ademas, su frontera maxima es mayor (104 frente a 20). La ventaja de memoria que suele atribuirse a DFS, una pila de tamaño O(b * m), vale para la busqueda en arbol, que solo guarda la rama actual. En esta busqueda en grafo, cada expansion deja en la pila hermanos pendientes que se acumulan mientras se profundiza.
 
-## UCS — E5.1
+## E4.4 — Caso mínimo 1: BFS vs. DFS
+
+### Propósito del experimento
+
+Este caso demuestra que BFS (E4.2) y DFS (E4.3) encuentran solución sobre el mismo problema, pero recorren el
+espacio de búsqueda de forma distinta. Ambos usan el mismo `ProblemaNavegacion`, la misma detección de estados
+repetidos, la misma prueba de objetivo y las métricas de E4.1; la única diferencia es la frontera: cola (FIFO) en
+BFS y pila (LIFO) en DFS. Las afirmaciones de esta sección están fijadas como pruebas en
+`tests/algoritmos/test_caso_minimo_1.py`.
+
+### Configuración reproducible
+
+Escenario principal (cumple el mínimo de 20×20):
+
+- Escenario: `escenarios/campo_20x20.json`. Unidad `A1` en `(1, 2)`; objetivo `(9, 10)`, la isla del recurso.
+- Movimientos ortogonales generados en el orden arriba, abajo, izquierda, derecha.
+
+Complemento verificado a mano:
+
+- Escenario: `escenarios/ejemplo_enunciado.json` (4×4). Unidad `A1` en `(0, 1)`; objetivo `(3, 2)`, el mismo de
+  `prueba.objetivo`.
+
+```bash
+python3 -B main.py escenarios/campo_20x20.json --algoritmo bfs_dfs
+python3 -B main.py escenarios/ejemplo_enunciado.json --algoritmo bfs_dfs
+```
+
+La opción `bfs_dfs` ejecuta ambos algoritmos sobre el mismo problema e imprime una tabla comparativa.
+
+### Resultados esperados y observados — escenario 4×4
+
+Los valores esperados se obtuvieron con una traza manual de cada frontera. Para BFS, una cola de la que se extrae
+por el frente; para DFS, una pila en la que los hijos se apilan en orden inverso, de modo que se extrae primero el
+de la acción "arriba". En ambos casos el estado se marca al incorporarlo a la frontera.
+
+```text
+      0 1 2 3
+F0    C A P P        A = inicio (0, 1), G = objetivo (3, 2)
+F1    C # B P        C camino 1, P pasto 2, B bosque 4, S pantano 7, # muro
+F2    C C S P        El recurso está en (2, 2)
+F3    P P G C
+```
+
+| Métrica | BFS esperado | BFS observado | DFS esperado | DFS observado |
+|---|---:|---:|---:|---:|
+| Encuentra solución | Sí | Sí | Sí | Sí |
+| Movimientos | 4 | 4 | 6 | 6 |
+| Costo | 14 | 14 | 8 | 8 |
+| Estados generados | 19 | 19 | 9 | 9 |
+| Estados expandidos | 12 | 12 | 6 | 6 |
+| Máximo de frontera | 7 | 7 | 3 | 3 |
+
+Orden de expansión:
+
+- **BFS:** `(0,1)`, `(0,0)`, `(0,2)`, `(1,0)`, `(1,2)`, `(0,3)`, `(2,0)`, `(2,2)*`, `(1,3)`, `(3,0)`, `(2,1)`, `(1,2)*`.
+  Primero el inicio, luego sus vecinos, luego las celdas a dos pasos, y así sucesivamente. Las marcadas con `*` son
+  estados en los que `A1` ya porta el recurso: al entrar en `(2, 2)` lo recoge, y por eso `(1, 2)` aparece dos veces
+  como estados distintos (caso 6, estado compuesto). Camino: `(0,1) → (0,2) → (1,2) → (2,2) → (3,2)`, costo
+  `2 + 4 + 7 + 1 = 14`.
+- **DFS:** `(0,1)`, `(0,0)`, `(1,0)`, `(2,0)`, `(3,0)`, `(3,1)`. Desde el inicio, "arriba" sale del mapa y "abajo" es
+  muro, así que sigue "izquierda" y desde ahí baja por la columna 0 sin volver atrás. Camino:
+  `(0,1) → (0,0) → (1,0) → (2,0) → (3,0) → (3,1) → (3,2)`, costo `1 + 1 + 1 + 2 + 2 + 1 = 8`.
+
+Los valores esperados y observados coinciden. En este mapa DFS resulta más barato que BFS, pero por azar del orden
+de las acciones: ninguno de los dos usa el costo para decidir.
+
+### Resultados esperados y observados — escenario 20×20
+
+En el mapa grande no es práctico trazar a mano las 186 expansiones de BFS, así que los valores esperados son
+propiedades derivadas de cada algoritmo y los observados son los valores medidos:
+
+| Propiedad | Esperado | Observado |
+|---|---|---|
+| Ambos encuentran solución | Sí, el objetivo es alcanzable | BFS sí, DFS sí |
+| Movimientos de BFS | El mínimo posible: la distancia Manhattan, `8 + 8 = 16` | 16 |
+| Orden de expansión de BFS | Profundidad mínima no decreciente (por ondas) | Se cumple para los 186 estados expandidos |
+| Movimientos de DFS | Mayor que 16: sigue la primera rama sin medir longitud | 98 |
+| Orden de expansión de DFS | No respeta niveles | Se cumple |
+
+| Métrica observada | BFS | DFS |
+|---|---:|---:|
+| Movimientos | 16 | 98 |
+| Costo | 45 | 283 |
+| Estados generados | 205 | 206 |
+| Estados expandidos | 186 | 102 |
+| Máximo de frontera | 20 | 104 |
+
+### Cómo recorre el mapa cada algoritmo
+
+`*` es el camino devuelto, `o` una celda expandida fuera del camino, `.` una celda no expandida y `#` un muro.
+
+```text
+BFS (186 expandidos)                         DFS (102 expandidos)
+      01234567890123456789                         01234567890123456789
+F0    oooooooooooooooooo..                   F0    ***.***.***.........
+F1    ooAooooooooooooooo..                   F1    *.A.*.*.*.*.........
+F2    oo*oooooooooooooo...                   F2    *..**.*.*.*.........
+F3    oo*ooooooooooooo....                   F3    *.**..*.*.*.........
+F4    oo*ooooooooo#####...                   F4    *.*...*.*.*.#####...
+F5    oo*ooooooooooo......                   F5    *.*...*.*.*.........
+F6    oo*oooooooooo.......                   F6    *.*...*.*.*.........
+F7    oo*ooooooooo........                   F7    *.*...*.*.*.........
+F8    oo*oooooooo.........                   F8    *.*...*.*.*.........
+F9    oo********G.........                   F9    *.*...*.*.G.........
+F10   oooooooooo..........                   F10   *.*...*.*...........
+F11   ooooooooo...........                   F11   *.*...*.*...........
+F12   oooo#ooo............                   F12   *.*.#.*.*...........
+F13   oooo#oo.............                   F13   *.*.#.*.*...........
+F14   oooo#o..............                   F14   *.*.#.*.*...........
+F15   oooo#...............                   F15   *.*.#.*.*...........
+F16   .ooo#...............                   F16   *.*.#.*.*...........
+F17   ..o.................                   F17   *.*.o.*.*...........
+F18   ....................                   F18   *.*.o.*.*...........
+F19   ....................                   F19   ***.oo***...........
+```
+
+- **BFS** avanza como una onda desde `(1, 2)`: expande todas las celdas a distancia 1, luego a distancia 2, etc. La
+  región explorada es aproximadamente un rombo alrededor del inicio, recortado por los bordes y los muros. Cuando
+  extrae el objetivo ya expandió todo lo que está a 15 movimientos o menos y parte de lo que está a 16, por eso su
+  camino es el más corto posible.
+- **DFS** se mete en una sola rama y la sigue hasta el fondo. Desde `(1, 2)` toma "arriba", luego "izquierda" hasta
+  `(0, 0)` y baja por toda la columna 0. Como marca los estados al apilarlos, las celdas vecinas que deja pendientes
+  (por ejemplo, toda la columna 1) quedan descubiertas y no vuelven a entrar a la pila. Por eso el camino avanza en
+  columnas alternas, formando una serpiente (columnas 0, 2, 6, 8 y 10), hasta que la columna 10 lo lleva al
+  objetivo. De los 102 estados que expande, 98 son posiciones de su propio camino; solo `(17,4)`, `(18,4)`, `(19,4)`
+  y `(19,5)` quedan fuera.
+- **Frontera:** BFS nunca guarda más de 20 estados porque la onda es angosta en este mapa. DFS llega a 104, porque
+  cada celda de la serpiente deja hermanos pendientes en la pila que no se retiran mientras siga profundizando.
+
+### Conclusión académica
+
+BFS y DFS son búsquedas no informadas sobre el mismo modelo, y la única diferencia entre ellos es el orden en que
+extraen de la frontera. Ese solo cambio produce exploraciones opuestas: BFS recorre el espacio por niveles y
+garantiza el menor número de movimientos, a costa de expandir casi todo lo cercano al inicio; DFS sigue una rama
+hasta el fondo, expande menos estados, pero devuelve el primer camino que encuentra, que puede ser mucho más largo
+(98 frente a 16 movimientos) y, en esta implementación en grafo, puede necesitar más frontera que BFS. Ninguno usa
+los costos del terreno; para eso están UCS y A*.
+
 
 UCS usa una cola de prioridad minima ordenada exclusivamente por el costo acumulado `g(n)`. Los costos provienen de `Problema.costo()` y, en `ProblemaNavegacion`, de la celda destino declarada en `tipos_terreno` del JSON. Por eso puede elegir mas movimientos que BFS cuando el costo total resulta menor.
 
@@ -494,6 +631,7 @@ python3 main.py --algoritmo ucs
 python3 main.py --algoritmo a_estrella
 python3 main.py --algoritmo beam --k 4
 python3 main.py --algoritmo ambos
+python3 main.py --algoritmo bfs_dfs
 ```
 
 Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`
