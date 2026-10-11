@@ -4,7 +4,7 @@ Juego tactico 2D por turnos para Sistemas Inteligentes I. El juego permite obser
 
 ## Stack tecnico
 
-- **Python 3.12 o compatible:** facilita implementar con claridad los algoritmos de busqueda y decision, mantiene el codigo legible y modificable, e integra Pygame y pytest en el mismo proyecto.
+- **Python 3.12 o 3.13 (no 3.14, que Pygame aun no soporta):** facilita implementar con claridad los algoritmos de busqueda y decision, mantiene el codigo legible y modificable, e integra Pygame y pytest en el mismo proyecto.
 - **Pygame:** TacticalGrid es un entorno tactico 2D en cuadricula; permite visualizar tablero, terrenos, unidades, caminos y resultados, con una interfaz suficiente para observar el sistema inteligente y no para producir un videojuego comercial.
 - **pytest:** permite probar escenario, juego y algoritmos independientemente de Pygame, con pruebas automatizadas y reproducibles.
 - **Uvicorn:** ejecuta un punto ASGI tecnico y aislado; no convierte el proyecto en una aplicacion web.
@@ -498,13 +498,14 @@ El contrato JSON usa literalmente `version`, `mapa.filas`, `mapa.columnas`, `tip
 
 ## Windows (PowerShell)
 
-El remoto configurado del proyecto requiere el alias SSH `github.com-personal`:
+Requiere Python 3.12 o 3.13 (no 3.14: Pygame aun no publica instalador para esa version). Con `py -0` se listan las versiones instaladas; si solo tienes 3.12, usa `py -3.12` en lugar de `py -3.13`.
 
 ```powershell
-git clone git@github.com-personal:diego-juan3112/tactical-grid.git
+git clone https://github.com/diego-juan3112/tactical-grid.git
 cd tactical-grid
-py -m venv .venv
+py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python --version
 python -m pip install --upgrade pip
 python -m pip install -e ".[desarrollo]"
 python -m pytest
@@ -512,15 +513,18 @@ tacticalgrid
 python -m uvicorn tacticalgrid.servidor.asgi:aplicacion --reload
 ```
 
-Estos comandos no se ejecutaron en este entorno Linux; deben validarse en Windows con el alias SSH configurado.
+`python --version` debe mostrar 3.12.x o 3.13.x antes de instalar. Si muestra 3.14, borra `.venv` y vuelve a crearlo con una version admitida.
 
 ## Linux
 
+Requiere Python 3.12 o 3.13 (no 3.14). Si `python3 --version` muestra otra version, usa el ejecutable explicito, por ejemplo `python3.13` o `python3.12`.
+
 ```bash
-git clone git@github.com-personal:diego-juan3112/tactical-grid.git
+git clone https://github.com/diego-juan3112/tactical-grid.git
 cd tactical-grid
-python3 -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
+python --version
 python -m pip install --upgrade pip
 python -m pip install -e '.[desarrollo]'
 python -m pytest

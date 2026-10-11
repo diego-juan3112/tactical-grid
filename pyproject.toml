@@ -7,7 +7,7 @@ name = "tacticalgrid"
 version = "0.1.0"
 description = "Base arquitectonica del proyecto TacticalGrid."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "pygame>=2.6",
     "uvicorn>=0.30",

@@ -32,7 +32,7 @@ Cualquier código o sugerencia de IA debe respetar esto sin excepción:
 
 ## Arquitectura y stack técnico
 
-- **Python 3.12 o compatible:** permite expresar con claridad los algoritmos de busqueda y decision, mantener codigo legible y modificable, e integrar Pygame y pytest.
+- **Python 3.12 o 3.13 (no 3.14, que Pygame aun no soporta):** permite expresar con claridad los algoritmos de busqueda y decision, mantener codigo legible y modificable, e integrar Pygame y pytest.
 - **Pygame:** TacticalGrid es un entorno tactico 2D en cuadricula; permite visualizar tablero, terrenos, unidades, caminos y resultados. Es suficiente para observar el sistema inteligente, no para un videojuego comercial, y se aisla exclusivamente en `src/tacticalgrid/interfaz/`.
 - **pytest:** permite pruebas automatizadas y reproducibles de escenario, juego y algoritmos sin abrir Pygame.
 - **JSON:** contrato externo para escenarios intercambiables.
@@ -116,14 +116,28 @@ capa de algoritmos abra archivos.
 
 ### Cómo ejecutarlos
 
-Crear y activar un entorno virtual, e instalar las dependencias de desarrollo:
+Crear y activar un entorno virtual con Python 3.12 o 3.13 (no 3.14), e instalar las dependencias de desarrollo.
+Linux o macOS:
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
+python --version
 python -m pip install --upgrade pip
 python -m pip install -e '.[desarrollo]'
 ```
+
+Windows (PowerShell):
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python --version
+python -m pip install --upgrade pip
+python -m pip install -e ".[desarrollo]"
+```
+
+`python --version` debe mostrar 3.12.x o 3.13.x antes de instalar; con otra version, recrear `.venv`.
 
 Ejecutar pruebas: `python -m pytest`.
 
