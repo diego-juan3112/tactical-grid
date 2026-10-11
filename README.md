@@ -726,6 +726,77 @@ intercepción pierda importancia relativa.
 Las pruebas de `tests/algoritmos/test_utilidad.py` fijan cada criterio por separado, los valores terminales, la
 suma cero, los ejemplos de esta sección y la validación de los pesos.
 
+## Minimax con profundidad limitada — E8.3
+
+`algoritmos/minimax.py` elige la mejor acción para el bando en turno explorando el árbol de juego hasta una
+profundidad máxima. MAX es el bando en turno en la raíz y MIN el otro: son roles, no capacidades distintas, porque
+ambos usan las mismas acciones legales (`acciones_tacticas`, E8.1) y la misma utilidad de suma cero (E8.2).
+
+```python
+resultado = minimax(escenario, estado, profundidad_maxima=4)
+resultado.accion_seleccionada   # AccionTactica elegida (acción legal + tipo táctico)
+resultado.valores_raiz          # valor Minimax de cada acción de la raíz, para explicar la decisión
+```
+
+### Funcionamiento
+
+- Antes de expandir un nodo se aplica `preparar_turno` (E3.1/E1.3): si el bando en turno está bloqueado, el turno
+  pasa al adversario sin consumir profundidad; si ambos lo están, la partida termina en empate.
+- Un nodo es hoja si es terminal, si no tiene acciones o si alcanzó la profundidad máxima. En las hojas se calcula la
+  utilidad con `EvaluadorUtilidad`, con los pesos de `juego.pesos_utilidad` si el escenario los define.
+- Los nodos MAX toman el máximo de sus hijos y los nodos MIN el mínimo. Las acciones se exploran en el orden de
+  `acciones_tacticas`; ante un empate de valor se conserva la **primera** acción, para que alfa-beta (E8.4) pueda
+  reproducir exactamente la misma decisión con el mismo orden.
+- Complejidad: `O(b^d)` nodos, con `b` acciones por nodo (a lo sumo 5 por unidad del bando en turno) y `d` la
+  profundidad máxima. Con profundidad 4, `campo_20x20.json` genera 11 023 nodos y tarda menos de 2 segundos.
+
+### Profundidad configurable sin tocar código
+
+La profundidad se lee de `juego.profundidad_maxima_minimax` del escenario (todos los escenarios del repositorio
+declaran 4) o de `--profundidad` en la consola, que tiene prioridad. Un valor que no sea un entero mayor o igual que 1
+se rechaza con un mensaje claro.
+
+```bash
+python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax
+python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
+```
+
+### Métricas
+
+| Métrica | Significado en la implementación |
+|---|---|
+| Nodos generados | La raíz y cada sucesor creado al aplicar una acción. |
+| Nodos evaluados | Hojas en las que se calculó la utilidad. |
+| Nodos podados | Siempre 0 en Minimax; existe para compararlo con alfa-beta (E8.4). |
+| Profundidad alcanzada | Mayor profundidad de un nodo visitado (la raíz es 0). Es menor que la máxima si todas las ramas terminan antes. |
+| Tiempo | Segundos desde el inicio hasta la decisión. |
+| Acción seleccionada | Acción legal de la raíz con mayor valor, con su tipo táctico. |
+| Valor obtenido | Valor Minimax de la raíz desde la perspectiva de MAX. |
+
+`ResultadoMinimax.a_diccionario()` exporta estas métricas en una estructura serializable a JSON.
+
+### Ejemplo verificado a mano: mirar más lejos cambia la decisión
+
+En un corredor 1×4 (`base A | A1 | recurso | B1 sobre la base B`), con A en turno:
+
+| Acción de A1 | Valor con profundidad 1 | Valor con profundidad 2 | Valor con profundidad 3 |
+|---|---:|---:|---:|
+| Recoger el recurso en `(0, 2)` | **37** | −10 000 | −10 000 |
+| Retroceder a `(0, 0)` | −2 | **−98** | **−38** |
+
+Con profundidad 1, recoger el recurso parece lo mejor (posesión +100, aunque B1 quede adyacente: amenaza −60). Con
+profundidad 2, Minimax ve la respuesta de MIN: B1 intercepta desde su propia base y gana. Por eso retrocede y
+prefiere dejar que B recoja el recurso (−98) antes que perder la partida. Los nodos se pueden contar a mano: con
+profundidad 2 se generan 5 (la raíz, 2 jugadas de A y 1 respuesta de B a cada una) y se evalúan 2 hojas.
+
+En `recurso_en_transporte.json` ocurre algo similar: con profundidad 1 lo mejor es que el portador A2 avance
+(utilidad 74), pero con profundidad 2 Minimax elige `A1 (0, 2) → (0, 3)`, una jugada de `proteger_zona` que se cruza
+en el camino de B2, porque deja a A en mejor posición tras la mejor respuesta de B (valor 72 frente a 64).
+
+Las pruebas de `tests/algoritmos/test_minimax.py` fijan este árbol calculado a mano, la legalidad de la acción
+elegida, la coherencia de las métricas, que MIN no está en desventaja (reflejar el tablero e intercambiar los bandos
+da el mismo valor para quien mueve), la lectura de la profundidad desde el JSON y la consola.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
@@ -751,6 +822,7 @@ python3 main.py --algoritmo a_estrella
 python3 main.py --algoritmo beam --k 4
 python3 main.py --algoritmo ambos
 python3 main.py --algoritmo bfs_dfs
+python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
 ```
 
 Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`

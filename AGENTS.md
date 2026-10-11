@@ -130,6 +130,12 @@ con `pesos_desde_configuracion`; un criterio desconocido o un valor no finito se
 (`algoritmos/utilidad.py`) es de suma cero: intercambiar MAX y MIN cambia exactamente su signo, y sus distancias usan
 los costos del JSON respetando muros. Minimax debe evaluar las hojas con `EvaluadorUtilidad`, no con otra formula.
 
+Minimax (E8.3, `algoritmos/minimax.py`): MAX es el bando en turno en la raiz; los sucesores salen de
+`acciones_tacticas` y `aplicar_accion`, y cada nodo pasa por `preparar_turno` (el pase por bloqueo no consume
+profundidad). La profundidad maxima se toma de `juego.profundidad_maxima_minimax` o de `main.py --profundidad`. Ante
+empate se conserva la primera accion en el orden de generacion: alfa-beta (E8.4) debe usar el mismo orden y el mismo
+desempate para producir la misma decision.
+
 ### Cómo ejecutarlos
 
 Crear y activar un entorno virtual con Python 3.12 o 3.13 (no 3.14), e instalar las dependencias de desarrollo.

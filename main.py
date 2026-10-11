@@ -23,7 +23,8 @@ from tacticalgrid.escenario import (
     Posicion,
     cargar_escenario,
 )
-from tacticalgrid.juego import ProblemaNavegacion
+from tacticalgrid.algoritmos.minimax import minimax, profundidad_desde_configuracion, validar_profundidad
+from tacticalgrid.juego import ProblemaNavegacion, crear_estado_inicial
 
 
 ALGORITMOS = {
@@ -87,6 +88,73 @@ def construir_problema(escenario, unidad=None, destino=None):
     problema = ProblemaNavegacion(escenario, unidad, objetivo)
 
     return problema, unidad, objetivo
+
+
+def resolver_profundidad(profundidad_consola, escenario):
+    """Determina la profundidad maxima de Minimax sin modificar codigo.
+
+    Purpose: tomar la profundidad de ``--profundidad`` o, si no se indico, de ``juego.profundidad_maxima_minimax``.
+    Preconditions: ``profundidad_consola`` es ``None`` o el entero leido por argparse; ``escenario`` fue validado.
+    Postconditions: devuelve la profundidad de consola si se indico (tiene prioridad) o la del JSON; lanza
+    ``ValueError`` si ninguna esta definida o si el valor no es un entero mayor o igual que 1.
+    Complexity: O(1) temporal y espacial.
+    AI usage: Yes.
+    AI intervention: Claude (Opus 5.5) implemento esta funcion y la opcion ``minimax`` del ejecutor en E8.3.
+    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
+    tests/algoritmos/test_minimax.py ejecutan ``main.py`` con ``--profundidad``, con el valor del JSON y sin ninguno.
+    """
+    if profundidad_consola is not None:
+        return validar_profundidad(profundidad_consola)
+    desde_json = profundidad_desde_configuracion(escenario.configuracion_juego)
+    if desde_json is None:
+        raise ValueError(
+            "Minimax necesita una profundidad: indique --profundidad o defina 'juego.profundidad_maxima_minimax'."
+        )
+    return desde_json
+
+
+def mostrar_resultado_minimax(resultado):
+    """Muestra la decision de Minimax, sus metricas y el valor de cada accion de la raiz.
+
+    Purpose: presentar en consola las metricas adversariales del enunciado y permitir explicar la decision.
+    Preconditions: ``resultado`` es un ``ResultadoMinimax``.
+    Postconditions: imprime bando MAX, profundidad, accion seleccionada con su tipo tactico, valor, metricas y una
+    fila por accion de la raiz marcando la elegida; no modifica el resultado.
+    Complexity: O(A) temporal y O(1) espacial adicional, donde A es la cantidad de acciones de la raiz.
+    AI usage: Yes.
+    AI intervention: Claude (Opus 5.5) implemento esta presentacion en E8.3.
+    Student validation: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
+    tests/algoritmos/test_minimax.py comprueba la salida.
+    """
+
+    def describir(accion_tactica):
+        a = accion_tactica.accion
+        verbo = "intercepta en" if a.tipo == "interceptar" else "->"
+        return f"{a.identificador_unidad} ({a.origen.fila}, {a.origen.columna}) {verbo} ({a.destino.fila}, {a.destino.columna})"
+
+    print(f"\n{'=' * 60}")
+    print(f"ALGORITMO: {resultado.algoritmo}")
+    print("=" * 60)
+    print(f"Bando MAX: {resultado.bando_max}")
+    print(f"Profundidad máxima: {resultado.profundidad_maxima}")
+    if resultado.accion_seleccionada is None:
+        print("Acción seleccionada: ninguna (estado terminal o bando sin acciones)")
+    else:
+        print(
+            f"Acción seleccionada: {describir(resultado.accion_seleccionada)} "
+            f"[{resultado.accion_seleccionada.tipo_tactico}]"
+        )
+    print(f"Valor obtenido: {resultado.valor}")
+    print(f"Nodos generados: {resultado.nodos_generados}")
+    print(f"Nodos evaluados: {resultado.nodos_evaluados}")
+    print(f"Nodos podados: {resultado.nodos_podados}")
+    print(f"Profundidad alcanzada: {resultado.profundidad_alcanzada}")
+    print(f"Tiempo: {resultado.tiempo_segundos:.6f} segundos")
+    if resultado.valores_raiz:
+        print("\nValor de cada acción de la raíz:")
+        for accion_tactica, valor in resultado.valores_raiz:
+            marca = "  <== elegida" if accion_tactica == resultado.accion_seleccionada else ""
+            print(f"  {describir(accion_tactica):<32} {accion_tactica.tipo_tactico:<24} {valor:>10}{marca}")
 
 
 def resolver_anchos_haz(anchos_consola, escenario):
@@ -257,8 +325,8 @@ def mostrar_comparacion_bfs_dfs(resultados):
 def main():
     """Carga el escenario y ejecuta los algoritmos seleccionados.
 
-    Purpose: ofrecer un ejecutor de consola para BFS, DFS, UCS, A*, Beam Search (con uno o varios anchos k) o la
-    comparación existente BFS/UCS sobre un escenario y una navegación elegidos.
+    Purpose: ofrecer un ejecutor de consola para BFS, DFS, UCS, A*, Beam Search (con uno o varios anchos k), las
+    comparaciones BFS/UCS y BFS/DFS sobre una navegación elegida, o Minimax sobre el estado inicial del escenario.
     Preconditions: los argumentos de consola respetan el formato declarado y la ruta apunta a un escenario
     legible; los datos del escenario se validan en ``cargar_escenario``.
     Postconditions: devuelve 0 tras mostrar los resultados y, para ``ambos``, su comparación; devuelve 1 y
@@ -269,7 +337,7 @@ def main():
     AI intervention: Codex documentó el flujo y agregó la comparación final de E5.1; en E6.1 incorporó A* sin
     alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``, y en
     E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs`` y en E4.4 la
-    opción ``bfs_dfs``.
+    opción ``bfs_dfs``; en E8.3 agregó la opción ``minimax`` y ``--profundidad``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -287,7 +355,7 @@ def main():
 
     parser.add_argument(
         "--algoritmo",
-        choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos", "bfs_dfs"],
+        choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos", "bfs_dfs", "minimax"],
         default="ucs",
         help="Algoritmo de búsqueda (predeterminado: ucs)",
     )
@@ -299,6 +367,13 @@ def main():
         metavar="K",
         help="Ancho del haz para --algoritmo beam; admite varios valores (por ejemplo --k 1 2 4 8). "
         "Si se omite, se usa 'prueba.k' del JSON.",
+    )
+
+    parser.add_argument(
+        "--profundidad",
+        type=int,
+        help="Profundidad maxima para --algoritmo minimax. Si se omite, se usa "
+        "'juego.profundidad_maxima_minimax' del JSON.",
     )
 
     parser.add_argument(
@@ -323,6 +398,17 @@ def main():
 
     try:
         escenario = cargar_escenario(ruta)
+
+        if args.algoritmo == "minimax":
+            profundidad = resolver_profundidad(args.profundidad, escenario)
+            estado = crear_estado_inicial(escenario)
+            print("\nTACTICALGRID")
+            print("=" * 60)
+            print(f"Escenario: {ruta.name}")
+            print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
+            print(f"Turno: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
+            mostrar_resultado_minimax(minimax(escenario, estado, profundidad))
+            return 0
 
         problema, unidad, objetivo = construir_problema(
             escenario,

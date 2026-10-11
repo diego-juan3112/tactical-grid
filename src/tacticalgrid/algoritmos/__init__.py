@@ -6,6 +6,7 @@ from .busqueda_costo_uniforme import busqueda_costo_uniforme
 from .busqueda_haz import NivelHaz, ancho_haz_desde_prueba, busqueda_haz, validar_ancho_haz
 from .busqueda_profundidad import busqueda_profundidad
 from .instrumentacion import MedidorBusqueda, Nodo, expandir
+from .minimax import ResultadoMinimax, minimax, profundidad_desde_configuracion
 from .resultado_busqueda import ResultadoBusqueda
 from .utilidad import (
     AccionValorada,
@@ -20,8 +21,10 @@ __all__ = [
     "AccionValorada",
     "EvaluadorUtilidad",
     "PesosUtilidad",
+    "ResultadoMinimax",
     "costos_hacia",
     "pesos_desde_configuracion",
+    "profundidad_desde_configuracion",
     "valorar_acciones",
     "MedidorBusqueda",
     "NivelHaz",
@@ -35,5 +38,6 @@ __all__ = [
     "busqueda_profundidad",
     "expandir",
     "heuristica_manhattan",
+    "minimax",
     "validar_ancho_haz",
 ]
