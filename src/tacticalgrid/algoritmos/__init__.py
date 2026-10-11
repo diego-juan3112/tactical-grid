@@ -4,6 +4,7 @@ from .busqueda_a_estrella import busqueda_a_estrella, heuristica_manhattan
 from .busqueda_anchura import busqueda_anchura
 from .busqueda_costo_uniforme import busqueda_costo_uniforme
 from .busqueda_haz import NivelHaz, ancho_haz_desde_prueba, busqueda_haz, validar_ancho_haz
+from .busqueda_profundidad import busqueda_profundidad
 from .instrumentacion import MedidorBusqueda, Nodo, expandir
 from .resultado_busqueda import ResultadoBusqueda
 
@@ -17,6 +18,7 @@ __all__ = [
     "busqueda_anchura",
     "busqueda_costo_uniforme",
     "busqueda_haz",
+    "busqueda_profundidad",
     "expandir",
     "heuristica_manhattan",
     "validar_ancho_haz",
