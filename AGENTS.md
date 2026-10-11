@@ -88,6 +88,16 @@ intercepcion transfiere el recurso a una unidad adversaria existente, y la conse
 turno. Si el nuevo portador esta en su propia base, la transicion registra su victoria. Una futura accion de
 intercepcion debe alternar el turno una sola vez mediante el mecanismo normal.
 
+E8.1 define esa accion y el espacio de acciones adversarial. `Accion` tiene un campo `tipo`: `mover` (por defecto) o
+`interceptar`. Una unidad ortogonalmente adyacente al portador rival puede interceptarlo: nadie se mueve, el recurso
+pasa al interceptor via `resolver_intercepcion` y `aplicar_accion` alterna el turno una vez; `destino` es la celda del
+portador y el costo es el de su terreno. La intercepcion se agrega al final de las acciones de cada unidad en
+`acciones_validas`, por lo que cada unidad aporta a lo sumo cinco acciones. Las demas tacticas no son mecanicas nuevas:
+`juego/tacticas.py` clasifica cada accion legal (`interceptar_portador`, `avanzar`, `aproximarse_al_recurso`,
+`proteger_zona`, `bloquear_posicion`, `perseguir_portador`, `reposicionar`) usando solo "propio" y "rival", de modo
+que A y B tienen exactamente las mismas tacticas. Minimax debe usar `acciones_validas` o `acciones_tacticas`, nunca
+generar acciones por su cuenta.
+
 E3.1 orquesta los turnos paso a paso en la capa `juego`; el consumidor exterior repite las operaciones y el dominio
 no ejecuta una partida completa en un bucle. La seleccion de unidad/accion es transitoria y no forma parte de
 `EstadoJuego`. Solo son seleccionables las unidades del bando activo que tengan acciones legales; una unidad activa

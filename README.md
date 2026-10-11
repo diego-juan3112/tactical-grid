@@ -607,6 +607,48 @@ más alternativas, pero también más candidatos engañosos, y al detenerse en e
 favorece los caminos cortos aunque sean caros. En el límite, sin poda, Beam Search se comporta como BFS. Por eso el
 efecto de `k` depende del escenario y debe evaluarse experimentalmente, no suponerse monótono.
 
+## Acciones tácticas adversariales — E8.1
+
+E8.1 define el espacio de acciones que usarán Minimax y alfa-beta, sin convertir el juego en un sistema de combate:
+no hay puntos de vida, ataques ni eliminación de unidades. El juego tiene solo dos mecánicas.
+
+- **Mover** (`tipo = "mover"`, E1.2): la unidad avanza una celda ortogonal a una celda dentro del mapa, transitable
+  y libre.
+- **Interceptar** (`tipo = "interceptar"`, nueva): una unidad ortogonalmente adyacente al portador rival usa su
+  turno para quitarle el recurso. Nadie se mueve; el recurso pasa al interceptor mediante `resolver_intercepcion`
+  (E1.3) y `aplicar_accion` alterna el turno una sola vez. En la acción, `origen` es la celda del interceptor y
+  `destino` la del portador; su costo es el del terreno de esa celda, leído del JSON. Si el interceptor está en su
+  propia base, gana en ese momento. Sin esta acción, la intercepción de E1.3 no podía ocurrir, porque una unidad
+  nunca puede entrar en la celda ocupada del portador.
+
+`acciones_validas` agrega la intercepción después de los movimientos de cada unidad, así que cada unidad aporta a lo
+sumo cinco acciones. Como ambos bandos usan las mismas reglas, si el antiguo portador sigue adyacente puede
+recuperar el recurso en su turno.
+
+Las tácticas del enunciado no son mecánicas nuevas, sino el significado de cada acción legal en la situación
+actual. `juego/tacticas.py` las clasifica, en orden de prioridad (`d` es la distancia Manhattan):
+
+| Tipo táctico | Situación | Condición |
+|---|---|---|
+| `interceptar_portador` | El rival porta el recurso | La acción es una intercepción. |
+| `aproximarse_al_recurso` | Recurso libre | El movimiento reduce `d` hasta el recurso (incluye recogerlo). |
+| `avanzar` | La unidad porta el recurso | El movimiento reduce `d` hasta su base. |
+| `proteger_zona` | Un aliado porta el recurso | El movimiento reduce `d` hasta el portador aliado (lo escolta). |
+| `bloquear_posicion` | El rival porta el recurso | El destino queda en el rectángulo entre el portador rival y su base, es decir, sobre alguna de sus rutas más cortas. |
+| `perseguir_portador` | El rival porta el recurso | No bloquea, pero reduce `d` hasta el portador rival. |
+| `reposicionar` | Cualquiera | Ninguna de las anteriores. |
+
+`acciones_tacticas(escenario, estado)` devuelve las mismas acciones que `acciones_validas`, en el mismo orden, cada
+una con su tipo táctico. La clasificación solo usa "propio" y "rival", nunca un bando concreto, por lo que A y B
+tienen las mismas tácticas: MAX y MIN serán roles, no capacidades distintas. El tipo táctico sirve para explicar
+una decisión de Minimax (por ejemplo, que bloquear sea mejor que acercarse al recurso) y para experimentar con el
+orden de las acciones; no altera la legalidad.
+
+Las pruebas de `tests/juego/test_tacticas.py` cubren cuándo se puede interceptar y cuándo no (en diagonal, a dos
+celdas, sin portador, portador aliado), su efecto y su costo, la victoria al interceptar desde la propia base, cada
+tipo táctico, la simetría entre bandos y la legalidad de todas las acciones en partidas de hasta cuatro jugadas
+sobre `ejemplo_enunciado.json`, `recurso_en_transporte.json` y `campo_20x20.json`.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
