@@ -55,6 +55,17 @@ El dominio ofrece un flujo sincrono y paso a paso en `juego/partida.py`; el cons
 
 La selección es transitoria y no integra `EstadoJuego`, por lo que no altera su identidad lógica ni su hash. El pase automático pertenece a E1.3; si ambos bandos están bloqueados, la partida termina en `empate_bloqueo`. `resolver_intercepcion()` conserva el turno por sí sola. A y B utilizan las mismas reglas. MAX y MIN son roles adversariales futuros: no conceden más o menos acciones, profundidad o inteligencia. La integración de E2.1 comienza con un `Escenario` cargado; `crear_estado_inicial(escenario)` construye el estado sin que el módulo de partida lea JSON.
 
+## Recoger y transportar el recurso — E3.2
+
+Las reglas del recurso viven en `juego/recurso.py`, que solo consulta y transforma `EstadoJuego` (no lee JSON, no conoce Pygame ni los algoritmos). Antes estaban mezcladas dentro de `reglas.py`; E3.2 las extrae a un módulo propio sin cambiar el comportamiento y `reglas.py` las reutiliza.
+
+- **Recoger:** una unidad recoge el recurso automáticamente al entrar en la celda donde está libre (`recoger_recurso`). Entonces `portador_recurso` pasa a ser su identificador y `posicion_recurso` queda en `null`. Pasar junto al recurso sin entrar en su celda no lo recoge.
+- **Transportar:** mientras tiene portador, el recurso viaja con él. `posicion_del_recurso(estado)` responde dónde está el recurso, libre o transportado, y `obtener_portador(estado)` devuelve la unidad que lo lleva.
+- **Ganar:** un bando gana cuando su portador está en la base de ese mismo bando (`bando_que_entrego_recurso`). Llevarlo a la base adversaria no da la victoria. Si el recurso estaba en la propia base y la unidad lo recoge allí, gana de inmediato.
+- **Simetría:** A y B usan exactamente las mismas reglas.
+
+`tests/juego/test_recurso.py` verifica cada criterio, incluida una partida completa sobre `escenarios/ejemplo_enunciado.json` en la que A1 recoge el recurso, lo transporta y gana en su base.
+
 E2.2 completa el validador de escenarios. Antes de construir el `Escenario` se comprueban todas las reglas del enunciado: dimensiones consistentes con la matriz, terrenos declarados, costos positivos, posiciones dentro del mapa, unidades sobre celdas transitables, ids unicos, bandos y turno validos, y portador existente. Cualquier incumplimiento lanza `ErrorValidacionEscenario` con un mensaje que nombra el campo, el elemento y el valor recibido. Como la validacion ocurre completa antes de aplicar nada, una carga fallida no reemplaza ni altera el escenario vigente.
 
 E2.3 agrega un set propio de escenarios en `escenarios/` para desarrollar y depurar algoritmos antes de recibir los del profesor: un mapa de 20 x 20 con todos los tipos de terreno y variantes pequenas. En `campo_20x20.json` y `ruta_corta_vs_economica.json` la ruta con menos movimientos es mas costosa que una mas larga, por lo que BFS y UCS producen caminos distintos. Las pruebas de `tests/escenario/test_escenarios_propios.py` comprueban estas propiedades sobre el modelo de E1.2, con los costos leidos del JSON.
