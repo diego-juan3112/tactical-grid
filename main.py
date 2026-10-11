@@ -15,6 +15,7 @@ from tacticalgrid.algoritmos import (
     busqueda_anchura,
     busqueda_costo_uniforme,
     busqueda_haz,
+    busqueda_profundidad,
     validar_ancho_haz,
 )
 from tacticalgrid.escenario import (
@@ -27,6 +28,7 @@ from tacticalgrid.juego import ProblemaNavegacion
 
 ALGORITMOS = {
     "bfs": busqueda_anchura,
+    "dfs": busqueda_profundidad,
     "ucs": busqueda_costo_uniforme,
     "a_estrella": busqueda_a_estrella,
 }
@@ -215,7 +217,7 @@ def mostrar_comparacion_haz(resultados):
 def main():
     """Carga el escenario y ejecuta los algoritmos seleccionados.
 
-    Purpose: ofrecer un ejecutor de consola para BFS, UCS, A*, Beam Search (con uno o varios anchos k) o la
+    Purpose: ofrecer un ejecutor de consola para BFS, DFS, UCS, A*, Beam Search (con uno o varios anchos k) o la
     comparación existente BFS/UCS sobre un escenario y una navegación elegidos.
     Preconditions: los argumentos de consola respetan el formato declarado y la ruta apunta a un escenario
     legible; los datos del escenario se validan en ``cargar_escenario``.
@@ -226,7 +228,7 @@ def main():
     AI usage: Yes.
     AI intervention: Codex documentó el flujo y agregó la comparación final de E5.1; en E6.1 incorporó A* sin
     alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``, y en
-    E7.2 la tabla comparativa cuando se indican varios anchos.
+    E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -244,7 +246,7 @@ def main():
 
     parser.add_argument(
         "--algoritmo",
-        choices=["bfs", "ucs", "a_estrella", "beam", "ambos"],
+        choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos"],
         default="ucs",
         help="Algoritmo de búsqueda (predeterminado: ucs)",
     )

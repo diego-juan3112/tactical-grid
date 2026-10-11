@@ -67,6 +67,22 @@ BFS es una busqueda no informada: usa una frontera FIFO y explora los estados po
 
 La implementacion consume `Problema`, marca el `EstadoJuego` completo como descubierto al encolarlo y descarta estados repetidos. Esto evita ciclos y conserva diferencias de estado relevantes, como el portador del recurso. Mantiene el orden de acciones del problema para resultados deterministas. Cada `Nodo` conserva padre y accion; `MedidorBusqueda.finalizar()` reconstruye camino y acciones. Si la frontera se agota, el resultado indica fracaso, con camino y acciones vacios y costo `None`; los contadores y el tiempo reflejan la exploracion realizada. BFS reutiliza las metricas E4.1 y no depende de dimensiones, coordenadas ni escenarios particulares.
 
+## DFS — E4.3
+
+DFS es la otra busqueda no informada del proyecto: usa una frontera LIFO (una pila) y sigue cada rama hasta el fondo antes de retroceder. No garantiza el camino con menos movimientos ni el mas barato: devuelve el primero que encuentra. `ResultadoBusqueda.costo` y `longitud` informan el costo real y los movimientos de ese camino.
+
+DFS comparte con BFS todo salvo la frontera, para que la comparacion de E4.4 aisle esa unica diferencia:
+
+- Consume el contrato `Problema` y las metricas de E4.1 (`Nodo`, `expandir`, `MedidorBusqueda`), con la misma convencion de conteo.
+- Marca el `EstadoJuego` completo como descubierto al apilarlo y descarta estados repetidos. Asi evita ciclos (una unidad puede ir y volver) y termina siempre en espacios finitos, y conserva diferencias de estado como el portador del recurso.
+- Comprueba el objetivo al extraer de la pila, igual que BFS.
+- Apila los hijos en orden inverso para explorar primero el primer movimiento de `DESPLAZAMIENTOS` (arriba, abajo, izquierda, derecha). Por eso el resultado es determinista, y cambiar ese orden cambia el camino de DFS.
+- Usa una pila explicita, sin recursion, para no depender del limite de recursion de Python en mapas grandes.
+
+Ejemplo verificado en `tests/algoritmos/test_busqueda_profundidad.py`, en un mapa abierto de 3x3 con la unidad en (0, 0) y el objetivo en (0, 2): BFS llega en 2 movimientos, mientras DFS baja primero por la columna 0 y da la vuelta al mapa en 6 movimientos, con 9 estados generados, 6 expandidos y un maximo de frontera de 3. Si el objetivo es inalcanzable, DFS agota la pila tras visitar exactamente los mismos estados alcanzables que BFS.
+
+En el escenario predeterminado `campo_20x20.json` (de (1, 2) a (9, 10)), DFS expande menos estados que BFS (102 frente a 186), pero devuelve un camino mucho peor (98 movimientos y costo 283, frente a 16 movimientos y costo 45). Ademas, su frontera maxima es mayor (104 frente a 20). La ventaja de memoria que suele atribuirse a DFS, una pila de tamaño O(b * m), vale para la busqueda en arbol, que solo guarda la rama actual. En esta busqueda en grafo, cada expansion deja en la pila hermanos pendientes que se acumulan mientras se profundiza.
+
 ## UCS — E5.1
 
 UCS usa una cola de prioridad minima ordenada exclusivamente por el costo acumulado `g(n)`. Los costos provienen de `Problema.costo()` y, en `ProblemaNavegacion`, de la celda destino declarada en `tipos_terreno` del JSON. Por eso puede elegir mas movimientos que BFS cuando el costo total resulta menor.
@@ -462,6 +478,7 @@ Otras selecciones disponibles son:
 
 ```bash
 python3 main.py --algoritmo bfs
+python3 main.py --algoritmo dfs
 python3 main.py --algoritmo ucs
 python3 main.py --algoritmo a_estrella
 python3 main.py --algoritmo beam --k 4
@@ -544,7 +561,7 @@ deactivate
 
 Todos los escenarios viven en `escenarios/` y usan el formato JSON comun. El campo propio `descripcion` explica el proposito de cada uno; `prueba` indica la navegacion a resolver (unidad y objetivo) o el modo de juego.
 
-| Archivo | Tamano | Proposito |
+| Archivo | Tamaño | Proposito |
 |---|---|---|
 | `ejemplo_enunciado.json` | 4 x 4 | Ejemplo literal del enunciado. |
 | `arquitectura_basica.json` | 20 x 20 | Mapa abierto, todo camino; comprueba carga y exploracion en 20 x 20. |
