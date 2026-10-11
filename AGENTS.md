@@ -124,6 +124,12 @@ Campo propio `prueba.k` (E7.1): ancho del haz de Beam Search, entero mayor o igu
 (`main.py --algoritmo beam --k ...`) tiene prioridad sobre el JSON. Se lee con `ancho_haz_desde_prueba`, sin que la
 capa de algoritmos abra archivos.
 
+Campo propio `juego.pesos_utilidad` (E8.2): objeto opcional con pesos de la funcion de utilidad (`victoria`,
+`posesion`, `entrega`, `carrera_recurso`, `amenaza`, `bloqueo`, `movilidad`); solo se indican los que cambian. Se lee
+con `pesos_desde_configuracion`; un criterio desconocido o un valor no finito se rechaza. La utilidad
+(`algoritmos/utilidad.py`) es de suma cero: intercambiar MAX y MIN cambia exactamente su signo, y sus distancias usan
+los costos del JSON respetando muros. Minimax debe evaluar las hojas con `EvaluadorUtilidad`, no con otra formula.
+
 ### Cómo ejecutarlos
 
 Crear y activar un entorno virtual con Python 3.12 o 3.13 (no 3.14), e instalar las dependencias de desarrollo.

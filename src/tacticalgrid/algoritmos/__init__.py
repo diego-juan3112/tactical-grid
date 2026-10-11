@@ -7,8 +7,22 @@ from .busqueda_haz import NivelHaz, ancho_haz_desde_prueba, busqueda_haz, valida
 from .busqueda_profundidad import busqueda_profundidad
 from .instrumentacion import MedidorBusqueda, Nodo, expandir
 from .resultado_busqueda import ResultadoBusqueda
+from .utilidad import (
+    AccionValorada,
+    EvaluadorUtilidad,
+    PesosUtilidad,
+    costos_hacia,
+    pesos_desde_configuracion,
+    valorar_acciones,
+)
 
 __all__ = [
+    "AccionValorada",
+    "EvaluadorUtilidad",
+    "PesosUtilidad",
+    "costos_hacia",
+    "pesos_desde_configuracion",
+    "valorar_acciones",
     "MedidorBusqueda",
     "NivelHaz",
     "Nodo",
