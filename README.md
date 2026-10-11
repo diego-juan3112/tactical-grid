@@ -649,6 +649,83 @@ celdas, sin portador, portador aliado), su efecto y su costo, la victoria al int
 tipo táctico, la simetría entre bandos y la legalidad de todas las acciones en partidas de hasta cuatro jugadas
 sobre `ejemplo_enunciado.json`, `recurso_en_transporte.json` y `campo_20x20.json`.
 
+## Función de utilidad propia — E8.2
+
+`algoritmos/utilidad.py` evalúa un estado desde la perspectiva de MAX: mayor es mejor para MAX y menor es mejor
+para MIN. Es la función que Minimax y alfa-beta (E8.3, E8.4) usarán en las hojas del árbol.
+
+```python
+evaluador = EvaluadorUtilidad(escenario, bando_max="A")    # pesos por defecto
+evaluador.evaluar(estado)                                   # un número
+evaluador.desglosar(estado)                                 # aporte de cada criterio
+valorar_acciones(evaluador, estado)                         # cada acción legal con la utilidad a la que lleva
+```
+
+### Diseño: suma cero
+
+Cada criterio se calcula como "lo bueno para MAX menos lo bueno para MIN". Por eso, si se intercambia qué bando es
+MAX, cada criterio cambia exactamente de signo. MIN no está en desventaja: minimizar esta utilidad es lo mismo que
+maximizar la suya. Las pruebas lo comprueban sobre todos los estados alcanzables en tres jugadas de
+`ejemplo_enunciado.json` y `recurso_en_transporte.json`.
+
+### Criterios y justificación de los pesos
+
+Las distancias se miden con el **costo del terreno del JSON y respetando muros**: para cada base y para la
+posición del recurso se calcula una sola vez, con Dijkstra invertido, el costo mínimo desde cada celda. Esos costos
+coinciden con el costo óptimo de UCS. Si una celda no puede llegar al destino, se le asigna un costo mayor que
+cualquier ruta del mapa.
+
+| Criterio | Qué mide | Fórmula (MAX = +, MIN = −) | Peso | Por qué ese peso |
+|---|---|---|---:|---|
+| `terminal` | Fin de la partida | `±victoria`; empate por bloqueo = 0 | 10 000 | Muy superior a cualquier suma de los demás criterios: ganar siempre vale más que cualquier ventaja posicional. |
+| `posesion` | Quién tiene el recurso | `±posesion` | 100 | Tener el recurso es la condición necesaria para ganar; equivale a 50 unidades de costo de camino, más que cualquier distancia de los mapas de desarrollo. |
+| `entrega` | Cuánto le falta al portador | `∓entrega × costo(portador → su base)` | 2 | Cada unidad de costo ahorrada acerca la victoria. Es pequeño frente a `posesion` para que entregar no compense perder el recurso. |
+| `carrera_recurso` | Quién llega antes al recurso libre | `carrera × (costo_MIN − costo_MAX)` | 2 | Misma escala que `entrega`: con el recurso libre, la ventaja es llegar primero. |
+| `amenaza` | Rivales que pueden interceptar ya | `∓amenaza × rivales adyacentes al portador` | 60 | Un rival adyacente puede quitar el recurso en su turno (E8.1), lo que haría perder los 100 de posesión. Vale más que 30 unidades de costo, así que el portador acepta un rodeo moderado para no quedar expuesto. |
+| `bloqueo` | Rivales sobre la ruta corta del portador | `∓bloqueo × rivales en el rectángulo portador–base` | 10 | Un rival en la ruta obliga a rodear o a arriesgarse a la intercepción; es una amenaza futura, por eso pesa menos que `amenaza`. |
+| `movilidad` | Unidades disponibles | `movilidad × (unidades de MAX con movimientos − las de MIN)` | 1 | Las unidades no se eliminan, pero una unidad bloqueada no aporta. Es un desempate. |
+
+### Por qué una acción vale más que otra
+
+`valorar_acciones` aplica cada acción legal y evalúa el estado resultante. Comparando los desgloses se ve qué
+criterio decide. En `recurso_en_transporte.json`, con MAX = A, el estado inicial vale **72**
+(`posesion 100`, `entrega −18`, `bloqueo −10`):
+
+| Acción de A | Tipo táctico | Criterio que cambia | Utilidad |
+|---|---|---|---:|
+| A2 `(3,3) → (2,3)` | `avanzar` | `entrega` de −18 a −16 | **74** (la mejor) |
+| A1, A3 o A2 hacia `(4,3)` | varios | ninguno | 72 |
+| A2 `(3,3) → (3,4)` | `reposicionar` | `entrega` −20 y `bloqueo` −20 (un rival más en su ruta) | 60 (la peor) |
+
+Cuando el rival del portador puede interceptar, la intercepción es la acción mejor valorada para él con cualquiera
+de los dos bandos como MAX: cambia `posesion` de un signo al otro (una diferencia de 200).
+
+### Cómo cambia el comportamiento al variar los pesos
+
+Los pesos se cambian sin tocar código, con el campo propio opcional `juego.pesos_utilidad` del escenario. Solo se
+indican los que cambian; un criterio desconocido o un valor no numérico se rechaza con un mensaje claro:
+
+```json
+"juego": {"portador_recurso": null, "pesos_utilidad": {"amenaza": 0}}
+```
+
+Ejemplo en un mapa abierto de 5×5 (todo camino, base A en `(0, 0)`): A1 porta el recurso en `(2, 2)` y el rival B1
+está en `(1, 1)`, vigilando la ruta corta.
+
+| Acción de A1 | `entrega` | `amenaza` | `bloqueo` | Utilidad (por defecto) | Utilidad (`amenaza = 0`) |
+|---|---:|---:|---:|---:|---:|
+| Acercarse a `(1, 2)` | −6 | −60 | −10 | 24 | **84** |
+| Retroceder a `(3, 2)` | −10 | 0 | −10 | **80** | 80 |
+
+Con los pesos por defecto, el portador **retrocede**: se aleja de su base, pero evita quedar junto a B1. Con
+`amenaza = 0` ignora el riesgo y **avanza** por la ruta corta. En general: subir `amenaza` o `bloqueo` vuelve al
+portador más prudente; subir `entrega` lo vuelve más directo; subir `carrera_recurso` hace que las unidades corran
+antes hacia el recurso libre; y bajar `posesion` por debajo de `amenaza` haría que interceptar o evitar la
+intercepción pierda importancia relativa.
+
+Las pruebas de `tests/algoritmos/test_utilidad.py` fijan cada criterio por separado, los valores terminales, la
+suma cero, los ejemplos de esta sección y la validación de los pesos.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
