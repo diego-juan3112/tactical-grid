@@ -214,6 +214,46 @@ def mostrar_comparacion_haz(resultados):
         )
 
 
+def mostrar_comparacion_bfs_dfs(resultados):
+    """Compara en consola como BFS y DFS recorren el mismo problema.
+
+    Purpose: apoyar el caso minimo 1 (E4.4) mostrando lado a lado solucion, movimientos, costo y metricas de
+    exploracion de BFS y DFS sobre el mismo escenario, estado inicial, unidad y objetivo.
+    Preconditions: ``resultados`` contiene las claves ``bfs`` y ``dfs`` con resultados de E4.1.
+    Postconditions: imprime una fila por metrica (solucion, movimientos, costo, estados generados y expandidos,
+    maximo de frontera) y si los caminos son iguales o diferentes; no modifica los resultados ni ejecuta nuevas
+    busquedas.
+    Complexity: O(L) temporal por comparar caminos de hasta L posiciones y O(1) espacial adicional.
+    AI usage: Yes.
+    AI intervention: Claude (Opus 5.5) propuso e implemento esta comparacion en E4.4.
+    Student validation: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
+    tests/algoritmos/test_caso_minimo_1.py comprueba la tabla con los valores del experimento.
+    """
+    bfs = resultados["bfs"]
+    dfs = resultados["dfs"]
+
+    def valor(resultado, campo):
+        dato = getattr(resultado, campo)
+        if campo == "exito":
+            return "Sí" if dato else "No"
+        return "-" if dato is None else dato
+
+    print(f"\n{'=' * 45}")
+    print("COMPARACIÓN BFS vs. DFS")
+    print("=" * 45)
+    print(f"{'Métrica':<20} {'BFS':>10} {'DFS':>10}")
+    for etiqueta, campo in (
+        ("Solución", "exito"),
+        ("Movimientos", "longitud"),
+        ("Costo", "costo"),
+        ("Estados generados", "estados_generados"),
+        ("Estados expandidos", "estados_expandidos"),
+        ("Máximo de frontera", "maximo_frontera"),
+    ):
+        print(f"{etiqueta:<20} {valor(bfs, campo):>10} {valor(dfs, campo):>10}")
+    print(f"Caminos: {'Iguales' if bfs.camino == dfs.camino else 'Diferentes'}")
+
+
 def main():
     """Carga el escenario y ejecuta los algoritmos seleccionados.
 
@@ -228,7 +268,8 @@ def main():
     AI usage: Yes.
     AI intervention: Codex documentó el flujo y agregó la comparación final de E5.1; en E6.1 incorporó A* sin
     alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``, y en
-    E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs``.
+    E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs`` y en E4.4 la
+    opción ``bfs_dfs``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -246,7 +287,7 @@ def main():
 
     parser.add_argument(
         "--algoritmo",
-        choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos"],
+        choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos", "bfs_dfs"],
         default="ucs",
         help="Algoritmo de búsqueda (predeterminado: ucs)",
     )
@@ -308,11 +349,13 @@ def main():
                 mostrar_comparacion_haz(resultados_haz)
             return 0
 
-        seleccionados = (
-            {nombre: ALGORITMOS[nombre] for nombre in ("bfs", "ucs")}
-            if args.algoritmo == "ambos"
-            else {args.algoritmo: ALGORITMOS[args.algoritmo]}
-        )
+        if args.algoritmo == "ambos":
+            nombres = ("bfs", "ucs")
+        elif args.algoritmo == "bfs_dfs":
+            nombres = ("bfs", "dfs")
+        else:
+            nombres = (args.algoritmo,)
+        seleccionados = {nombre: ALGORITMOS[nombre] for nombre in nombres}
 
         resultados = {}
         for nombre, algoritmo in seleccionados.items():
@@ -322,6 +365,8 @@ def main():
 
         if args.algoritmo == "ambos":
             mostrar_comparacion(resultados)
+        elif args.algoritmo == "bfs_dfs":
+            mostrar_comparacion_bfs_dfs(resultados)
 
         return 0
 
