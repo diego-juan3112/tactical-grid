@@ -1,6 +1,7 @@
 """Algoritmos de busqueda y decision, y la instrumentacion comun de sus metricas."""
 
 from .alfa_beta import alfa_beta
+from .comparacion_adversarial import ComparacionAdversarial, comparar_minimax_alfa_beta
 from .busqueda_a_estrella import busqueda_a_estrella, heuristica_manhattan
 from .busqueda_anchura import busqueda_anchura
 from .busqueda_costo_uniforme import busqueda_costo_uniforme
@@ -20,6 +21,8 @@ from .utilidad import (
 
 __all__ = [
     "alfa_beta",
+    "ComparacionAdversarial",
+    "comparar_minimax_alfa_beta",
     "AccionValorada",
     "EvaluadorUtilidad",
     "PesosUtilidad",
