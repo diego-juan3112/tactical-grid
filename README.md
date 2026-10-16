@@ -797,6 +797,84 @@ Las pruebas de `tests/algoritmos/test_minimax.py` fijan este árbol calculado a 
 elegida, la coherencia de las métricas, que MIN no está en desventaja (reflejar el tablero e intercambiar los bandos
 da el mismo valor para quien mueve), la lectura de la profundidad desde el JSON y la consola.
 
+## Poda alfa-beta — E8.4
+
+`algoritmos/alfa_beta.py` implementa Minimax con poda alfa-beta. Devuelve la **misma decisión y el mismo valor** que
+Minimax para la misma profundidad, la misma utilidad y el mismo orden de acciones, pero deja de explorar las ramas
+que ya no pueden cambiar esa decisión.
+
+```python
+resultado = alfa_beta(escenario, estado, profundidad_maxima=4)   # mismo ResultadoMinimax que minimax()
+resultado.nodos_podados                                         # ramas evitadas por la poda
+```
+
+### Funcionamiento
+
+- Recorre el mismo árbol que Minimax: mismas `acciones_tacticas` en el mismo orden, mismo `preparar_turno`, mismo
+  criterio de hoja y mismo evaluador. Ambos construyen el evaluador con `preparar_evaluador`, para garantizar que
+  usan la misma función de utilidad.
+- `alfa` es el mejor valor que MAX ya tiene asegurado en el camino actual y `beta` el mejor que tiene MIN. En un nodo
+  MIN, si un hijo baja hasta `alfa`, MAX nunca elegiría llegar a ese nodo y se podan los hijos restantes; en un nodo
+  MAX se poda cuando un hijo sube hasta `beta`.
+- **Por qué la decisión es la misma:** la raíz conserva, como Minimax, la primera acción con valor estrictamente
+  mayor. Se usa la variante *fail-soft*: una rama podada devuelve una cota superior que no supera el mejor valor ya
+  encontrado, así que nunca reemplaza a la acción elegida, y ante un empate gana la primera.
+- **Complejidad:** en el peor orden de acciones, `O(b^d)` como Minimax; con el mejor orden, `O(b^(d/2))`. Por eso el
+  orden de generación de acciones influye en cuánto se poda (se analiza en E8.6).
+
+### Métricas
+
+Se cuentan igual que en Minimax (E8.3), más los nodos podados:
+
+| Métrica | Significado en la implementación |
+|---|---|
+| Nodos generados | La raíz y cada sucesor creado. Una rama podada no se genera. |
+| Nodos evaluados | Hojas en las que se calculó la utilidad. |
+| Nodos podados | Ramas evitadas: en cada corte, las acciones hermanas que ya no se exploran. |
+| Profundidad alcanzada | Mayor profundidad visitada; puede ser menor que en Minimax si la rama más profunda se podó. |
+
+En la consola, el valor de una acción de la raíz cuya rama se podó se muestra como `<= v`: es una cota superior de su
+valor real, que ya no puede superar a la acción elegida.
+
+### Ejemplo verificado a mano
+
+En un pasillo 1×8 (`. recurso . A1 . . B1 .`) con A en turno, profundidad 2 y solo el criterio `carrera_recurso`
+activo (peso 1 desde `juego.pesos_utilidad`), cada hoja vale "distancia de B1 al recurso − distancia de A1 al recurso":
+
+| Jugada de A1 | Respuesta B1 → (0, 5) | Respuesta B1 → (0, 7) | Valor |
+|---|---:|---:|---:|
+| a1: A1 → (0, 2) | 4 − 1 = 3 | 6 − 1 = 5 | **3** (MIN), alfa = 3 |
+| a2: A1 → (0, 4) | 4 − 3 = 1 ≤ alfa | *podada* | ≤ 1 |
+
+Tras valorar a1, MAX ya tiene asegurado 3. En a2 la primera respuesta de B ya vale 1: MIN puede dejar a2 en 1 o menos,
+así que a2 nunca superará a a1 y no hace falta valorar la segunda respuesta. Ambos algoritmos eligen a1 con valor 3,
+pero Minimax genera 7 nodos y evalúa 4 hojas, mientras alfa-beta genera 6, evalúa 3 y poda 1 rama.
+
+### Resultados en los escenarios del repositorio
+
+Minimax / alfa-beta sobre el estado inicial. En todos los casos la acción y el valor son idénticos:
+
+| Escenario | Prof. | Acción elegida | Valor | Generados | Evaluados | Podados | Ahorro en evaluados | Tiempo (s) |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| `recurso_en_transporte.json` | 2 | A1 (0, 2)→(0, 3) | 72 | 80 / 40 | 71 / 31 | 40 | 56 % | 0.009 / 0.005 |
+| `recurso_en_transporte.json` | 3 | A2 (3, 3)→(4, 3) | 76 | 662 / 238 | 582 / 191 | 148 | 67 % | 0.069 / 0.029 |
+| `recurso_en_transporte.json` | 4 | A1 (0, 2)→(0, 3) | 72 | 5900 / 787 | 5238 / 600 | 907 | 89 % | 0.738 / 0.077 |
+| `campo_20x20.json` | 2 | A1 (1, 2)→(1, 3) | −36 | 133 / 51 | 121 / 39 | 82 | 68 % | 0.021 / 0.011 |
+| `campo_20x20.json` | 3 | A1 (1, 2)→(1, 3) | −34 | 1222 / 230 | 1089 / 179 | 256 | 84 % | 0.142 / 0.029 |
+| `campo_20x20.json` | 4 | A1 (1, 2)→(1, 3) | −36 | 11023 / 799 | 9801 / 569 | 1358 | 94 % | 1.224 / 0.114 |
+
+El ahorro crece con la profundidad porque cada corte evita un subárbol completo, y los subárboles son mayores cuanto
+más lejos está la hoja. Los tiempos dependen del equipo; los conteos de nodos son deterministas.
+
+```bash
+python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta
+python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 3
+```
+
+Las pruebas de `tests/algoritmos/test_alfa_beta.py` fijan el árbol calculado a mano, la igualdad de decisión y valor
+con Minimax en los escenarios del repositorio (profundidades 1 a 3), que los valores de la raíz son exactos o cotas
+correctas, que la poda reduce el trabajo, que MIN no está en desventaja, los casos borde y la consola.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
@@ -823,6 +901,7 @@ python3 main.py --algoritmo beam --k 4
 python3 main.py --algoritmo ambos
 python3 main.py --algoritmo bfs_dfs
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
+python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 2
 ```
 
 Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`

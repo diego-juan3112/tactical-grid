@@ -45,6 +45,9 @@ class ResultadoMinimax:
     profundidad_alcanzada: int
     tiempo_segundos: float
     valores_raiz: tuple[tuple[AccionTactica, float], ...] = ()
+    # Alineado con ``valores_raiz``: True si ese valor es solo una cota superior porque alfa-beta podo parte de su
+    # subarbol. Vacio en Minimax, donde todos los valores de la raiz son exactos.
+    cotas_raiz: tuple[bool, ...] = ()
 
     def a_diccionario(self) -> dict[str, object]:
         """Exporta las metricas con nombres equivalentes a la tabla del enunciado, listas para ``json.dumps``."""
@@ -96,6 +99,32 @@ def profundidad_desde_configuracion(configuracion_juego: Mapping[str, object] | 
     if configuracion_juego is None or CLAVE_PROFUNDIDAD not in configuracion_juego:
         return None
     return validar_profundidad(configuracion_juego[CLAVE_PROFUNDIDAD])
+
+
+def preparar_evaluador(
+    escenario: Escenario, estado: EstadoJuego, evaluador: EvaluadorUtilidad | None
+) -> EvaluadorUtilidad:
+    """Devuelve el evaluador con el que se valora el arbol de juego desde el estado raiz.
+
+    Proposito: garantizar que Minimax (E8.3) y alfa-beta (E8.4) usen exactamente la misma funcion de utilidad,
+    condicion para que produzcan la misma decision.
+    Precondiciones: ``estado`` es coherente con ``escenario``.
+    Postcondiciones: sin ``evaluador``, crea uno con MAX = bando en turno y los pesos de ``juego.pesos_utilidad``
+    del escenario; con ``evaluador``, lo devuelve si su ``bando_max`` es el bando en turno y, si no, lanza
+    ``ValueError``. No modifica nada.
+    Complejidad: O(F*C log(F*C)) temporal y O(F*C) espacial al crear un evaluador (precalcula costos hacia las
+    bases); O(1) si se recibe uno.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) extrajo esta logica de ``minimax`` en E8.4 para compartirla con alfa-beta,
+    sin cambiar su comportamiento.
+    Validacion del estudiante: aprobada la implementacion tras la validacion de los
+    tests/algoritmos/test_minimax.py y tests/algoritmos/test_alfa_beta.py.
+    """
+    if evaluador is None:
+        return EvaluadorUtilidad(escenario, estado.turno_actual, pesos_desde_configuracion(escenario.configuracion_juego))
+    if evaluador.bando_max != estado.turno_actual:
+        raise ValueError("El bando MAX del evaluador debe ser el bando en turno del estado raiz.")
+    return evaluador
 
 
 class _Contadores:
@@ -153,19 +182,15 @@ def minimax(
     utilidad. Espacio O(d * b) por la recursion y las acciones de cada nivel.
     AI usage: Yes.
     AI intervention: Claude (Opus 5.5) propuso el diseno (MAX como bando en turno, pase de turno sin consumir
-    profundidad, desempate por la primera accion), la implementacion y esta documentacion en E8.3.
+    profundidad, desempate por la primera accion), la implementacion y esta documentacion en E8.3; en E8.4 movio la
+    construccion del evaluador a ``preparar_evaluador`` para compartirla con alfa-beta, sin cambiar el resultado.
     Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/algoritmos/test_minimax.py
     comparan el resultado con un arbol pequeno calculado a mano, verifican la legalidad de la accion elegida, la
     simetria entre bandos, las metricas por profundidad y la lectura de la profundidad desde el JSON.
     """
     profundidad_maxima = validar_profundidad(profundidad_maxima)
     inicio = time.perf_counter()
-    if evaluador is None:
-        evaluador = EvaluadorUtilidad(
-            escenario, estado.turno_actual, pesos_desde_configuracion(escenario.configuracion_juego)
-        )
-    elif evaluador.bando_max != estado.turno_actual:
-        raise ValueError("El bando MAX del evaluador debe ser el bando en turno del estado raiz.")
+    evaluador = preparar_evaluador(escenario, estado, evaluador)
 
     contadores = _Contadores()
     contadores.generados = 1
