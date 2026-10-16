@@ -34,6 +34,7 @@ from tacticalgrid.algoritmos.orden_acciones import (
     orden_desde_configuracion,
     validar_orden,
 )
+from tacticalgrid.algoritmos.verificador import verificar_busqueda, verificar_decision, verificar_partida
 from tacticalgrid.juego import ProblemaNavegacion, crear_estado_inicial
 from tacticalgrid.modos import (
     MAX_TURNOS_POR_DEFECTO,
@@ -412,21 +413,44 @@ def mostrar_comparacion_bfs_dfs(resultados):
     print(f"Caminos: {'Iguales' if bfs.camino == dfs.camino else 'Diferentes'}")
 
 
-def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_consola=None):
+def mostrar_verificacion(reporte):
+    """Imprime un reporte del verificador (E10.2) y devuelve ``True`` si todas las comprobaciones se cumplen.
+
+    Purpose: mostrar en consola, comprobacion por comprobacion, si la respuesta de un algoritmo es correcta.
+    Preconditions: ``reporte`` es un ``ReporteVerificacion``.
+    Postconditions: imprime una linea por comprobacion con su marca (correcta o fallida) y su detalle, y el veredicto
+    final; devuelve ``reporte.es_valido``. No modifica el reporte.
+    Complexity: O(C) temporal y O(1) espacial adicional, donde C es la cantidad de comprobaciones.
+    AI usage: Yes.
+    AI intervention: Claude (Opus 5.5) implemento esta presentacion en E10.2.
+    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
+    tests/algoritmos/test_verificador.py comprueban el reporte en los tres modos.
+    """
+    print(f"\nVERIFICACIÓN: {reporte.sujeto}")
+    print("-" * 60)
+    for comprobacion in reporte.comprobaciones:
+        marca = "✓" if comprobacion.correcta else "✗"
+        print(f"  {marca} {comprobacion.nombre}: {comprobacion.detalle}")
+    print(f"Resultado de la verificación: {'VÁLIDO' if reporte.es_valido else 'INVÁLIDO'}")
+    return reporte.es_valido
+
+
+def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_consola=None, verificar=False):
     """Ejecuta Minimax, alfa-beta o su comparacion sobre el estado inicial del escenario y muestra el resultado.
 
     Proposito: concentrar el flujo adversarial del ejecutor de consola (E8.3, E8.4, E8.5 y E8.6).
     Precondiciones: ``algoritmo`` pertenece a ``ADVERSARIALES``; ``escenario`` fue cargado y validado.
     Postcondiciones: imprime el encabezado del escenario y el resultado del algoritmo o, para
     ``minimax_alfa_beta``, la tabla comparativa de E8.5, usando el orden de acciones de la consola, del JSON o el de
-    generacion; devuelve 0. Lanza ``ValueError`` si no hay una profundidad valida en la consola ni en el JSON, o si
-    el JSON trae un orden desconocido.
+    generacion. Si ``verificar`` es verdadero, imprime ademas el reporte de ``verificar_decision`` (E10.2) de cada
+    decision. Devuelve 0, o 1 si alguna verificacion falla. Lanza ``ValueError`` si no hay una profundidad valida en
+    la consola ni en el JSON, o si el JSON trae un orden desconocido.
     Complejidad: la de la busqueda o busquedas ejecutadas.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` y agrego la opcion ``minimax_alfa_beta`` en
-    E8.5, y en E8.6 el orden de acciones configurable.
+    E8.5, en E8.6 el orden de acciones configurable y en E10.2 la verificacion opcional.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de
-    tests/algoritmos/test_minimax.py, test_alfa_beta.py, test_comparacion_adversarial.py y
+    tests/algoritmos/test_verificador.py, tests/algoritmos/test_minimax.py, test_alfa_beta.py, test_comparacion_adversarial.py y
     test_casos_minimos_adversariales.py.
     """
     profundidad = resolver_profundidad(profundidad_consola, escenario)
@@ -435,9 +459,15 @@ def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_
     _imprimir_encabezado("adversarial", ruta, escenario, 60)
     print(f"Turno: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
     if algoritmo == "minimax_alfa_beta":
-        mostrar_comparacion_adversarial(comparar_minimax_alfa_beta(escenario, estado, profundidad, orden=orden))
+        comparacion = comparar_minimax_alfa_beta(escenario, estado, profundidad, orden=orden)
+        mostrar_comparacion_adversarial(comparacion)
+        decisiones = (comparacion.minimax, comparacion.alfa_beta)
     else:
-        mostrar_resultado_minimax(DECISORES[algoritmo](escenario, estado, profundidad, orden=orden))
+        decisiones = (DECISORES[algoritmo](escenario, estado, profundidad, orden=orden),)
+        mostrar_resultado_minimax(decisiones[0])
+    if verificar:
+        validas = [mostrar_verificacion(verificar_decision(escenario, estado, decision)) for decision in decisiones]
+        return 0 if all(validas) else 1
     return 0
 
 
@@ -458,10 +488,13 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
     Precondiciones: ``algoritmo`` es de la familia de busqueda; ``escenario`` fue validado; ``configuracion`` es el
     resultado de ``leer_configuracion_prueba``.
     Postcondiciones: imprime el encabezado y el resultado de cada algoritmo y, en las comparaciones, la tabla
-    comparativa; devuelve 0. Lanza ``ValueError`` si falta la unidad, el objetivo o (con ``beam``) el ancho ``k``.
+    comparativa. Con ``--verificar`` imprime el reporte de ``verificar_busqueda`` (E10.2) de cada resultado. Devuelve
+    0, o 1 si alguna verificacion falla. Lanza ``ValueError`` si falta la unidad, el objetivo o (con ``beam``) el
+    ancho ``k``.
     Complejidad: la de las busquedas ejecutadas mas O(L) por presentar caminos de L posiciones.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` en E10.1 sin cambiar su comportamiento.
+    Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` en E10.1 sin cambiar su comportamiento y
+    agrego la verificacion opcional en E10.2.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de busqueda y por
     tests/modos/test_consola_modos.py.
     """
@@ -473,6 +506,7 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
     print(f"Origen: ({origen.fila}, {origen.columna})")
     print(f"Destino: ({objetivo.fila}, {objetivo.columna})")
 
+    verificar = getattr(args, "verificar", False)
     if algoritmo == "beam":
         resultados_haz = {}
         for k in resolver_anchos_haz(args.k, escenario):
@@ -480,6 +514,9 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
             mostrar_resultado(f"beam search (k={k})", resultados_haz[k])
         if len(resultados_haz) > 1:
             mostrar_comparacion_haz(resultados_haz)
+        if verificar:
+            validas = [mostrar_verificacion(verificar_busqueda(problema, r)) for r in resultados_haz.values()]
+            return 0 if all(validas) else 1
         return 0
 
     nombres = {"ambos": ("bfs", "ucs"), "bfs_dfs": ("bfs", "dfs")}.get(algoritmo, (algoritmo,))
@@ -492,6 +529,9 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
         mostrar_comparacion(resultados)
     elif algoritmo == "bfs_dfs":
         mostrar_comparacion_bfs_dfs(resultados)
+    if verificar:
+        validas = [mostrar_verificacion(verificar_busqueda(problema, r)) for r in resultados.values()]
+        return 0 if all(validas) else 1
     return 0
 
 
@@ -502,11 +542,12 @@ def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion):
     turnos") desde la consola.
     Precondiciones: ``algoritmo`` es ``minimax`` o ``alfa_beta``; ``escenario`` fue validado.
     Postcondiciones: juega desde el estado cargado con la profundidad y el orden de la consola o del JSON y con el
-    limite de ``--turnos``, ``prueba.max_turnos`` o ``MAX_TURNOS_POR_DEFECTO``; imprime cada jugada y el resultado;
-    devuelve 0. Lanza ``ValueError`` si falta la profundidad o algun parametro no es valido.
+    limite de ``--turnos``, ``prueba.max_turnos`` o ``MAX_TURNOS_POR_DEFECTO``; imprime cada jugada y el resultado
+    y, con ``--verificar``, el reporte de ``verificar_partida`` (E10.2). Devuelve 0, o 1 si la verificacion falla.
+    Lanza ``ValueError`` si falta la profundidad o algun parametro no es valido.
     Complejidad: la de ``jugar_partida`` mas O(T) por presentar T jugadas.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) implemento este flujo en E10.1.
+    Intervencion de IA: Claude (Opus 5.5) implemento este flujo en E10.1 y la verificacion opcional en E10.2.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/modos/test_consola_modos.py.
     """
     profundidad = resolver_profundidad(args.profundidad, escenario)
@@ -523,7 +564,10 @@ def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion):
     print(f"Turno inicial: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
     print(f"Algoritmo de ambos bandos: {algoritmo} | Profundidad: {profundidad} | Orden de acciones: {orden}")
     print(f"Límite: {max_turnos} jugadas")
-    mostrar_partida(jugar_partida(escenario, estado, profundidad, algoritmo=algoritmo, orden=orden, max_turnos=max_turnos))
+    partida = jugar_partida(escenario, estado, profundidad, algoritmo=algoritmo, orden=orden, max_turnos=max_turnos)
+    mostrar_partida(partida)
+    if getattr(args, "verificar", False):
+        return 0 if mostrar_verificacion(verificar_partida(escenario, partida)) else 1
     return 0
 
 
@@ -575,7 +619,9 @@ def ejecutar_modo(args, escenario, ruta):
         algoritmo = "ucs" if modo == "busqueda" else "alfa_beta"
 
     if modo == "adversarial":
-        return ejecutar_adversarial(algoritmo, args.profundidad, escenario, ruta, args.orden)
+        return ejecutar_adversarial(
+            algoritmo, args.profundidad, escenario, ruta, args.orden, getattr(args, "verificar", False)
+        )
     if modo == "partida":
         return ejecutar_partida(algoritmo, args, escenario, ruta, configuracion)
     return ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion)
@@ -589,7 +635,8 @@ def ejecutar_consola(argumentos=None):
     Preconditions: los argumentos de consola respetan el formato declarado y la ruta apunta a un escenario
     legible; los datos del escenario se validan en ``cargar_escenario``.
     Postconditions: devuelve 0 tras mostrar los resultados y, para ``ambos``, su comparación; devuelve 1 y
-    muestra un error si el escenario o los parámetros de navegación no son válidos.
+    muestra un error si el escenario o los parámetros de navegación no son válidos, o si ``--verificar`` detecta que
+    alguna respuesta no es correcta.
     Complexity: corresponde a la carga del escenario y a las búsquedas seleccionadas; la presentación agrega
     O(L) temporal y espacial para un camino de L posiciones.
     AI usage: Yes.
@@ -600,7 +647,8 @@ def ejecutar_consola(argumentos=None):
     opción ``bfs_dfs``; en E8.3 agregó la opción ``minimax`` y ``--profundidad``, en E8.4 la opción ``alfa_beta`` y en
     E8.5 la opción ``minimax_alfa_beta``, moviendo el flujo adversarial a ``ejecutar_adversarial``; en E8.6 agregó
     ``--orden``; en E10.1 agregó ``--modo`` y ``--turnos``, quitó el valor fijo de ``--algoritmo`` (el modo y el
-    algoritmo se resuelven en ``ejecutar_modo``) y movió la busqueda a ``ejecutar_busqueda``.
+    algoritmo se resuelven en ``ejecutar_modo``) y movió la busqueda a ``ejecutar_busqueda``; en E10.2 agregó
+    ``--verificar``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -658,6 +706,13 @@ def ejecutar_consola(argumentos=None):
         choices=ORDENES,
         help="Orden en que Minimax y alfa-beta exploran las acciones. Si se omite, se usa 'juego.orden_acciones' "
         "del JSON o, si no esta, 'generacion'.",
+    )
+
+    parser.add_argument(
+        "--verificar",
+        action="store_true",
+        help="Verifica la respuesta (E10.2): movimientos, obstaculos, costo, objetivo, estados validos y legalidad "
+        "de las acciones de Minimax. Devuelve 1 si alguna comprobacion falla.",
     )
 
     parser.add_argument(
