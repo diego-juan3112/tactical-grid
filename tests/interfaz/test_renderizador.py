@@ -13,7 +13,7 @@ from tacticalgrid.algoritmos.resultado_busqueda import ResultadoBusqueda
 from tacticalgrid.escenario import cargar_escenario
 from tacticalgrid.escenario.escenario import Escenario, Posicion, UnidadInicial
 from tacticalgrid.escenario.terreno import TipoTerreno
-from tacticalgrid.interfaz.renderizador import RenderizadorTablero
+from tacticalgrid.interfaz.renderizador import EstadoPanelControl, RenderizadorTablero
 from tacticalgrid.interfaz.recursos import RecursosGraficos
 from tacticalgrid.interfaz.aplicacion import preparar_busqueda
 from tacticalgrid.juego.estado import EstadoJuego, crear_estado_inicial
@@ -397,7 +397,7 @@ def test_resultado_real_sin_solucion_no_dibuja_camino_y_lo_informa_en_panel(monk
     disposicion = renderizador.renderizar(superficie, escenario, estado, resultado)
 
     assert not resultado.exito and resultado.camino == ()
-    assert "Estado: sin solucion" in textos
+    assert "Resultado: sin solucion | 0 movimientos" in textos
     assert renderizador.COLOR_CAMINO not in _colores_en(superficie, disposicion.tablero)
 
 
@@ -426,6 +426,10 @@ def test_sin_busqueda_no_muestra_estado_de_resultado(monkeypatch):
     renderizador.renderizar(_superficie(), escenario, crear_estado_inicial(escenario))
 
     assert not any(texto.startswith(("Busqueda:", "Estado:")) for texto in textos)
+    assert "E — Mostrar exploracion" in textos
+    assert "Resalta las posiciones exploradas" in textos
+    assert "durante la busqueda." in textos
+    assert "Requiere ejecutar una busqueda." in textos
 
 
 def test_resultado_nuevo_y_fracaso_sustituyen_completamente_el_camino_anterior():
@@ -462,3 +466,143 @@ def test_cambiar_escenario_y_omitir_resultado_no_conserva_la_ruta_anterior():
     )
 
     assert renderizador.COLOR_CAMINO not in _colores_en(superficie, disposicion.tablero)
+
+
+def test_exploracion_proyecta_eventos_reales_y_conserva_camino_y_entidades():
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, "bfs")
+    superficie = _superficie()
+    renderizador = RenderizadorTablero()
+
+    disposicion = renderizador.renderizar(
+        superficie,
+        escenario,
+        estado,
+        resultado,
+        exploracion_visible=True,
+    )
+    traza = resultado.traza_expansiones
+    assert traza is not None
+    posiciones_eventos = {evento.posicion for evento in traza.eventos}
+    posicion_fuera_camino = next(posicion for posicion in posiciones_eventos if posicion not in resultado.camino)
+
+    assert traza.total_expansiones == resultado.estados_expandidos
+    assert renderizador.COLOR_EXPLORACION in _colores_en(
+        superficie, _celda(disposicion, posicion_fuera_camino)
+    )
+    assert renderizador.COLOR_CAMINO in _colores_en(
+        superficie, _celda(disposicion, resultado.camino[1])
+    )
+    assert renderizador.COLOR_BASES["A"] in _colores_en(
+        superficie, _celda(disposicion, escenario.bases["A"])
+    )
+    assert renderizador.COLOR_RECURSO in _colores_en(
+        superficie, _celda(disposicion, estado.posicion_recurso)
+    )
+
+
+def test_fracaso_con_traza_permite_mostrar_exploracion_y_panel(monkeypatch):
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, "bfs", "A1", (1, 1))
+    renderizador = RenderizadorTablero()
+    superficie = _superficie()
+    textos = []
+    dibujar_texto = renderizador._dibujar_texto
+
+    def registrar_texto(superficie_destino, texto, color, posicion, fuente):
+        textos.append(texto)
+        return dibujar_texto(superficie_destino, texto, color, posicion, fuente)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto", registrar_texto)
+    renderizador.renderizar(superficie, escenario, estado, resultado, exploracion_visible=True)
+
+    assert not resultado.exito
+    assert resultado.traza_expansiones.total_expansiones == resultado.estados_expandidos > 0
+    assert any(texto.startswith("Exploracion visible") for texto in textos)
+    assert f"Costo: no aplica | Expandidos: {resultado.estados_expandidos}" in textos
+    assert "E — Ocultar exploracion" in textos
+
+
+def test_panel_de_control_muestra_selectores_ayuda_y_objetivo_sin_ocultar_tablero(monkeypatch):
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    renderizador = RenderizadorTablero()
+    superficie = pygame.Surface((800, 600))
+    textos = []
+    botones = []
+    dibujar_texto = renderizador._dibujar_texto
+    dibujar_boton = renderizador._dibujar_boton
+
+    def registrar_texto(superficie_destino, texto, color, posicion, fuente):
+        textos.append(texto)
+        return dibujar_texto(superficie_destino, texto, color, posicion, fuente)
+
+    def registrar_boton(superficie_destino, rectangulo, texto, color_texto=None):
+        botones.append(texto)
+        return dibujar_boton(superficie_destino, rectangulo, texto, color_texto)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto", registrar_texto)
+    monkeypatch.setattr(renderizador, "_dibujar_boton", registrar_boton)
+    control = EstadoPanelControl(
+        "ruta.json",
+        "bfs",
+        "A1",
+        Posicion(2, 0),
+        Posicion(2, 8),
+        4,
+        "configuracion lista",
+        ("Busca rutas con menos movimientos.", "Puede ignorar terrenos costosos."),
+        "menor cantidad de movimientos",
+        None,
+        "Lista.",
+        False,
+    )
+    disposicion = renderizador.renderizar(superficie, escenario, estado, control=control)
+    rectangulos = renderizador.calcular_rectangulos_controles(disposicion.panel)
+
+    assert "TACTICALGRID" in textos
+    assert "Busca rutas con menos movimientos." in textos
+    assert "Prioriza: menor cantidad de movimientos" in textos
+    assert "Exploracion: posiciones analizadas" in textos
+    assert "Origen de A1: 2, 0" in textos
+    assert "Enter — Ejecutar busqueda" in botones
+    assert "E — Mostrar exploracion" in botones
+    assert disposicion.tablero.right < disposicion.panel.left
+    assert all(disposicion.panel.contains(rectangulo) for rectangulo in vars(rectangulos).values())
+    assert renderizador.COLOR_RECURSO in _colores_en(superficie, _celda(disposicion, Posicion(2, 8)))
+
+
+def test_parametro_k_solo_aparece_con_beam(monkeypatch):
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    renderizador = RenderizadorTablero()
+    superficie = pygame.Surface((800, 600))
+    centrados = []
+    dibujar_centrado = renderizador._dibujar_texto_centrado
+
+    def registrar_centrado(superficie_destino, texto, color, rectangulo, fuente):
+        centrados.append(texto)
+        return dibujar_centrado(superficie_destino, texto, color, rectangulo, fuente)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto_centrado", registrar_centrado)
+    control_bfs = EstadoPanelControl(
+        "ruta.json", "bfs", "A1", Posicion(2, 0), Posicion(2, 8), 4,
+        "configuracion lista", ("Busca rutas con menos movimientos.",),
+        "menor cantidad de movimientos", None, "Lista.", False,
+    )
+
+    renderizador.renderizar(superficie, escenario, estado, control=control_bfs)
+    assert not any(texto.startswith("Beam k:") for texto in centrados)
+
+    centrados.clear()
+    control_beam = replace(
+        control_bfs,
+        algoritmo="beam",
+        ayuda_descripcion=("Conserva solo k opciones por nivel.",),
+        criterio="exploracion limitada mediante k",
+        detalle="k indica cuantas alternativas conserva.",
+    )
+    renderizador.renderizar(superficie, escenario, estado, control=control_beam)
+    assert "Beam k: 4" in centrados

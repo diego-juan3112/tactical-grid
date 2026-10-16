@@ -44,6 +44,8 @@ La estructura real es:
 
 ```text
 src/tacticalgrid/
+├── consola.py    # ejecutor y presentacion textual historicos
+├── despachador.py # seleccion entre GUI predeterminada y consola
 ├── escenario/    # carga, validacion y representacion estatica desde JSON
 ├── juego/        # estado dinamico y futuras reglas del dominio
 ├── algoritmos/   # resultados y futuras estrategias de busqueda/decision

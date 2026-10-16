@@ -1072,14 +1072,47 @@ Las pruebas de `tests/modos/` cubren la lectura y validación de `prueba`, la pr
 partida calculada a mano con pases por bloqueo, partidas con ganador, empate y límite, la igualdad de las partidas
 jugadas con Minimax y con alfa-beta, y la consola en los tres modos.
 
-## Ejecución desde consola
+## Inicio recomendado
 
-Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
-`escenarios/campo_20x20.json`:
+Desde la raíz del repositorio, la ejecución sin argumentos abre Pygame con `campo_20x20.json`, sin iniciar una
+busqueda. Es también el flujo esperado al usar **Run Python File** sobre `main.py` en VS Code:
 
 ```bash
-python3 -B main.py
+python main.py
+python main.py --gui
 ```
+
+El panel permite cambiar entre los escenarios JSON incluidos, seleccionar BFS, DFS, UCS, A* o Beam Search, elegir
+una unidad real con las flechas y ajustar `k`. El objetivo se elige haciendo clic sobre una celda transitable.
+`Enter` y el botón `Enter — Ejecutar busqueda` llaman a la misma acción y calculan una sola vez el camino y la
+traza. Cambiar cualquier selector limpia el resultado anterior para que no se confunda con la nueva configuración.
+La tecla o botón `E — Mostrar exploracion` alterna la capa sin recalcular.
+
+La ayuda de la ventana cambia con el algoritmo seleccionado:
+
+| Algoritmo | Criterio mostrado | Consecuencia práctica |
+|---|---|---|
+| BFS | Menor cantidad de movimientos | Puede atravesar terrenos costosos. |
+| DFS | Profundizar una alternativa | No garantiza una ruta corta ni económica. |
+| UCS | Menor costo acumulado | Puede elegir más movimientos para reducir el costo. |
+| A* | Costo acumulado más heurística Manhattan | Manhattan estima movimientos horizontales y verticales. |
+| Beam Search | Exploración limitada por `k` | Conserva `k` alternativas por nivel y puede descartar rutas útiles. |
+
+El resultado distingue movimientos, costo y estados expandidos. La línea cian es el camino final. La capa violeta
+de exploración muestra posiciones analizadas antes del resultado; una posición resaltada no implica que pertenezca
+al camino. Los estados expandidos pueden superar las posiciones únicas porque estados distintos pueden proyectarse
+sobre la misma celda. La leyenda indica el costo de cada terreno transitable; UCS y A* usan esos costos al decidir.
+
+## Ejecución desde consola
+
+El modo explícito de consola conserva el ejecutor textual y todos sus argumentos:
+
+```bash
+python main.py --consola escenarios/campo_20x20.json
+```
+
+Por compatibilidad, cualquier invocación histórica que incluya argumentos y no use `--gui` continúa entrando en
+consola. Por ejemplo:
 
 La demostración E5.2 selecciona explícitamente el escenario 5×9 y ambos algoritmos:
 
@@ -1103,7 +1136,7 @@ python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_b
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 4 --orden tactico
 ```
 
-## Visualizacion del tablero y caminos — E9.1/E9.2
+## Visualizacion del tablero, caminos y exploracion — E9.1/E9.2/E9.3
 
 La interfaz grafica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`. Si no se
 indica `--algoritmo`, conserva la vista estatica de E9.1 y no ejecuta una busqueda:
@@ -1139,9 +1172,32 @@ por defecto. La linea cian conserva el orden exacto del camino; el anillo verde 
 destino. Las bases, el recurso, las unidades y la cuadricula se dibujan encima para mantener su identidad. El panel
 muestra el algoritmo y `exito` o `sin solucion`; en el segundo caso no se dibuja ninguna ruta.
 
+E9.3 captura, durante esa misma ejecucion, cada `EstadoJuego` entregado realmente a la expansion comun. La capa
+permanece oculta al iniciar: `E` la muestra y una segunda pulsacion la oculta sin recalcular ni perder el camino.
+El violeta semitransparente representa posiciones asociadas con estados expandidos; no representa estados generados
+ni la frontera. Si la busqueda falla, la exploracion registrada sigue disponible.
+
+El panel distingue `Estados expandidos` de `Posiciones resaltadas`: estados compuestos diferentes pueden proyectarse
+sobre una misma celda. BFS, DFS, UCS, A* y Beam Search usan esta traza real mediante `expandir()`. Se almacenan hasta
+10 000 eventos por busqueda; si se supera el limite, el total de la metrica permanece exacto, el panel marca `Traza
+parcial` y solo se resaltan las posiciones presentes en el segmento almacenado. Sin busqueda, `E` no cambia la vista.
+El panel mantiene visible `E — Mostrar exploracion`, explica que resalta posiciones exploradas y, mientras no exista
+un resultado, indica que primero debe ejecutarse una busqueda. Al activar la capa cambia a `E — Ocultar exploracion`.
+
+Reproduccion academica con BFS y UCS:
+
+```bash
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo bfs
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo ucs
+```
+
+Los estados explorados fuera del camino corresponden a alternativas cuyos sucesores se analizaron antes de alcanzar
+el objetivo. Por eso la exploracion suele cubrir mas celdas que la ruta final y puede colorear menos posiciones que
+el total de expansiones.
+
 ### Presentacion grafica del tablero
 
-El rediseño visual independiente de E9.3 usa pixel art cenital: senderos de tierra, pasto, copas de arboles, pantano,
+El rediseño visual usa pixel art cenital: senderos de tierra, pasto, copas de arboles, pantano,
 rocas, fortalezas, unidades por bando y un cristal estrategico. Los identificadores, el turno, la leyenda y la ruta
 de E9.2 permanecen visibles. Las orientaciones de los tiles varian de forma determinista segun terreno y posicion;
 no usan el generador aleatorio ni alteran el estado. Un terreno externo conserva un color y patron estables, informa
@@ -1156,8 +1212,7 @@ licencia general de redistribucion.
 
 Las capturas reproducibles bajo SDL dummy estan en `capturas/redisenio_visual/`: incluyen el antes/despues de
 `campo_20x20.json`, `recurso_en_transporte.json` y las rutas diferentes de BFS y UCS en
-`ruta_corta_vs_economica.json`. Esa evidencia no sustituye la revision manual de una ventana real. Este rediseño no
-implementa visualizacion de exploracion ni cumple E9.3.
+`ruta_corta_vs_economica.json`. Esa evidencia no sustituye la revision manual de una ventana real.
 
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 

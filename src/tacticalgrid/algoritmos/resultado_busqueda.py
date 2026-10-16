@@ -1,9 +1,13 @@
 """Contrato comun de resultados que reportan todos los algoritmos de busqueda."""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from tacticalgrid.escenario.escenario import Posicion
 from tacticalgrid.juego.accion import Accion
+
+if TYPE_CHECKING:
+    from .instrumentacion import TrazaExpansiones
 
 
 @dataclass(frozen=True)
@@ -12,7 +16,8 @@ class ResultadoBusqueda:
 
     ``camino`` incluye la posicion inicial y la final; ``acciones`` conserva las transiciones aplicadas para
     que la verificacion de soluciones pueda comprobar cada movimiento y recalcular el costo. Si no hay
-    solucion, ``camino`` y ``acciones`` quedan vacios y ``costo`` es ``None``.
+    solucion, ``camino`` y ``acciones`` quedan vacios y ``costo`` es ``None``. ``traza_expansiones`` es opcional
+    y conserva eventos reales solo cuando el llamador activo su observador.
     """
 
     algoritmo: str
@@ -24,6 +29,7 @@ class ResultadoBusqueda:
     maximo_frontera: int
     tiempo_segundos: float = 0.0
     acciones: tuple[Accion, ...] = ()
+    traza_expansiones: "TrazaExpansiones | None" = None
 
     @property
     def longitud(self) -> int:

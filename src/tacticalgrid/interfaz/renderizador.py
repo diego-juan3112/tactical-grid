@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from hashlib import sha256
+from textwrap import wrap
 
 import pygame
 
@@ -24,6 +25,58 @@ class DisposicionTablero:
     tamano_celda: int
 
 
+@dataclass(frozen=True)
+class EstadoPanelControl:
+    """Datos minimos que el renderizador necesita para dibujar controles sin ejecutar acciones."""
+
+    escenario: str
+    algoritmo: str
+    unidad: str
+    origen: Posicion | None
+    objetivo: Posicion | None
+    k: int
+    estado_busqueda: str
+    ayuda_descripcion: tuple[str, ...]
+    criterio: str
+    detalle: str | None
+    mensaje: str
+    error: bool
+
+    @classmethod
+    def desde_control(cls, control) -> "EstadoPanelControl":
+        """Proyecta el controlador mutable a datos inmutables de presentacion."""
+        return cls(
+            escenario=control.ruta_escenario.name,
+            algoritmo=control.algoritmo,
+            unidad=control.unidad or "sin unidades",
+            origen=control.origen,
+            objetivo=control.objetivo,
+            k=control.k,
+            estado_busqueda=control.estado_busqueda,
+            ayuda_descripcion=control.ayuda_algoritmo.descripcion,
+            criterio=control.ayuda_algoritmo.criterio,
+            detalle=control.ayuda_algoritmo.detalle,
+            mensaje=control.mensaje,
+            error=control.error,
+        )
+
+
+@dataclass(frozen=True)
+class RectangulosControles:
+    """Zonas clicables calculadas a partir del panel vigente."""
+
+    escenario_anterior: pygame.Rect
+    escenario_siguiente: pygame.Rect
+    algoritmo_anterior: pygame.Rect
+    algoritmo_siguiente: pygame.Rect
+    unidad_anterior: pygame.Rect
+    unidad_siguiente: pygame.Rect
+    k_menor: pygame.Rect
+    k_mayor: pygame.Rect
+    ejecutar: pygame.Rect
+    exploracion: pygame.Rect
+
+
 class RenderizadorTablero:
     """Compone una vista completa sin modificar el escenario ni el estado."""
 
@@ -38,6 +91,10 @@ class RenderizadorTablero:
     COLOR_CAMINO: Color = (22, 224, 238)
     COLOR_ORIGEN: Color = (68, 220, 112)
     COLOR_DESTINO: Color = (255, 112, 82)
+    COLOR_EXPLORACION: Color = (176, 92, 255)
+    COLOR_BOTON: Color = (48, 63, 67)
+    COLOR_BOTON_BORDE: Color = (100, 131, 133)
+    ALFA_EXPLORACION = 92
     ANCHO_PANEL = 272
     MARGEN = 16
 
@@ -91,6 +148,41 @@ class RenderizadorTablero:
         )
         return DisposicionTablero(tablero=tablero, panel=panel, tamano_celda=tamano_celda)
 
+    def calcular_rectangulos_controles(self, panel: pygame.Rect) -> RectangulosControles:
+        """Calcula controles compactos dentro del panel lateral.
+
+        Purpose: compartir exactamente las mismas zonas entre dibujo y manejo de clics.
+        Preconditions: ``panel`` fue calculado para la superficie vigente.
+        Postconditions: devuelve rectangulos contenidos horizontalmente en el panel, sin modificarlo.
+        Complexity: O(1) temporal y espacial.
+        AI usage: Yes.
+        AI intervention: Codex diseño las zonas compactas para integrar controles sin invadir el tablero.
+        Student validation: pendiente de revision humana; cubierta por pruebas de geometria y clics SDL dummy.
+        """
+        x = panel.x + 12
+        ancho = max(1, panel.width - 24)
+        lado = 24
+
+        def flechas(y: int) -> tuple[pygame.Rect, pygame.Rect]:
+            return pygame.Rect(x, y, lado, 22), pygame.Rect(x + ancho - lado, y, lado, 22)
+
+        escenario_anterior, escenario_siguiente = flechas(panel.y + 38)
+        algoritmo_anterior, algoritmo_siguiente = flechas(panel.y + 70)
+        unidad_anterior, unidad_siguiente = flechas(panel.y + 102)
+        k_menor, k_mayor = flechas(panel.y + 134)
+        return RectangulosControles(
+            escenario_anterior,
+            escenario_siguiente,
+            algoritmo_anterior,
+            algoritmo_siguiente,
+            unidad_anterior,
+            unidad_siguiente,
+            k_menor,
+            k_mayor,
+            pygame.Rect(x, panel.y + 164, ancho, 26),
+            pygame.Rect(x, panel.y + 196, ancho, 24),
+        )
+
     def color_para_terreno(self, nombre: str, tipo: TipoTerreno) -> Color:
         """Deriva un color estable de cualquier nombre de terreno cargado.
 
@@ -114,24 +206,44 @@ class RenderizadorTablero:
         escenario: Escenario,
         estado: EstadoJuego,
         resultado_busqueda: ResultadoBusqueda | None = None,
+        *,
+        exploracion_visible: bool = False,
+        control: EstadoPanelControl | None = None,
     ) -> DisposicionTablero:
         """Dibuja el tablero completo y su informacion vigente sobre una superficie Pygame.
 
-        Purpose: representar terrenos, camino de busqueda opcional, obstaculos, bases, recurso, unidades, portador,
-        turno y leyenda.
+        Purpose: representar terrenos, exploracion, objetivo, camino, entidades, controles, turno y leyenda.
         Preconditions: ``escenario`` esta validado y ``estado`` es coherente con el escenario.
-        Postconditions: la superficie refleja el estado recibido; escenario y estado permanecen inmutables.
-        Complexity: O(F*C + U + T + L) temporal y O(F*C + L) espacial, con celdas, unidades, tipos de terreno y
-        L posiciones del camino.
+        Postconditions: la superficie refleja el estado y, si se solicita, la proyeccion de la traza; escenario,
+        estado y resultado permanecen inmutables, y el camino y las entidades quedan sobre la exploracion.
+        Complexity: O(F*C + U + T + L + P) temporal y O(F*C + L + lado^2) espacial, con L posiciones del camino
+        y P posiciones expandidas unicas almacenadas.
         AI usage: Yes.
-        AI intervention: Codex implemento E9.1/E9.2 y este rediseño agrego atlas, sprites, texturas y fallbacks sin
-        cambiar el camino proveniente de ``ResultadoBusqueda``.
+        AI intervention: Codex implemento E9.1/E9.2, el rediseño con sprites y la capa E9.3 sin cambiar el camino.
         Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
         automatizadas del orden, fidelidad y superposicion de capas.
         """
         disposicion = self.calcular_disposicion(superficie, escenario)
         superficie.fill(self.COLOR_FONDO)
         celdas = self._dibujar_terrenos(superficie, escenario, disposicion)
+        if (
+            exploracion_visible
+            and resultado_busqueda is not None
+            and resultado_busqueda.traza_expansiones is not None
+        ):
+            self._dibujar_exploracion(
+                superficie,
+                resultado_busqueda.traza_expansiones.posiciones_unicas,
+                celdas,
+                disposicion.tamano_celda,
+            )
+        if control is not None and control.objetivo is not None and control.objetivo in celdas:
+            pygame.draw.rect(
+                superficie,
+                self.COLOR_RECURSO,
+                celdas[control.objetivo].inflate(-4, -4),
+                max(2, disposicion.tamano_celda // 10),
+            )
         if resultado_busqueda is not None and resultado_busqueda.exito and resultado_busqueda.camino:
             self._dibujar_camino(superficie, resultado_busqueda.camino, celdas, disposicion.tamano_celda)
         self._dibujar_bases(superficie, escenario, celdas, disposicion.tamano_celda)
@@ -139,8 +251,43 @@ class RenderizadorTablero:
             self._dibujar_recurso(superficie, celdas[estado.posicion_recurso], disposicion.tamano_celda)
         self._dibujar_unidades(superficie, estado, celdas, disposicion.tamano_celda)
         self._dibujar_cuadricula(superficie, escenario, disposicion)
-        self._dibujar_panel(superficie, escenario, estado, resultado_busqueda, disposicion.panel)
+        self._dibujar_panel(
+            superficie,
+            escenario,
+            estado,
+            resultado_busqueda,
+            disposicion.panel,
+            exploracion_visible,
+            control,
+        )
         return disposicion
+
+    def _dibujar_exploracion(
+        self,
+        superficie: pygame.Surface,
+        posiciones: tuple[Posicion, ...],
+        celdas: dict[Posicion, pygame.Rect],
+        lado: int,
+    ) -> None:
+        """Superpone las posiciones proyectadas de expansiones reales.
+
+        Purpose: distinguir exploracion de camino mediante una capa semitransparente adaptable a la celda.
+        Preconditions: cada posicion procede de la traza asociada al mismo escenario representado por ``celdas``.
+        Postconditions: se resaltan solo posiciones observadas; tiles y datos de entrada permanecen intactos.
+        Complexity: O(P) temporal y O(lado^2) espacial, donde P son posiciones unicas almacenadas.
+        AI usage: Yes.
+        AI intervention: Codex implemento la capa visual bajo demanda para E9.3.
+        Student validation: pendiente de validacion visual humana; cubierta por pruebas SDL dummy de pixeles y capas.
+        """
+        capa = pygame.Surface((lado, lado), pygame.SRCALPHA)
+        capa.fill((*self.COLOR_EXPLORACION, self.ALFA_EXPLORACION))
+        grosor = max(1, lado // 12)
+        for posicion in posiciones:
+            rectangulo = celdas.get(posicion)
+            if rectangulo is None:
+                continue
+            superficie.blit(capa, rectangulo)
+            pygame.draw.rect(superficie, self.COLOR_EXPLORACION, rectangulo.inflate(-2, -2), grosor)
 
     def _dibujar_terrenos(
         self,
@@ -397,17 +544,19 @@ class RenderizadorTablero:
         estado: EstadoJuego,
         resultado_busqueda: ResultadoBusqueda | None,
         panel: pygame.Rect,
+        exploracion_visible: bool,
+        control: EstadoPanelControl | None = None,
     ) -> None:
         """Presenta turno y leyenda de terrenos y simbolos usados.
 
         Purpose: explicar la codificacion visual y destacar el bando activo sin duplicar el turno.
         Preconditions: el panel pertenece a la superficie y el estado contiene el turno vigente.
-        Postconditions: se muestran turno, terrenos, obstaculos, bases, recurso y portador; cuando existe un
-        resultado tambien se muestran algoritmo, exito y la leyenda del camino, siempre que haya espacio.
+        Postconditions: se muestran turno, terrenos, entidades y ayuda de exploracion; con controles se anteponen
+        selectores y acciones; con resultado se muestran algoritmo, estado, camino, expansiones y truncamiento.
         Complexity: O(T) temporal y O(1) espacial adicional, donde T es la cantidad de terrenos.
         AI usage: Yes.
         AI intervention: Codex conservo los datos de E9.1/E9.2 y actualizo jerarquia, muestras de tiles, textos y
-        aviso de fallback del panel.
+        aviso de fallback del panel; para E9.3 agrego estado, metricas e instruccion de la capa de exploracion.
         Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas de
         turno, resultado y leyenda.
         """
@@ -416,7 +565,11 @@ class RenderizadorTablero:
         pygame.draw.rect(superficie, self.COLOR_PANEL, panel, border_radius=8)
         pygame.draw.rect(superficie, self.COLOR_PANEL_BORDE, panel, 1, border_radius=8)
         x = panel.x + 12
-        y = panel.y + 12
+        y = (
+            self._dibujar_controles(superficie, panel, control, exploracion_visible)
+            if control is not None
+            else panel.y + 12
+        )
         color_turno = self.COLOR_BASES.get(estado.turno_actual, self.COLOR_TEXTO)
         y = (
             self._dibujar_texto(
@@ -430,7 +583,6 @@ class RenderizadorTablero:
         )
         pygame.draw.line(superficie, self.COLOR_PANEL_BORDE, (x, y - 5), (panel.right - 12, y - 5))
         if resultado_busqueda is not None:
-            estado_busqueda = "exito" if resultado_busqueda.exito else "sin solucion"
             y = self._dibujar_texto(
                 superficie,
                 f"Busqueda: {resultado_busqueda.algoritmo}",
@@ -440,26 +592,83 @@ class RenderizadorTablero:
             ) + 2
             y = self._dibujar_texto(
                 superficie,
-                f"Estado: {estado_busqueda}",
+                f"Resultado: {'exito' if resultado_busqueda.exito else 'sin solucion'}"
+                f" | {resultado_busqueda.longitud} movimientos",
+                self.COLOR_TEXTO,
+                (x, y),
+                self._fuente_pequena,
+            ) + 2
+            costo = "no aplica" if resultado_busqueda.costo is None else f"{resultado_busqueda.costo:g}"
+            y = self._dibujar_texto(
+                superficie,
+                f"Costo: {costo} | Expandidos: {resultado_busqueda.estados_expandidos}",
                 self.COLOR_TEXTO,
                 (x, y),
                 self._fuente_pequena,
             ) + 4
             if resultado_busqueda.exito:
-                muestras = (
-                    (self.COLOR_CAMINO, "camino"),
-                    (self.COLOR_ORIGEN, "origen"),
-                    (self.COLOR_DESTINO, "destino"),
-                )
-                for color, etiqueta in muestras:
-                    pygame.draw.line(superficie, color, (x, y + 7), (x + 14, y + 7), 3)
+                pygame.draw.line(superficie, self.COLOR_CAMINO, (x, y + 7), (x + 14, y + 7), 3)
+                y = self._dibujar_texto(
+                    superficie,
+                    "camino final (verde: origen; rojo: fin)",
+                    self.COLOR_TEXTO,
+                    (x + 22, y),
+                    self._fuente_pequena,
+                ) + 2
+            traza = resultado_busqueda.traza_expansiones
+            if traza is None:
+                y = self._dibujar_texto(
+                    superficie,
+                    "Exploracion no disponible",
+                    self.COLOR_TEXTO,
+                    (x, y),
+                    self._fuente_pequena,
+                ) + 2
+            else:
+                if exploracion_visible:
                     y = self._dibujar_texto(
                         superficie,
-                        etiqueta,
-                        self.COLOR_TEXTO,
-                        (x + 22, y),
+                        "Exploracion visible (estados != posiciones)",
+                        self.COLOR_EXPLORACION,
+                        (x, y),
                         self._fuente_pequena,
                     ) + 2
+                    y = self._dibujar_texto(
+                        superficie,
+                        f"Posiciones resaltadas: {len(traza.posiciones_unicas)}",
+                        self.COLOR_TEXTO,
+                        (x, y),
+                        self._fuente_pequena,
+                    ) + 2
+                    if traza.truncada:
+                        y = self._dibujar_texto(
+                            superficie,
+                            f"Traza parcial (limite: {traza.limite})",
+                            self.COLOR_DESTINO,
+                            (x, y),
+                            self._fuente_pequena,
+                        ) + 2
+            y += 6
+        if control is None:
+            traza_disponible = resultado_busqueda is not None and resultado_busqueda.traza_expansiones is not None
+            texto_control = (
+                "E — Ocultar exploracion"
+                if exploracion_visible and traza_disponible
+                else "E — Mostrar exploracion"
+            )
+            y = self._dibujar_texto(
+                superficie, texto_control, self.COLOR_EXPLORACION, (x, y), self._fuente_pequena
+            ) + 2
+            y = self._dibujar_texto(
+                superficie, "Resalta las posiciones exploradas", self.COLOR_TEXTO, (x, y), self._fuente_pequena
+            ) + 1
+            y = self._dibujar_texto(
+                superficie, "durante la busqueda.", self.COLOR_TEXTO, (x, y), self._fuente_pequena
+            ) + 2
+            if resultado_busqueda is None:
+                y = self._dibujar_texto(
+                    superficie, "Requiere ejecutar una busqueda.", self.COLOR_DESTINO, (x, y), self._fuente_pequena
+                ) + 2
             y += 6
         y = self._dibujar_texto(superficie, "Terrenos", self.COLOR_TEXTO, (x, y), self._fuente) + 6
         for nombre, tipo in escenario.tipos_terreno.items():
@@ -472,7 +681,7 @@ class RenderizadorTablero:
                 superficie.blit(tile, muestra)
             if not tipo.transitable:
                 pygame.draw.line(superficie, self.COLOR_OBSTACULO, muestra.topleft, muestra.bottomright, 2)
-            sufijo = " (obstaculo)" if not tipo.transitable else ""
+            sufijo = " (obstaculo)" if not tipo.transitable else f" (costo {tipo.costo:g})"
             y = (
                 self._dibujar_texto(
                     superficie,
@@ -481,9 +690,9 @@ class RenderizadorTablero:
                     (x + 22, y),
                     self._fuente_pequena,
                 )
-                + 3
+                + 1
             )
-        for texto in ("Fortalezas: bases A / B", "Cristal: recurso libre", "Insignia dorada: portador", "Azul / rojo: unidades"):
+        for texto in ("Fortalezas A/B | Cristal: recurso", "Dorado: portador | Azul/rojo: unidades"):
             if y + 18 > panel.bottom:
                 break
             y = self._dibujar_texto(superficie, texto, self.COLOR_TEXTO, (x, y), self._fuente_pequena) + 2
@@ -495,6 +704,124 @@ class RenderizadorTablero:
                 (x, y + 4),
                 self._fuente_pequena,
             )
+
+    def _dibujar_controles(
+        self,
+        superficie: pygame.Surface,
+        panel: pygame.Rect,
+        control: EstadoPanelControl,
+        exploracion_visible: bool,
+    ) -> int:
+        """Dibuja selectores, acciones y ayuda contextual de la sesion grafica.
+
+        Purpose: hacer operables escenario, algoritmo, unidad, objetivo, Beam y exploracion sin usar terminal.
+        Preconditions: ``control`` representa el mismo escenario que el tablero y ``panel`` tiene ancho positivo.
+        Postconditions: los botones coinciden con sus hitboxes y el resumen explica la configuracion vigente sin
+        ejecutar acciones ni presentar como actual un resultado invalidado.
+        Complexity: O(L) temporal y espacial por renderizar textos de longitud total L.
+        AI usage: Yes.
+        AI intervention: Codex diseño los controles y agrego atajos, resumen y explicaciones dinamicas verificadas.
+        Student validation: pendiente de validacion visual humana; cubierta por pruebas de textos, hitboxes y capas.
+        """
+        rectangulos = self.calcular_rectangulos_controles(panel)
+        x = panel.x + 12
+        self._dibujar_texto(superficie, "TACTICALGRID", self.COLOR_TEXTO, (x, panel.y + 10), self._fuente)
+        etiqueta_algoritmo = {"astar": "A*", "beam": "BEAM SEARCH"}.get(
+            control.algoritmo, control.algoritmo.upper()
+        )
+        filas = [
+            (rectangulos.escenario_anterior, rectangulos.escenario_siguiente, f"Escenario: {control.escenario[:18]}"),
+            (rectangulos.algoritmo_anterior, rectangulos.algoritmo_siguiente, f"Algoritmo: {etiqueta_algoritmo}"),
+            (rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Unidad: {control.unidad}"),
+        ]
+        if control.algoritmo == "beam":
+            filas.append((rectangulos.k_menor, rectangulos.k_mayor, f"Beam k: {control.k}"))
+        for anterior, siguiente, etiqueta in filas:
+            self._dibujar_boton(superficie, anterior, "<")
+            self._dibujar_boton(superficie, siguiente, ">")
+            centro = pygame.Rect(
+                anterior.right + 2,
+                anterior.y,
+                max(1, siguiente.left - anterior.right - 4),
+                anterior.height,
+            )
+            self._dibujar_texto_centrado(superficie, etiqueta, self.COLOR_TEXTO, centro, self._fuente_pequena)
+        self._dibujar_boton(superficie, rectangulos.ejecutar, "Enter — Ejecutar busqueda")
+        texto_e = "E — Ocultar exploracion" if exploracion_visible else "E — Mostrar exploracion"
+        self._dibujar_boton(superficie, rectangulos.exploracion, texto_e, self.COLOR_EXPLORACION)
+        objetivo = (
+            "sin seleccionar"
+            if control.objetivo is None
+            else f"{control.objetivo.fila}, {control.objetivo.columna}"
+        )
+        y = rectangulos.exploracion.bottom + 5
+        y = self._dibujar_texto(
+            superficie,
+            f"Objetivo: {objetivo} (clic en mapa)",
+            self.COLOR_TEXTO,
+            (x, y),
+            self._fuente_pequena,
+        ) + 1
+        origen = "sin unidad" if control.origen is None else f"{control.origen.fila}, {control.origen.columna}"
+        y = self._dibujar_texto(
+            superficie,
+            f"Origen de {control.unidad}: {origen}",
+            self.COLOR_TEXTO,
+            (x, y),
+            self._fuente_pequena,
+        ) + 1
+        for linea in control.ayuda_descripcion:
+            y = self._dibujar_texto(superficie, linea, self.COLOR_TEXTO, (x, y), self._fuente_pequena) + 1
+        y = self._dibujar_texto(
+            superficie, f"Prioriza: {control.criterio}", self.COLOR_TEXTO, (x, y), self._fuente_pequena
+        ) + 1
+        if control.detalle is not None:
+            y = self._dibujar_texto(superficie, control.detalle, self.COLOR_TEXTO, (x, y), self._fuente_pequena) + 1
+        y = self._dibujar_texto(
+            superficie,
+            "Exploracion: posiciones analizadas",
+            self.COLOR_TEXTO,
+            (x, y + 2),
+            self._fuente_pequena,
+        ) + 1
+        y = self._dibujar_texto(
+            superficie,
+            "antes de obtener el resultado.",
+            self.COLOR_TEXTO,
+            (x, y),
+            self._fuente_pequena,
+        ) + 1
+        y = self._dibujar_texto(
+            superficie,
+            f"Estado: {control.estado_busqueda}",
+            self.COLOR_EXPLORACION if not control.error else self.COLOR_DESTINO,
+            (x, y + 2),
+            self._fuente_pequena,
+        ) + 1
+        color_mensaje = self.COLOR_DESTINO if control.error else self.COLOR_TEXTO
+        if control.error or control.estado_busqueda == "sin ejecutar":
+            lineas_mensaje = wrap(control.mensaje, width=36)[: 2 if control.error else 1]
+            for linea in lineas_mensaje:
+                y = self._dibujar_texto(superficie, linea, color_mensaje, (x, y), self._fuente_pequena)
+        return y + 10
+
+    def _dibujar_boton(
+        self,
+        superficie: pygame.Surface,
+        rectangulo: pygame.Rect,
+        texto: str,
+        color_texto: Color | None = None,
+    ) -> None:
+        """Dibuja un boton coherente con el panel sin asociarle comportamiento."""
+        pygame.draw.rect(superficie, self.COLOR_BOTON, rectangulo, border_radius=4)
+        pygame.draw.rect(superficie, self.COLOR_BOTON_BORDE, rectangulo, 1, border_radius=4)
+        self._dibujar_texto_centrado(
+            superficie,
+            texto,
+            color_texto or self.COLOR_TEXTO,
+            rectangulo,
+            self._fuente_pequena,
+        )
 
     @staticmethod
     def _dibujar_texto(

@@ -2,11 +2,12 @@
 
 from collections import deque
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from tacticalgrid.algoritmos.instrumentacion import MedidorBusqueda, Nodo, expandir
+from tacticalgrid.algoritmos.instrumentacion import MedidorBusqueda, Nodo, ObservadorExpansiones, expandir
 from tacticalgrid.algoritmos.resultado_busqueda import ResultadoBusqueda
 from tacticalgrid.escenario.cargador import cargar_escenario
 from tacticalgrid.escenario.escenario import Posicion
@@ -138,3 +139,60 @@ def test_inicio_que_ya_es_objetivo_tiene_camino_de_una_posicion_y_costo_cero() -
     assert resultado.exito
     assert resultado.camino == (Posicion(0, 1),)
     assert (resultado.longitud, resultado.costo, resultado.estados_expandidos) == (0, 0, 0)
+
+
+def test_observador_registra_expansion_real_en_orden_y_con_identidad_completa() -> None:
+    problema = _problema("ejemplo_enunciado.json", Posicion(3, 2))
+    observador = ObservadorExpansiones()
+    medidor = MedidorBusqueda("PRUEBA", observador_expansiones=observador)
+    raiz = Nodo(problema.estado_inicial)
+    estado_misma_posicion = replace(raiz.estado, turno_actual="B")
+
+    medidor.registrar_generado()
+    expandir(problema, raiz, medidor)
+    observador.observar(estado_misma_posicion, problema.posicion(estado_misma_posicion))
+    traza = observador.finalizar()
+
+    assert [evento.orden for evento in traza.eventos] == [0, 1]
+    assert traza.eventos[0].estado is raiz.estado
+    assert traza.eventos[1].estado == estado_misma_posicion
+    assert traza.eventos[0].posicion == traza.eventos[1].posicion
+    assert len(traza.posiciones_unicas) == 1
+    assert medidor.estados_generados == 1
+    assert medidor.estados_expandidos == 1
+
+
+def test_observador_limitado_informa_traza_parcial_sin_perder_total() -> None:
+    problema = _problema("ejemplo_enunciado.json", Posicion(3, 2))
+    observador = ObservadorExpansiones(limite=1)
+    posicion = problema.posicion(problema.estado_inicial)
+
+    observador.observar(problema.estado_inicial, posicion)
+    observador.observar(problema.estado_inicial, posicion)
+    traza = observador.finalizar()
+
+    assert len(traza.eventos) == 1
+    assert traza.total_expansiones == 2
+    assert traza.truncada
+    assert traza.limite == 1
+
+
+def test_sin_observador_resultado_no_contiene_traza() -> None:
+    resultado = _busqueda_de_prueba(
+        _problema("ejemplo_enunciado.json", Posicion(3, 2)), "PRUEBA", deque.popleft
+    )
+
+    assert resultado.traza_expansiones is None
+
+
+def test_observador_activo_puede_producir_traza_vacia() -> None:
+    problema = _problema("ejemplo_enunciado.json", Posicion(0, 1))
+    observador = ObservadorExpansiones()
+    medidor = MedidorBusqueda("PRUEBA", observador_expansiones=observador)
+
+    resultado = medidor.finalizar(problema, Nodo(problema.estado_inicial))
+
+    assert resultado.traza_expansiones is not None
+    assert resultado.traza_expansiones.eventos == ()
+    assert resultado.traza_expansiones.total_expansiones == 0
+    assert not resultado.traza_expansiones.truncada
