@@ -446,6 +446,18 @@ python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs
 A* y UCS deben obtener el mismo costo optimo bajo estas condiciones; no se exige que coincidan el camino, las
 metricas ni el tiempo. La opcion `ambos` conserva su significado anterior y ejecuta solamente BFS y UCS.
 
+### Casos mínimos 3 y 4: obstáculo y comparación de heurísticas
+
+[Casos mínimos 3 y 4](docs/casos-minimos-obstaculo-y-heuristicas.md) documenta la ruta obligada por el muro de
+`obstaculo_rodeo.json` y compara A* con Manhattan, A* con HTO y UCS sobre la misma configuración. Las pruebas de
+`tests/algoritmos/test_casos_minimos_heuristicas.py` verifican el rodeo, la legalidad del camino, el costo y las
+métricas discretas. La comparación se reproduce con:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python \
+  scripts/comparar_heuristicas_e62.py --repeticiones 1 --calentamiento 0
+```
+
 ## Beam Search — E7.1
 
 `algoritmos/busqueda_haz.py` implementa Beam Search por niveles con ancho `k`. En cada nivel se expanden todos los
