@@ -2,6 +2,7 @@
 
 from .alfa_beta import alfa_beta
 from .comparacion_adversarial import ComparacionAdversarial, comparar_minimax_alfa_beta
+from .orden_acciones import ORDENES, orden_desde_configuracion, ordenar_acciones
 from .busqueda_a_estrella import busqueda_a_estrella, heuristica_manhattan
 from .busqueda_anchura import busqueda_anchura
 from .busqueda_costo_uniforme import busqueda_costo_uniforme
@@ -23,6 +24,9 @@ __all__ = [
     "alfa_beta",
     "ComparacionAdversarial",
     "comparar_minimax_alfa_beta",
+    "ORDENES",
+    "orden_desde_configuracion",
+    "ordenar_acciones",
     "AccionValorada",
     "EvaluadorUtilidad",
     "PesosUtilidad",

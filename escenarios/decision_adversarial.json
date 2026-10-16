@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "descripcion": "Caso minimo 7 (E8.6): la mejor decision de Minimax no es avanzar directo al recurso. En la fila 0, A1 esta a un paso del recurso, pero B1 espera sobre su propia base, adyacente al recurso: si A1 lo recoge, B1 lo intercepta y gana en el acto. La fila 1 es un muro; en la fila 2, A2, A3, B2 y B3 completan las tres unidades por bando sin poder alcanzar el recurso.",
+  "mapa": {"filas": 3, "columnas": 6},
+  "tipos_terreno": {
+    "camino": {"costo": 1, "transitable": true},
+    "muro": {"transitable": false}
+  },
+  "terreno": [
+    ["camino", "camino", "camino", "camino", "muro", "muro"],
+    ["muro", "muro", "muro", "muro", "muro", "muro"],
+    ["camino", "camino", "camino", "camino", "camino", "camino"]
+  ],
+  "bases": {
+    "A": {"fila": 0, "columna": 0},
+    "B": {"fila": 0, "columna": 3}
+  },
+  "recurso": {"fila": 0, "columna": 2},
+  "unidades": [
+    {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 1},
+    {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 2, "columna": 0},
+    {"id": "A3", "bando": "A", "tipo": "estandar", "fila": 2, "columna": 1},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 0, "columna": 3},
+    {"id": "B2", "bando": "B", "tipo": "estandar", "fila": 2, "columna": 4},
+    {"id": "B3", "bando": "B", "tipo": "estandar", "fila": 2, "columna": 5}
+  ],
+  "turno": "A",
+  "juego": {
+    "portador_recurso": null,
+    "profundidad_maxima_minimax": 4
+  },
+  "prueba": {
+    "modo": "adversarial"
+  }
+}

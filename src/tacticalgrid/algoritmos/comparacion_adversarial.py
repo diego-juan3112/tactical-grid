@@ -13,6 +13,7 @@ from tacticalgrid.juego.estado import EstadoJuego
 
 from .alfa_beta import alfa_beta
 from .minimax import ResultadoMinimax, minimax, validar_profundidad
+from .orden_acciones import ORDEN_GENERACION, validar_orden
 
 # (etiqueta para mostrar, campo de ResultadoMinimax), en el orden de la tabla de metricas del enunciado.
 METRICAS_COMPARABLES: tuple[tuple[str, str], ...] = (
@@ -83,6 +84,7 @@ class ComparacionAdversarial:
         return {
             "bando_max": self.minimax.bando_max,
             "profundidad_maxima": self.minimax.profundidad_maxima,
+            "orden_acciones": self.minimax.orden_acciones,
             "minimax": self.minimax.a_diccionario(),
             "alfa_beta": self.alfa_beta.a_diccionario(),
             "misma_accion": self.misma_accion,
@@ -92,7 +94,7 @@ class ComparacionAdversarial:
 
 
 def comparar_minimax_alfa_beta(
-    escenario: Escenario, estado: EstadoJuego, profundidad_maxima: int
+    escenario: Escenario, estado: EstadoJuego, profundidad_maxima: int, orden: str = ORDEN_GENERACION
 ) -> ComparacionAdversarial:
     """Ejecuta Minimax y alfa-beta sobre el mismo estado y profundidad y reune sus metricas.
 
@@ -101,19 +103,21 @@ def comparar_minimax_alfa_beta(
     Precondiciones: ``estado`` es coherente con ``escenario``; ``profundidad_maxima`` es un entero mayor o igual que
     1 (si no, ``ValueError`` antes de ejecutar nada).
     Postcondiciones: devuelve una ``ComparacionAdversarial`` con un resultado de cada algoritmo. Ambos usan la
-    misma utilidad (los pesos de ``juego.pesos_utilidad`` del escenario) y el mismo orden de acciones, pero cada
+    misma utilidad (los pesos de ``juego.pesos_utilidad`` del escenario) y el mismo ``orden`` de acciones, pero cada
     uno construye su propio evaluador: asi ninguno hereda las distancias ya calculadas por el otro y los tiempos
     son comparables. ``estado`` no se modifica.
     Complejidad: la suma de ambas busquedas: O(b^d) para Minimax mas, en el peor caso, O(b^d) para alfa-beta,
     con b acciones por nodo y d la profundidad maxima.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) propuso la funcion, la decision de usar evaluadores independientes para
-    medir tiempos comparables y su implementacion en E8.5.
+    medir tiempos comparables y su implementacion en E8.5; en E8.6 agrego el parametro ``orden``, que se aplica a
+    ambos algoritmos para que la comparacion siga siendo valida con cualquier orden.
     Validacion del estudiante: implementacion validada por tests/algoritmos/test_comparacion_adversarial.py, 
     que contrasta cada metrica con ejecutar cada algoritmo por separado en los escenarios del repositorio.
     """
     profundidad_maxima = validar_profundidad(profundidad_maxima)
+    orden = validar_orden(orden)
     return ComparacionAdversarial(
-        minimax=minimax(escenario, estado, profundidad_maxima),
-        alfa_beta=alfa_beta(escenario, estado, profundidad_maxima),
+        minimax=minimax(escenario, estado, profundidad_maxima, orden=orden),
+        alfa_beta=alfa_beta(escenario, estado, profundidad_maxima, orden=orden),
     )

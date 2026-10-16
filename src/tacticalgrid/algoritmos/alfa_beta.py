@@ -28,6 +28,7 @@ from tacticalgrid.juego.reglas import aplicar_accion, es_terminal
 from tacticalgrid.juego.tacticas import acciones_tacticas
 
 from .minimax import ResultadoMinimax, preparar_evaluador, validar_profundidad
+from .orden_acciones import ORDEN_GENERACION, ordenar_acciones, validar_orden
 from .utilidad import EvaluadorUtilidad
 
 
@@ -48,11 +49,12 @@ def _valor_alfa_beta(
     alfa: float,
     beta: float,
     contadores: _Contadores,
+    orden: str,
 ) -> float:
     """Valor de ``estado`` con poda: exacto si queda dentro de (alfa, beta); si no, una cota del lado del corte."""
     contadores.profundidad_alcanzada = max(contadores.profundidad_alcanzada, profundidad)
     estado = preparar_turno(escenario, estado)
-    acciones = () if es_terminal(escenario, estado) else acciones_tacticas(escenario, estado)
+    acciones = () if es_terminal(escenario, estado) else ordenar_acciones(acciones_tacticas(escenario, estado), orden)
     if profundidad == profundidad_maxima or not acciones:
         contadores.evaluados += 1
         return evaluador.evaluar(estado)
@@ -63,7 +65,7 @@ def _valor_alfa_beta(
         sucesor = aplicar_accion(escenario, estado, accion_tactica.accion)
         contadores.generados += 1
         valor = _valor_alfa_beta(
-            escenario, evaluador, sucesor, profundidad + 1, profundidad_maxima, alfa, beta, contadores
+            escenario, evaluador, sucesor, profundidad + 1, profundidad_maxima, alfa, beta, contadores, orden
         )
         if es_max:
             mejor = max(mejor, valor)
@@ -82,6 +84,7 @@ def alfa_beta(
     estado: EstadoJuego,
     profundidad_maxima: int,
     evaluador: EvaluadorUtilidad | None = None,
+    orden: str = ORDEN_GENERACION,
 ) -> ResultadoMinimax:
     """Elige la misma accion que Minimax para el bando en turno, evitando explorar ramas que no cambian la decision.
 
@@ -99,25 +102,27 @@ def alfa_beta(
     O(b^(d/2)). Cada nodo cuesta O(U^2) como en Minimax y el espacio es O(d * b) por la recursion.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) propuso el diseno (variante fail-soft, conteo de ramas podadas, marca de
-    cotas en la raiz), la implementacion, sus pruebas y esta documentacion en E8.4.
+    cotas en la raiz), la implementacion, sus pruebas y esta documentacion en E8.4; en E8.6 agrego el parametro
+    ``orden`` (por defecto ``generacion``, el comportamiento anterior) para estudiar su efecto sobre la poda.
     Validacion del estudiante: Se aprueba la implementacion validada por tests/algoritmos/test_alfa_beta.py,
     que compara con un arbol calculado a mano (pasillo 1x8) y con Minimax en los escenarios del repositorio.
     """
     profundidad_maxima = validar_profundidad(profundidad_maxima)
+    orden = validar_orden(orden)
     inicio = time.perf_counter()
     evaluador = preparar_evaluador(escenario, estado, evaluador)
 
     contadores = _Contadores()
     raiz = preparar_turno(escenario, estado)
     puede_actuar = not es_terminal(escenario, raiz) and raiz.turno_actual == evaluador.bando_max
-    acciones = acciones_tacticas(escenario, raiz) if puede_actuar else ()
+    acciones = ordenar_acciones(acciones_tacticas(escenario, raiz), orden) if puede_actuar else ()
 
     seleccionada = None
     valores_raiz = []
     cotas_raiz = []
     if not acciones:
         valor = _valor_alfa_beta(
-            escenario, evaluador, raiz, 0, profundidad_maxima, float("-inf"), float("inf"), contadores
+            escenario, evaluador, raiz, 0, profundidad_maxima, float("-inf"), float("inf"), contadores, orden
         )
     else:
         # En la raiz MAX nunca poda (beta es infinito): todas sus acciones se generan y valoran.
@@ -126,7 +131,7 @@ def alfa_beta(
             sucesor = aplicar_accion(escenario, raiz, accion_tactica.accion)
             contadores.generados += 1
             valor_accion = _valor_alfa_beta(
-                escenario, evaluador, sucesor, 1, profundidad_maxima, valor, float("inf"), contadores
+                escenario, evaluador, sucesor, 1, profundidad_maxima, valor, float("inf"), contadores, orden
             )
             valores_raiz.append((accion_tactica, valor_accion))
             cotas_raiz.append(seleccionada is not None and valor_accion <= valor)
@@ -146,4 +151,5 @@ def alfa_beta(
         tiempo_segundos=time.perf_counter() - inicio,
         valores_raiz=tuple(valores_raiz),
         cotas_raiz=tuple(cotas_raiz),
+        orden_acciones=orden,
     )

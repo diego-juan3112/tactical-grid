@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "descripcion": "Caso minimo 6 (E8.6), variante sin portador: el recurso esta libre en (2, 4). Las seis unidades ocupan exactamente las mismas casillas que en estado_compuesto_portador.json; solo cambia quien tiene el recurso.",
+  "mapa": {"filas": 5, "columnas": 5},
+  "tipos_terreno": {
+    "camino": {"costo": 1, "transitable": true}
+  },
+  "terreno": [
+    ["camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino"],
+    ["camino", "camino", "camino", "camino", "camino"]
+  ],
+  "bases": {
+    "A": {"fila": 0, "columna": 0},
+    "B": {"fila": 4, "columna": 4}
+  },
+  "recurso": {"fila": 2, "columna": 4},
+  "unidades": [
+    {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 2, "columna": 2},
+    {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 1},
+    {"id": "A3", "bando": "A", "tipo": "estandar", "fila": 1, "columna": 0},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 4, "columna": 1},
+    {"id": "B2", "bando": "B", "tipo": "estandar", "fila": 4, "columna": 2},
+    {"id": "B3", "bando": "B", "tipo": "estandar", "fila": 3, "columna": 0}
+  ],
+  "turno": "A",
+  "juego": {
+    "portador_recurso": null,
+    "profundidad_maxima_minimax": 4
+  },
+  "prueba": {
+    "modo": "adversarial"
+  }
+}
