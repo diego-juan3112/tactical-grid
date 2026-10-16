@@ -17,7 +17,7 @@ Juego tactico 2D por turnos para Sistemas Inteligentes I. El juego permite obser
 - `escenario`: lee, valida y representa JSON; provee dimensiones, terrenos, costos y transitabilidad.
 - `juego`: representa `EstadoJuego` y `Unidad`; aqui viviran reglas, acciones y sucesores.
 - `algoritmos`: contiene contratos de resultados y alojara estrategias de busqueda y decision.
-- `interfaz`: inicializa Pygame y consumira estado y resultados.
+- `interfaz`: carga el escenario elegido, construye el estado inicial y renderiza ambos mediante Pygame.
 - `servidor`: expone el punto ASGI tecnico para Uvicorn; no accede a las cuatro capas.
 
 ```text
@@ -837,6 +837,14 @@ python3 main.py --algoritmo bfs_dfs
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
 ```
 
+La interfaz grafica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`:
+
+```bash
+tacticalgrid
+tacticalgrid escenarios/ruta_corta_vs_economica.json
+tacticalgrid escenarios/recurso_en_transporte.json
+```
+
 Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`
 del escenario. Para elegirlos explícitamente, use `--unidad ID` y `--objetivo FILA COLUMNA`; por ejemplo:
 
@@ -901,7 +909,7 @@ tacticalgrid
 python -m uvicorn tacticalgrid.servidor.asgi:aplicacion --reload
 ```
 
-En Linux se verificaron la instalacion en `.venv`, pytest y Uvicorn; el clon no se repitio porque este repositorio ya estaba presente. `uvicorn tacticalgrid.servidor.asgi:aplicacion --reload` inicia el servidor ASGI en desarrollo. `tacticalgrid` abre la interfaz minima de Pygame y se cierra mediante el control de la ventana.
+En Linux se verificaron la instalacion en `.venv`, pytest y Uvicorn; el clon no se repitio porque este repositorio ya estaba presente. `uvicorn tacticalgrid.servidor.asgi:aplicacion --reload` inicia el servidor ASGI en desarrollo. `tacticalgrid [ruta.json]` abre el tablero en Pygame y se cierra mediante el control de la ventana.
 
 Para salir del entorno virtual en Windows o Linux:
 
