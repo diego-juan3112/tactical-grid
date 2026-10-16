@@ -13,7 +13,7 @@ def test_capas_centrales_no_importan_pygame() -> None:
         [
             sys.executable,
             "-c",
-            "import sys; import tacticalgrid.escenario, tacticalgrid.juego, tacticalgrid.algoritmos; "
+            "import sys; import tacticalgrid.escenario, tacticalgrid.juego, tacticalgrid.algoritmos, tacticalgrid.modos; "
             "assert 'pygame' not in sys.modules",
         ],
         cwd=raiz,

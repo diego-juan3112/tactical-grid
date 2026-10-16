@@ -17,6 +17,7 @@ Juego tactico 2D por turnos para Sistemas Inteligentes I. El juego permite obser
 - `escenario`: lee, valida y representa JSON; provee dimensiones, terrenos, costos y transitabilidad.
 - `juego`: representa `EstadoJuego` y `Unidad`; aqui viviran reglas, acciones y sucesores.
 - `algoritmos`: contiene contratos de resultados y alojara estrategias de busqueda y decision.
+- `modos`: interpreta el campo `prueba` y ejecuta los modos `busqueda`, `partida` y `adversarial` (E10.1) usando escenario, juego y algoritmos; no abre archivos ni conoce Pygame.
 - `interfaz`: carga el escenario elegido, construye el estado inicial y renderiza ambos mediante Pygame.
 - `servidor`: expone el punto ASGI tecnico para Uvicorn; no accede a las cuatro capas.
 
@@ -990,6 +991,87 @@ Las pruebas de `tests/algoritmos/test_casos_minimos_adversariales.py` fijan toda
 las de `tests/algoritmos/test_orden_acciones.py` cubren los tres órdenes y su integración con Minimax, alfa-beta y la
 comparación.
 
+## Modos de prueba `busqueda`, `partida` y `adversarial` — E10.1
+
+El profesor puede cargar un escenario externo con un campo `prueba` y la aplicación ejecuta el modo pedido **sin
+cambios de código**. La lógica vive en `src/tacticalgrid/modos/`, una capa de orquestación que usa escenario, juego
+y algoritmos sin abrir archivos ni conocer Pygame; la consola la consume y la interfaz podrá hacerlo.
+
+```bash
+python3 -B main.py ruta/al/escenario_del_profesor.json
+```
+
+| Modo | Qué hace | Algoritmo por defecto |
+|---|---|---|
+| `busqueda` | Resuelve la navegación de `prueba.unidad_inicio` hasta `prueba.objetivo` con BFS, DFS, UCS, A* o Beam Search. | `ucs` |
+| `partida` | Carga el escenario completo y **continúa el juego por turnos** desde ese estado: ambos bandos deciden con el mismo algoritmo, profundidad y orden, hasta una victoria, un empate por bloqueo o el límite de jugadas. | `alfa_beta` |
+| `adversarial` | Evalúa el estado cargado con Minimax o alfa-beta y selecciona la acción del bando en turno. | `alfa_beta` |
+
+### Cómo se decide qué ejecutar
+
+- **Modo:** `--modo` en la consola. Si no se indica, se deduce de `--algoritmo`: un algoritmo explícito conserva su
+  comportamiento anterior, aunque el JSON declare otro modo. Si tampoco se indica, se usa `prueba.modo`, y si el
+  escenario no tiene `prueba`, `busqueda`.
+- **Algoritmo:** `--algoritmo`; si no, el campo propio `prueba.algoritmo` (debe ser de la familia del modo); si no,
+  el valor por defecto de la tabla.
+- **Resto de parámetros:** unidad y objetivo (`--unidad`, `--objetivo` o `prueba`), ancho `k` (`--k` o `prueba.k`),
+  profundidad (`--profundidad` o `juego.profundidad_maxima_minimax`), orden de acciones (`--orden` o
+  `juego.orden_acciones`) y límite de la partida (`--turnos`, el campo propio `prueba.max_turnos` o 50). La consola
+  siempre tiene prioridad sobre el JSON.
+
+Un escenario externo que solo traiga los campos del enunciado (`modo`, `unidad_inicio`, `objetivo`) funciona con los
+valores por defecto. Un `prueba` inválido (modo desconocido, objetivo sin `fila`/`columna`, algoritmo de otra familia,
+`max_turnos` no positivo) se rechaza con un mensaje que nombra el campo. Una combinación incompatible en la consola,
+como `--modo partida --algoritmo bfs`, también se rechaza.
+
+### Modo `partida`
+
+La partida continúa desde el estado del JSON (unidades, turno y portador), no se reinicia. Antes de cada jugada se
+aplica `preparar_turno` (E1.3/E3.1): si el bando en turno está bloqueado, pasa el turno, y si ambos lo están, la
+partida termina en empate. Cada bando decide como MAX con el mismo algoritmo, porque MAX y MIN son roles, no
+capacidades distintas. El límite de jugadas existe porque dos bandos que se custodian mutuamente pueden no terminar
+nunca; no se agregó una regla de empate por repetición, que no forma parte de las reglas del juego.
+
+```text
+$ python3 -B main.py escenarios/estado_compuesto_portador.json --modo partida
+Algoritmo de ambos bandos: alfa_beta | Profundidad: 4 | Orden de acciones: generacion
+Límite: 50 jugadas
+
+Turno 1 | A | A1 (2, 2) -> (1, 2) [avanzar] | valor 96.0 | evaluados 136
+Turno 2 | B | B1 (4, 1) -> (3, 1) [perseguir_portador] | valor -96.0 | evaluados 217
+...
+Turno 6 | B | B1 (2, 1) -> (3, 1) [reposicionar] | valor -10000 | evaluados 255
+Turno 7 | A | A1 (0, 2) -> (0, 1) [avanzar] | valor 10000 | evaluados 127
+Turno 8 | B | B1 (3, 1) -> (2, 1) [perseguir_portador] | valor -10000 | evaluados 35
+Turno 9 | A | A1 (0, 1) -> (0, 0) [avanzar] | valor 10000 | evaluados 28
+
+Resultado: victoria de A en 9 jugadas
+```
+
+El valor de cada jugada está expresado desde la perspectiva del bando que juega. Desde la jugada 6, B ve −10 000:
+dentro de su horizonte, A gana haga lo que haga. `jugar_partida` devuelve un `ResultadoPartida` con cada jugada (estado
+previo, decisión con sus métricas y estado resultante) y `a_diccionario()` para exportarlo a JSON.
+
+| Escenario (profundidad 4) | Resultado de la partida |
+|---|---|
+| `ejemplo_enunciado.json` | Victoria de B en 6 jugadas |
+| `estado_compuesto_portador.json` | Victoria de A en 9 jugadas |
+| `recurso_en_transporte.json`, `decision_adversarial.json` | Sin ganador al llegar al límite: ambos bandos se custodian |
+
+### Comandos
+
+```bash
+python3 -B main.py escenarios/campo_20x20.json                       # prueba.modo = busqueda -> UCS
+python3 -B main.py escenarios/decision_adversarial.json              # prueba.modo = adversarial -> alfa-beta
+python3 -B main.py escenarios/recurso_en_transporte.json --turnos 10 # prueba.modo = partida
+python3 -B main.py escenarios/campo_20x20.json --modo adversarial --profundidad 3
+python3 -B main.py escenarios/ejemplo_enunciado.json --modo partida --algoritmo minimax --profundidad 3
+```
+
+Las pruebas de `tests/modos/` cubren la lectura y validación de `prueba`, la precedencia entre consola y JSON, una
+partida calculada a mano con pases por bloqueo, partidas con ganador, empate y límite, la igualdad de las partidas
+jugadas con Minimax y con alfa-beta, y la consola en los tres modos.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
@@ -1066,12 +1148,15 @@ src/tacticalgrid/
 ├── escenario/
 ├── juego/
 ├── algoritmos/
+├── modos/
 ├── interfaz/
 └── servidor/
 tests/
 ├── escenario/
 ├── juego/
 ├── algoritmos/
+├── modos/
+├── interfaz/
 └── servidor/
 escenarios/
 ```
