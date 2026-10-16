@@ -14,6 +14,7 @@ from tacticalgrid.escenario import cargar_escenario
 from tacticalgrid.escenario.escenario import Escenario, Posicion, UnidadInicial
 from tacticalgrid.escenario.terreno import TipoTerreno
 from tacticalgrid.interfaz.renderizador import RenderizadorTablero
+from tacticalgrid.interfaz.recursos import RecursosGraficos
 from tacticalgrid.interfaz.aplicacion import preparar_busqueda
 from tacticalgrid.juego.estado import EstadoJuego, crear_estado_inicial
 from tacticalgrid.juego.unidad import Unidad
@@ -129,14 +130,14 @@ def test_diferencia_tipos_de_terreno_y_marca_no_transitable():
     bosque = _celda(disposicion, Posicion(0, 2))
     muro = _celda(disposicion, Posicion(1, 3))
 
-    assert _pixel(superficie, llanura.center) == renderizador.color_para_terreno(
-        "llanura", escenario.tipos_terreno["llanura"]
-    )
-    assert _pixel(superficie, bosque.center) == renderizador.color_para_terreno(
-        "bosque", escenario.tipos_terreno["bosque"]
-    )
-    assert _pixel(superficie, llanura.center) != _pixel(superficie, bosque.center)
-    assert _pixel(superficie, muro.center) == renderizador.COLOR_OBSTACULO
+    colores_llanura = _colores_en(superficie, llanura, margen=2)
+    colores_bosque = _colores_en(superficie, bosque, margen=2)
+    colores_muro = _colores_en(superficie, muro, margen=2)
+
+    assert len(colores_llanura) > 8
+    assert len(colores_bosque) > 8
+    assert colores_llanura != colores_bosque
+    assert len(colores_muro) > 8
 
 
 def test_admite_tipo_externo_con_color_determinista_y_leyenda_visible():
@@ -228,9 +229,12 @@ def test_segundo_renderizado_refleja_nuevo_estado_sin_retener_el_anterior():
     escenario = _escenario()
     superficie = _superficie()
     renderizador = RenderizadorTablero()
-    estado_a = crear_estado_inicial(escenario)
+    estado_inicial = crear_estado_inicial(escenario)
+    posicion_anterior = Posicion(2, 0)
     nueva_posicion = Posicion(2, 1)
-    unidad_movida = replace(estado_a.unidades[0], posicion=nueva_posicion)
+    unidad_anterior = replace(estado_inicial.unidades[0], posicion=posicion_anterior)
+    estado_a = replace(estado_inicial, unidades=(unidad_anterior, estado_inicial.unidades[1]))
+    unidad_movida = replace(unidad_anterior, posicion=nueva_posicion)
     estado_b = EstadoJuego(
         unidades=(unidad_movida, estado_a.unidades[1]),
         turno_actual="B",
@@ -238,16 +242,63 @@ def test_segundo_renderizado_refleja_nuevo_estado_sin_retener_el_anterior():
         portador_recurso=None,
     )
     disposicion = renderizador.renderizar(superficie, escenario, estado_a)
-    origen = _celda(disposicion, estado_a.unidades[0].posicion)
-    punto_unidad_original = (origen.centerx + disposicion.tamano_celda // 3 - 10, origen.centery)
-    assert _pixel(superficie, punto_unidad_original) == renderizador.COLOR_BASES["A"]
+    origen = _celda(disposicion, posicion_anterior)
+    imagen_con_unidad = superficie.subsurface(origen).copy()
     renderizador.renderizar(superficie, escenario, estado_b)
     destino = _celda(disposicion, nueva_posicion)
 
     assert renderizador.COLOR_BASES["A"] in _colores_en(superficie, destino)
-    assert _pixel(superficie, punto_unidad_original) == renderizador.color_para_terreno(
-        "llanura", escenario.tipos_terreno["llanura"]
-    )
+    assert pygame.image.tobytes(superficie.subsurface(origen), "RGB") != pygame.image.tobytes(imagen_con_unidad, "RGB")
+
+
+def test_carga_atlas_empaquetados_y_cachea_escalados():
+    recursos = RecursosGraficos()
+
+    pasto = recursos.terreno("pasto", 32, 0)
+    bosque = recursos.terreno("bosque", 32, 0)
+    pantano = recursos.terreno("pantano", 32, 0)
+    unidad = recursos.objeto("unidad_a", 28)
+
+    assert recursos.errores == ()
+    assert pasto is recursos.terreno("pasto", 32, 0)
+    assert pasto is not None and pasto.get_size() == (32, 32)
+    assert bosque is not None and pantano is not None and unidad is not None
+    assert pygame.image.tobytes(pasto, "RGB") != pygame.image.tobytes(bosque, "RGB")
+    assert pygame.image.tobytes(bosque, "RGB") != pygame.image.tobytes(pantano, "RGB")
+    assert recursos.cantidad_cacheada == 4
+
+
+def test_variacion_visual_es_determinista_y_no_muta_estado():
+    escenario = cargar_escenario(RAIZ / "escenarios" / "campo_20x20.json")
+    estado = crear_estado_inicial(escenario)
+    estado_antes = estado
+    primera = _superficie()
+    segunda = _superficie()
+
+    RenderizadorTablero().renderizar(primera, escenario, estado)
+    RenderizadorTablero().renderizar(segunda, escenario, estado)
+
+    assert pygame.image.tobytes(primera, "RGB") == pygame.image.tobytes(segunda, "RGB")
+    assert estado == estado_antes
+
+
+def test_fallback_visible_si_faltan_recursos(tmp_path, monkeypatch):
+    recursos = RecursosGraficos(tmp_path)
+    renderizador = RenderizadorTablero(recursos)
+    escenario = _escenario(5, 7, terreno_externo=True)
+    textos = []
+    dibujar_texto = renderizador._dibujar_texto
+
+    def registrar_texto(superficie_destino, texto, color, posicion, fuente):
+        textos.append(texto)
+        return dibujar_texto(superficie_destino, texto, color, posicion, fuente)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto", registrar_texto)
+    disposicion = renderizador.renderizar(_superficie(), escenario, crear_estado_inicial(escenario))
+
+    assert set(recursos.errores) == {"atlas_terrenos.png", "atlas_objetos.png"}
+    assert disposicion.tamano_celda > 0
+    assert "Recursos: fallback activo" in textos
 
 
 def test_composicion_superpuesta_mantiene_base_unidad_identificador_y_portador():

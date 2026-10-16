@@ -1139,6 +1139,26 @@ por defecto. La linea cian conserva el orden exacto del camino; el anillo verde 
 destino. Las bases, el recurso, las unidades y la cuadricula se dibujan encima para mantener su identidad. El panel
 muestra el algoritmo y `exito` o `sin solucion`; en el segundo caso no se dibuja ninguna ruta.
 
+### Presentacion grafica del tablero
+
+El rediseño visual independiente de E9.3 usa pixel art cenital: senderos de tierra, pasto, copas de arboles, pantano,
+rocas, fortalezas, unidades por bando y un cristal estrategico. Los identificadores, el turno, la leyenda y la ruta
+de E9.2 permanecen visibles. Las orientaciones de los tiles varian de forma determinista segun terreno y posicion;
+no usan el generador aleatorio ni alteran el estado. Un terreno externo conserva un color y patron estables, informa
+su nombre en la leyenda y representa su transitabilidad sin asignarle una semantica nueva.
+
+Los PNG se resuelven desde `tacticalgrid/interfaz/recursos`, se cargan una vez y las superficies transformadas se
+cachean por sprite, tamaño y variante. Si falta un atlas, la interfaz sigue operativa con un fallback y lo informa en
+el panel. Los recursos se incluyen como datos del paquete, por lo que la ejecucion no depende del directorio actual
+ni realiza descargas. Su procedencia se documenta en
+`src/tacticalgrid/interfaz/recursos/ORIGEN.md`. No se incorporaron assets externos; el repositorio aun no define una
+licencia general de redistribucion.
+
+Las capturas reproducibles bajo SDL dummy estan en `capturas/redisenio_visual/`: incluyen el antes/despues de
+`campo_20x20.json`, `recurso_en_transporte.json` y las rutas diferentes de BFS y UCS en
+`ruta_corta_vs_economica.json`. Esa evidencia no sustituye la revision manual de una ventana real. Este rediseño no
+implementa visualizacion de exploracion ni cumple E9.3.
+
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 
 ## Estructura
@@ -1150,6 +1170,7 @@ src/tacticalgrid/
 ├── algoritmos/
 ├── modos/
 ├── interfaz/
+│   └── recursos/ # atlas PNG empaquetados y procedencia
 └── servidor/
 tests/
 ├── escenario/

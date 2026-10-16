@@ -8,6 +8,7 @@ import pygame
 from tacticalgrid.algoritmos.resultado_busqueda import ResultadoBusqueda
 from tacticalgrid.escenario.escenario import Escenario, Posicion
 from tacticalgrid.escenario.terreno import TipoTerreno
+from tacticalgrid.interfaz.recursos import RecursosGraficos
 from tacticalgrid.juego.estado import EstadoJuego
 
 
@@ -26,28 +27,29 @@ class DisposicionTablero:
 class RenderizadorTablero:
     """Compone una vista completa sin modificar el escenario ni el estado."""
 
-    COLOR_FONDO: Color = (24, 31, 38)
-    COLOR_PANEL: Color = (35, 44, 53)
-    COLOR_TEXTO: Color = (238, 242, 246)
-    COLOR_CUADRICULA: Color = (56, 65, 74)
+    COLOR_FONDO: Color = (20, 25, 29)
+    COLOR_PANEL: Color = (31, 39, 43)
+    COLOR_PANEL_BORDE: Color = (75, 88, 86)
+    COLOR_TEXTO: Color = (235, 232, 216)
+    COLOR_CUADRICULA: Color = (48, 55, 52)
     COLOR_OBSTACULO: Color = (20, 22, 25)
     COLOR_BASES: dict[str, Color] = {"A": (38, 117, 191), "B": (190, 68, 68)}
     COLOR_RECURSO: Color = (244, 196, 48)
     COLOR_CAMINO: Color = (22, 224, 238)
     COLOR_ORIGEN: Color = (68, 220, 112)
     COLOR_DESTINO: Color = (255, 112, 82)
-    ANCHO_PANEL = 250
+    ANCHO_PANEL = 272
     MARGEN = 16
 
-    def __init__(self) -> None:
+    def __init__(self, recursos: RecursosGraficos | None = None) -> None:
         """Prepara fuentes reutilizables para las etiquetas del tablero.
 
-        Purpose: inicializar los recursos tipograficos exclusivos de la interfaz.
+        Purpose: inicializar fuentes y el proveedor cacheado de recursos graficos exclusivos de la interfaz.
         Preconditions: Pygame esta importado; no se requiere una ventana activa.
-        Postconditions: la instancia dispone de fuentes y no altera el dominio.
-        Complexity: O(1) temporal y espacial.
+        Postconditions: la instancia dispone de fuentes y atlas, y no altera el dominio.
+        Complexity: O(P) temporal y espacial por los pixeles de atlas cuando no se inyecta un proveedor existente.
         AI usage: Yes.
-        AI intervention: Codex diseño la inicializacion local de fuentes para E9.1.
+        AI intervention: Codex amplio la inicializacion de E9.1 con un proveedor de PNG inyectable y cacheado.
         Student validation: pendiente de revision del equipo; cubierta por pruebas automatizadas sin pantalla.
         """
         if not pygame.font.get_init():
@@ -55,6 +57,7 @@ class RenderizadorTablero:
         self._fuente = pygame.font.Font(None, 22)
         self._fuente_pequena = pygame.font.Font(None, 17)
         self._fuente_unidad = pygame.font.Font(None, 18)
+        self.recursos = recursos or RecursosGraficos()
 
     def calcular_disposicion(self, superficie: pygame.Surface, escenario: Escenario) -> DisposicionTablero:
         """Calcula una cuadricula centrada y un panel lateral segun las dimensiones disponibles.
@@ -96,13 +99,14 @@ class RenderizadorTablero:
         Postconditions: devuelve siempre el mismo color RGB para el mismo nombre y transitabilidad.
         Complexity: O(L) temporal y O(1) espacial, donde L es la longitud UTF-8 del nombre.
         AI usage: Yes.
-        AI intervention: Codex diseño la paleta determinista basada en SHA-256 para admitir tipos futuros.
+        AI intervention: Codex diseño la paleta determinista basada en SHA-256 y el tono neutro para obstaculos.
         Student validation: pendiente de revision del equipo; cubierta por pruebas de estabilidad y terreno externo.
         """
         resumen = sha256(nombre.encode("utf-8")).digest()
         if tipo.transitable:
             return (80 + resumen[0] % 116, 80 + resumen[1] % 116, 80 + resumen[2] % 116)
-        return (38 + resumen[0] % 35, 38 + resumen[1] % 35, 38 + resumen[2] % 35)
+        nivel = 42 + resumen[0] % 22
+        return (nivel + 5, nivel + 2, nivel)
 
     def renderizar(
         self,
@@ -120,8 +124,8 @@ class RenderizadorTablero:
         Complexity: O(F*C + U + T + L) temporal y O(F*C + L) espacial, con celdas, unidades, tipos de terreno y
         L posiciones del camino.
         AI usage: Yes.
-        AI intervention: Codex implemento la composicion por capas, simbolos y panel para E9.1; en E9.2 agrego el
-        camino proveniente de ``ResultadoBusqueda`` sin alterar su contenido.
+        AI intervention: Codex implemento E9.1/E9.2 y este rediseño agrego atlas, sprites, texturas y fallbacks sin
+        cambiar el camino proveniente de ``ResultadoBusqueda``.
         Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
         automatizadas del orden, fidelidad y superposicion de capas.
         """
@@ -151,7 +155,8 @@ class RenderizadorTablero:
         Postconditions: devuelve el rectangulo de cada posicion y no modifica el escenario.
         Complexity: O(F*C) temporal y espacial por el indice de rectangulos.
         AI usage: Yes.
-        AI intervention: Codex implemento el recorrido generico y la marca diagonal de obstaculos para E9.1.
+        AI intervention: Codex integro tiles variados, obstaculos fisicos y el respaldo generico sobre el recorrido
+        original de E9.1.
         Student validation: pendiente de revision del equipo; cubierta por pruebas de colores y transitabilidad.
         """
         celdas: dict[Posicion, pygame.Rect] = {}
@@ -168,16 +173,69 @@ class RenderizadorTablero:
                     lado,
                     lado,
                 )
-                pygame.draw.rect(superficie, self.color_para_terreno(nombre, tipo), rectangulo)
+                color_respaldo = self.color_para_terreno(nombre, tipo)
+                pygame.draw.rect(superficie, color_respaldo, rectangulo)
+                variante = self._variante_visual(nombre, posicion)
+                tile = self.recursos.terreno(nombre, lado, variante)
+                if tile is not None:
+                    superficie.blit(tile, rectangulo)
+                else:
+                    self._dibujar_textura_respaldo(superficie, rectangulo, nombre, tipo, variante)
                 if not tipo.transitable:
-                    pygame.draw.line(
-                        superficie, self.COLOR_OBSTACULO, rectangulo.topleft, rectangulo.bottomright, grosor
-                    )
-                    pygame.draw.line(
-                        superficie, self.COLOR_OBSTACULO, rectangulo.topright, rectangulo.bottomleft, grosor
-                    )
+                    obstaculo = self.recursos.objeto("obstaculo", max(1, lado - 2))
+                    if obstaculo is not None:
+                        superficie.blit(obstaculo, obstaculo.get_rect(center=rectangulo.center))
+                    else:
+                        pygame.draw.line(
+                            superficie, self.COLOR_OBSTACULO, rectangulo.topleft, rectangulo.bottomright, grosor
+                        )
+                        pygame.draw.line(
+                            superficie, self.COLOR_OBSTACULO, rectangulo.topright, rectangulo.bottomleft, grosor
+                        )
                 celdas[posicion] = rectangulo
         return celdas
+
+    @staticmethod
+    def _variante_visual(nombre: str, posicion: Posicion) -> int:
+        """Deriva una variante local estable sin tocar el generador aleatorio global.
+
+        Purpose: distribuir reflejos de textura de forma repetible entre celdas del mismo terreno.
+        Preconditions: nombre y posicion proceden del escenario validado.
+        Postconditions: retorna un entero entre 0 y 3 estable para la misma entrada.
+        Complexity: O(L) temporal y O(1) espacial por el nombre codificado.
+        AI usage: Yes.
+        AI intervention: Codex definio la variacion visual mediante SHA-256 y coordenadas.
+        Student validation: pendiente de revision del equipo; cubierta por pruebas de determinismo.
+        """
+        datos = f"{nombre}:{posicion.fila}:{posicion.columna}".encode("utf-8")
+        return sha256(datos).digest()[0] % 4
+
+    def _dibujar_textura_respaldo(
+        self,
+        superficie: pygame.Surface,
+        rectangulo: pygame.Rect,
+        nombre: str,
+        tipo: TipoTerreno,
+        variante: int,
+    ) -> None:
+        """Añade detalle determinista a terrenos externos o a atlas ausentes.
+
+        Purpose: conservar identidad, transitabilidad y legibilidad cuando no existe un sprite especifico.
+        Preconditions: el rectangulo ya tiene el color estable del terreno.
+        Postconditions: la celda recibe marcas visibles sin alterar el escenario ni atribuirle otra semantica.
+        Complexity: O(1) temporal y espacial.
+        AI usage: Yes.
+        AI intervention: Codex diseño el patron de respaldo determinista y neutral.
+        Student validation: pendiente de revision del equipo; cubierta por pruebas de terreno externo y archivo ausente.
+        """
+        color = self.color_para_terreno(nombre, tipo)
+        detalle = tuple(max(0, componente - 28) for componente in color)
+        radio = max(1, rectangulo.width // 14)
+        desplazamientos = ((1, 1), (3, 2), (2, 4))
+        for x_factor, y_factor in desplazamientos:
+            x = rectangulo.left + (rectangulo.width * (x_factor + variante) // 6) % max(1, rectangulo.width)
+            y = rectangulo.top + (rectangulo.height * (y_factor + variante) // 6) % max(1, rectangulo.height)
+            pygame.draw.circle(superficie, detalle, (x, y), radio)
 
     def _dibujar_camino(
         self,
@@ -226,36 +284,37 @@ class RenderizadorTablero:
         Postconditions: cada base queda identificada mediante borde y etiqueta; no altera datos del dominio.
         Complexity: O(B) temporal y O(1) espacial, donde B es la cantidad de bases.
         AI usage: Yes.
-        AI intervention: Codex diseño la capa de bordes persistentes y etiquetas para E9.1.
+        AI intervention: Codex incorporo fortalezas por bando sin retirar el borde persistente de E9.1.
         Student validation: pendiente de revision del equipo; cubierta por pruebas de bases y superposicion.
         """
         for bando, posicion in escenario.bases.items():
             rectangulo = celdas[posicion]
             color = self.COLOR_BASES.get(bando, self.COLOR_TEXTO)
-            pygame.draw.rect(superficie, color, rectangulo.inflate(-2, -2), max(2, lado // 8))
-            self._dibujar_texto(superficie, f"B{bando}", color, rectangulo.topleft, self._fuente_pequena)
+            sprite = self.recursos.objeto(f"base_{bando.casefold()}", max(1, lado - 2))
+            if sprite is not None:
+                superficie.blit(sprite, sprite.get_rect(center=rectangulo.center))
+            pygame.draw.rect(superficie, color, rectangulo.inflate(-2, -2), max(2, lado // 10))
+            if lado >= 24:
+                self._dibujar_texto(superficie, f"B{bando}", color, rectangulo.topleft, self._fuente_pequena)
 
     def _dibujar_recurso(self, superficie: pygame.Surface, rectangulo: pygame.Rect, lado: int) -> None:
-        """Dibuja un recurso libre como rombo central identificado.
+        """Dibuja el cristal PNG del recurso libre con un contorno circular dorado.
 
         Purpose: mostrar el recurso solo cuando el estado declara que no tiene portador.
         Preconditions: ``rectangulo`` representa la posicion vigente del recurso libre.
-        Postconditions: queda un simbolo dorado visible sin modificar el estado.
+        Postconditions: si el sprite esta disponible queda centrado y, en todos los casos, se dibuja su contorno
+        circular dorado sin modificar el estado.
         Complexity: O(1) temporal y espacial.
         AI usage: Yes.
-        AI intervention: Codex definio el simbolo de recurso libre para E9.1.
+        AI intervention: Codex sustituyo el simbolo abstracto de E9.1 por un cristal PNG con contorno de contraste.
         Student validation: pendiente de revision del equipo; cubierta por pruebas de recurso libre y transportado.
         """
+        sprite = self.recursos.objeto("recurso", max(1, int(lado * 0.78)))
+        if sprite is not None:
+            superficie.blit(sprite, sprite.get_rect(center=rectangulo.center))
         centro = rectangulo.center
         radio = max(3, lado // 4)
-        puntos = [
-            (centro[0], centro[1] - radio),
-            (centro[0] + radio, centro[1]),
-            (centro[0], centro[1] + radio),
-            (centro[0] - radio, centro[1]),
-        ]
-        pygame.draw.polygon(superficie, self.COLOR_RECURSO, puntos)
-        self._dibujar_texto_centrado(superficie, "R", self.COLOR_OBSTACULO, rectangulo, self._fuente_pequena)
+        pygame.draw.circle(superficie, self.COLOR_RECURSO, centro, radio, max(1, lado // 14))
 
     def _dibujar_unidades(
         self,
@@ -271,22 +330,31 @@ class RenderizadorTablero:
         Postconditions: todas las unidades quedan visibles y solo el portador recibe la insignia dorada.
         Complexity: O(U) temporal y O(1) espacial adicional.
         AI usage: Yes.
-        AI intervention: Codex implemento circulos por bando, etiquetas e insignia de portador para E9.1.
+        AI intervention: Codex incorporo sprites por bando, etiquetas con fondo e insignia de cristal para el
+        portador sobre la semantica de E9.1.
         Student validation: pendiente de revision del equipo; cubierta por pruebas de bandos, cambios y portador.
         """
         for unidad in estado.unidades:
             rectangulo = celdas[unidad.posicion]
             color = self.COLOR_BASES.get(unidad.bando, self.COLOR_TEXTO)
+            sprite = self.recursos.objeto(f"unidad_{unidad.bando.casefold()}", max(1, int(lado * 0.82)))
+            if sprite is not None:
+                superficie.blit(sprite, sprite.get_rect(center=rectangulo.center))
             radio = max(3, lado // 3)
-            pygame.draw.circle(superficie, color, rectangulo.center, radio)
-            pygame.draw.circle(superficie, self.COLOR_TEXTO, rectangulo.center, radio, max(1, lado // 18))
+            pygame.draw.circle(superficie, color, rectangulo.center, radio, max(1, lado // 14))
             etiqueta = unidad.identificador if lado >= 22 else unidad.bando
-            self._dibujar_texto_centrado(superficie, etiqueta, self.COLOR_TEXTO, rectangulo, self._fuente_unidad)
+            etiqueta_imagen = self._fuente_unidad.render(etiqueta, True, self.COLOR_TEXTO)
+            fondo_etiqueta = etiqueta_imagen.get_rect(midbottom=(rectangulo.centerx, rectangulo.bottom - 2)).inflate(4, 1)
+            pygame.draw.rect(superficie, self.COLOR_OBSTACULO, fondo_etiqueta, border_radius=2)
+            superficie.blit(etiqueta_imagen, etiqueta_imagen.get_rect(center=fondo_etiqueta.center))
             if unidad.identificador == estado.portador_recurso:
-                radio_insignia = max(3, lado // 7)
+                radio_insignia = max(4, lado // 7)
                 centro_insignia = (rectangulo.right - radio_insignia - 2, rectangulo.top + radio_insignia + 2)
-                pygame.draw.circle(superficie, self.COLOR_RECURSO, centro_insignia, radio_insignia)
-                pygame.draw.circle(superficie, self.COLOR_OBSTACULO, centro_insignia, radio_insignia, 1)
+                pygame.draw.circle(superficie, self.COLOR_RECURSO, centro_insignia, radio_insignia + 1)
+                insignia = self.recursos.objeto("recurso", radio_insignia * 2)
+                if insignia is not None:
+                    superficie.blit(insignia, insignia.get_rect(center=centro_insignia))
+                pygame.draw.circle(superficie, self.COLOR_OBSTACULO, centro_insignia, radio_insignia + 1, 1)
 
     def _dibujar_cuadricula(
         self,
@@ -338,14 +406,15 @@ class RenderizadorTablero:
         resultado tambien se muestran algoritmo, exito y la leyenda del camino, siempre que haya espacio.
         Complexity: O(T) temporal y O(1) espacial adicional, donde T es la cantidad de terrenos.
         AI usage: Yes.
-        AI intervention: Codex implemento el panel de E9.1 y agrego en E9.2 el estado minimo de la busqueda y la
-        leyenda coherente con sus marcadores.
+        AI intervention: Codex conservo los datos de E9.1/E9.2 y actualizo jerarquia, muestras de tiles, textos y
+        aviso de fallback del panel.
         Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas de
         turno, resultado y leyenda.
         """
         if panel.width <= 0 or panel.height <= 0:
             return
-        pygame.draw.rect(superficie, self.COLOR_PANEL, panel, border_radius=6)
+        pygame.draw.rect(superficie, self.COLOR_PANEL, panel, border_radius=8)
+        pygame.draw.rect(superficie, self.COLOR_PANEL_BORDE, panel, 1, border_radius=8)
         x = panel.x + 12
         y = panel.y + 12
         color_turno = self.COLOR_BASES.get(estado.turno_actual, self.COLOR_TEXTO)
@@ -359,6 +428,7 @@ class RenderizadorTablero:
             )
             + 12
         )
+        pygame.draw.line(superficie, self.COLOR_PANEL_BORDE, (x, y - 5), (panel.right - 12, y - 5))
         if resultado_busqueda is not None:
             estado_busqueda = "exito" if resultado_busqueda.exito else "sin solucion"
             y = self._dibujar_texto(
@@ -397,6 +467,9 @@ class RenderizadorTablero:
                 break
             muestra = pygame.Rect(x, y + 2, 14, 14)
             pygame.draw.rect(superficie, self.color_para_terreno(nombre, tipo), muestra)
+            tile = self.recursos.terreno(nombre, muestra.width, 0)
+            if tile is not None:
+                superficie.blit(tile, muestra)
             if not tipo.transitable:
                 pygame.draw.line(superficie, self.COLOR_OBSTACULO, muestra.topleft, muestra.bottomright, 2)
             sufijo = " (obstaculo)" if not tipo.transitable else ""
@@ -410,10 +483,18 @@ class RenderizadorTablero:
                 )
                 + 3
             )
-        for texto in ("BA / BB: bases", "R: recurso libre", "Punto dorado: portador", "A azul / B rojo: unidades"):
+        for texto in ("Fortalezas: bases A / B", "Cristal: recurso libre", "Insignia dorada: portador", "Azul / rojo: unidades"):
             if y + 18 > panel.bottom:
                 break
             y = self._dibujar_texto(superficie, texto, self.COLOR_TEXTO, (x, y), self._fuente_pequena) + 2
+        if self.recursos.errores and y + 18 <= panel.bottom:
+            self._dibujar_texto(
+                superficie,
+                "Recursos: fallback activo",
+                self.COLOR_DESTINO,
+                (x, y + 4),
+                self._fuente_pequena,
+            )
 
     @staticmethod
     def _dibujar_texto(
