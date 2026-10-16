@@ -1,13 +1,22 @@
-"""Busqueda A* con heuristica Manhattan sobre problemas de navegacion."""
+"""Busqueda A* con Manhattan predeterminada y una heuristica preparada opcional."""
 
 import heapq
 from itertools import count
+from typing import Protocol
 
 from tacticalgrid.juego.estado import EstadoJuego
 from tacticalgrid.juego.problema import ProblemaNavegacion
 
 from .instrumentacion import MedidorBusqueda, Nodo, es_valor_finito, expandir
 from .resultado_busqueda import ResultadoBusqueda
+
+
+class HeuristicaPreparada(Protocol):
+    """Contrato minimo de una heuristica ligada a un problema de navegacion."""
+
+    problema: ProblemaNavegacion
+
+    def evaluar(self, estado: EstadoJuego) -> int | float: ...
 
 
 def heuristica_manhattan(problema: ProblemaNavegacion, estado: EstadoJuego) -> int | float:
@@ -38,19 +47,33 @@ def heuristica_manhattan(problema: ProblemaNavegacion, estado: EstadoJuego) -> i
     return estimacion
 
 
-def _calcular_prioridad(problema: ProblemaNavegacion, nodo: Nodo) -> int | float:
+def _calcular_prioridad(
+    problema: ProblemaNavegacion,
+    nodo: Nodo,
+    heuristica_preparada: HeuristicaPreparada | None = None,
+) -> int | float:
     """Calcula ``f(n) = g(n) + h(n)`` y rechaza resultados no finitos.
 
-    Purpose: impedir que A* introduzca prioridades infinitas o NaN en ``heapq``.
-    Preconditions: ``nodo.costo_acumulado`` es finito y el nodo pertenece al espacio de ``problema``.
+    Purpose: seleccionar Manhattan o la estrategia preparada explicita e impedir que A* introduzca prioridades
+    infinitas o NaN en ``heapq``.
+    Preconditions: ``nodo.costo_acumulado`` es finito, el nodo pertenece al espacio de ``problema`` y, si se
+    proporciona, ``heuristica_preparada`` esta ligada por identidad al mismo problema.
     Postconditions: devuelve la prioridad finita del nodo o lanza ``ValueError`` si la suma excede el rango
-    numerico soportado; no modifica el nodo ni el problema.
-    Complexity: O(U) temporal por la heuristica y O(1) espacial.
+    numerico soportado o la estimacion no es finita; no modifica el nodo ni el problema. La estrategia puede
+    extender su preparacion diferida al evaluar.
+    Complexity: O(C_h) temporal y O(S_h) espacial incremental, donde C_h y S_h corresponden a una evaluacion de
+    la heuristica elegida; la suma y las validaciones son O(1).
     AI usage: Yes.
-    AI intervention: Codex implemento esta guarda durante el cierre del riesgo numerico de E6.1.
-    Student validation: pendiente de revision humana del cambio de E6.1.
+    AI intervention: Codex implemento en E6.1 la guarda numerica y en E6.2 incorporo la seleccion entre Manhattan
+    y una estrategia preparada sin modificar la formula f(n).
+    Student validation: pendiente de revision humana del equipo.
     """
-    estimacion = heuristica_manhattan(problema, nodo.estado)
+    if heuristica_preparada is None:
+        estimacion = heuristica_manhattan(problema, nodo.estado)
+    else:
+        estimacion = heuristica_preparada.evaluar(nodo.estado)
+    if not es_valor_finito(estimacion):
+        raise ValueError("La heuristica seleccionada produjo una estimacion no finita.")
     try:
         prioridad = nodo.costo_acumulado + estimacion
     except OverflowError as error:
@@ -60,28 +83,42 @@ def _calcular_prioridad(problema: ProblemaNavegacion, nodo: Nodo) -> int | float
     return prioridad
 
 
-def busqueda_a_estrella(problema: ProblemaNavegacion) -> ResultadoBusqueda:
+def busqueda_a_estrella(
+    problema: ProblemaNavegacion,
+    *,
+    heuristica_preparada: HeuristicaPreparada | None = None,
+) -> ResultadoBusqueda:
     """Encuentra una solucion de costo minimo priorizando ``g(n) + h(n)``.
 
-    Purpose: ejecutar A* sobre la navegacion con Manhattan escalada y reportar las metricas comunes de E4.1.
+    Purpose: ejecutar A* con Manhattan por defecto o una heuristica preparada explicita y reportar las metricas
+    comunes de E4.1 sin duplicar la exploracion.
     Preconditions: ``problema`` cumple las precondiciones de :func:`heuristica_manhattan`; sus estados son
-    hashables y sus costos de transicion son positivos.
-    Postconditions: devuelve una solucion de costo acumulado minimo o fracaso si la frontera se agota; lanza
-    ``ValueError`` antes de insertar una prioridad o propagar un costo no finito. Conserva estados y problema sin
-    modificaciones. Las mejoras estrictas de g se reinsertan y las entradas obsoletas se descartan por su g. La
-    finitud evita desbordamientos, pero no elimina el redondeo propio de operaciones representables con ``float``.
-    Complexity: O(E * (U log U + U) + (V + E) log E + d * U) temporal y O((V + E) * U + d) espacial en el peor
-    caso, donde V son estados alcanzables, E transiciones examinadas, U unidades por estado y d la profundidad de
-    la solucion. Incluye transiciones, hashing, evaluaciones heuristicas, cola con reinserciones y reconstruccion.
+    hashables y sus costos de transicion son positivos. La estrategia opcional fue construida externamente para
+    esta misma instancia de ``problema``; su costo de preparacion corresponde al llamador.
+    Postconditions: devuelve una solucion de costo acumulado minimo cuando la heuristica elegida conserva las
+    condiciones de optimalidad de A*, o fracaso si la frontera se agota; lanza ``ValueError`` antes de crear la
+    frontera si la estrategia pertenece a otro problema, o antes de insertar una prioridad no finita. Conserva
+    estados y problema sin modificaciones. Las mejoras estrictas de g se reinsertan y las entradas obsoletas se
+    descartan por su g. Las evaluaciones y extensiones diferidas de la estrategia ocurren durante la busqueda. La
+    finitud no elimina el redondeo propio de ``float``.
+    Complexity: O(E * (T_s + C_h) + (V + E) log E + d * U) temporal y O((V + E) * U + d + S_h) espacial en el
+    peor caso, donde V son estados, E transiciones, T_s el costo de generar una transicion, C_h y S_h los costos de
+    evaluar la heuristica elegida, U las unidades y d la profundidad. No incluye construir la estrategia externa.
     AI usage: Yes.
     AI intervention: Codex implemento A*, la prioridad f, la gestion de mejoras y obsoletos, su instrumentacion y
-    las guardas de finitud de h y f para E6.1 a partir del patron validado de UCS.
+    las guardas de finitud para E6.1; en E6.2 agrego la inyeccion opcional y la validacion de identidad.
     Student validation: pendiente de revision humana del equipo.
     """
+    if heuristica_preparada is not None and heuristica_preparada.problema is not problema:
+        raise ValueError(
+            "La heuristica preparada pertenece a otro ProblemaNavegacion; "
+            "construya una estrategia para la misma instancia recibida por A*."
+        )
+
     medidor = MedidorBusqueda("A_ESTRELLA")
     raiz = Nodo(problema.estado_inicial)
     desempate = count()
-    prioridad_raiz = _calcular_prioridad(problema, raiz)
+    prioridad_raiz = _calcular_prioridad(problema, raiz, heuristica_preparada)
     frontera: list[tuple[int | float, int, Nodo]] = [(prioridad_raiz, next(desempate), raiz)]
     mejores_costos: dict[EstadoJuego, int | float] = {raiz.estado: raiz.costo_acumulado}
     medidor.registrar_generado()
@@ -100,7 +137,7 @@ def busqueda_a_estrella(problema: ProblemaNavegacion) -> ResultadoBusqueda:
             if mejor_anterior is not None and hijo.costo_acumulado >= mejor_anterior:
                 continue
             mejores_costos[hijo.estado] = hijo.costo_acumulado
-            prioridad = _calcular_prioridad(problema, hijo)
+            prioridad = _calcular_prioridad(problema, hijo, heuristica_preparada)
             heapq.heappush(frontera, (prioridad, next(desempate), hijo))
             medidor.registrar_generado()
             medidor.observar_frontera(len(frontera))
