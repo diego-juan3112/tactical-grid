@@ -2,11 +2,14 @@
 
 from tacticalgrid.juego.problema import Problema
 
-from .instrumentacion import MedidorBusqueda, Nodo, expandir
+from .instrumentacion import MedidorBusqueda, Nodo, ObservadorExpansiones, expandir
 from .resultado_busqueda import ResultadoBusqueda
 
 
-def busqueda_profundidad(problema: Problema) -> ResultadoBusqueda:
+def busqueda_profundidad(
+    problema: Problema,
+    observador_expansiones: ObservadorExpansiones | None = None,
+) -> ResultadoBusqueda:
     """Encuentra una solucion explorando primero la rama mas profunda mediante una frontera LIFO (pila).
 
     Proposito: explorar el espacio de estados en profundidad, sin priorizar por cantidad de movimientos ni por
@@ -18,20 +21,21 @@ def busqueda_profundidad(problema: Problema) -> ResultadoBusqueda:
     ni la mas barata, o un resultado de fracaso cuando la pila se agota; termina siempre en espacios finitos
     porque cada ``EstadoJuego`` se incorpora a la frontera a lo sumo una vez. Explora primero el primer
     movimiento del orden de ``problema.acciones`` (los hijos se apilan en orden inverso), por lo que el
-    resultado es determinista. No modifica los estados recibidos.
+    resultado es determinista. No modifica los estados recibidos; el observador opcional recibe solo expansiones
+    reales y no altera el resultado.
     Complejidad: O(V + E) temporal y O(V) espacial para busqueda en grafo, donde V son los estados alcanzables
     y E las transiciones. En el modelo clasico de arbol, con profundidad maxima m y ramificacion b, el tiempo
     es O(b^m) y la memoria de la pila O(b * m); esa cota no aplica aqui, porque al marcar estados al apilarlos
     la pila conserva hermanos pendientes y puede superar la frontera de BFS. Usa una pila explicita, sin
-    recursion, para no depender del limite de recursion de Python en mapas grandes.
+    recursion, para no depender del limite de recursion de Python en mapas grandes; la traza agrega O(X_t) memoria.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) propuso la implementacion, sus pruebas y esta documentacion en E4.3,
-    siguiendo la estructura de BFS de E4.2.
+    siguiendo la estructura de BFS de E4.2; Codex agrego el observador opcional E9.3.
     Validacion del estudiante: Revisión aprobada gracias a las validaciones en
     tests/algoritmos/test_busqueda_profundidad.py, que incluye un caso calculado a mano en un mapa abierto
     de 3x3 (camino, contadores y maximo de frontera).
     """
-    medidor = MedidorBusqueda("DFS")
+    medidor = MedidorBusqueda("DFS", observador_expansiones=observador_expansiones)
     raiz = Nodo(problema.estado_inicial)
     pila = [raiz]
     descubiertos = {raiz.estado}

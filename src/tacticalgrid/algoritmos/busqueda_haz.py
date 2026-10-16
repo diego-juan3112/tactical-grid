@@ -26,7 +26,7 @@ from tacticalgrid.juego.estado import EstadoJuego
 from tacticalgrid.juego.problema import ProblemaNavegacion
 
 from .busqueda_a_estrella import heuristica_manhattan
-from .instrumentacion import MedidorBusqueda, Nodo, es_valor_finito, expandir
+from .instrumentacion import MedidorBusqueda, Nodo, ObservadorExpansiones, es_valor_finito, expandir
 from .resultado_busqueda import ResultadoBusqueda
 
 Heuristica = Callable[[ProblemaNavegacion, EstadoJuego], int | float]
@@ -120,6 +120,7 @@ def busqueda_haz(
     k: int,
     heuristica: Heuristica = heuristica_manhattan,
     observador: Callable[["NivelHaz"], None] | None = None,
+    observador_expansiones: ObservadorExpansiones | None = None,
 ) -> ResultadoBusqueda:
     """Busca una solucion conservando en cada nivel solo los ``k`` candidatos de menor ``g + h``.
 
@@ -134,22 +135,23 @@ def busqueda_haz(
     ``k``. No garantiza costo minimo ni encontrar solucion cuando existe; si ``k`` supera el tamano de todos los
     niveles, la solucion tiene el minimo numero de movimientos, como BFS. No modifica el problema. Si se pasa
     ``observador``, se le entrega un :class:`NivelHaz` por el haz inicial y por cada nivel formado, en orden, sin
-    alterar el resultado ni las metricas.
+    alterar el resultado ni las metricas. ``observador_expansiones`` recibe cada nodo del haz cuyos sucesores se
+    analizan y es independiente del observador de niveles.
     Complexity: con profundidad de exploracion d, factor de ramificacion b y U unidades por estado, cada nivel
     expande a lo sumo k nodos y evalua a lo sumo k * b candidatos: O(d * k * b * (T + U + log(k * b))) temporal,
     donde T es el costo de una transicion, y O(k * b + V_h + d) espacial, donde V_h son los estados que entraron
-    en algun haz (conjunto de visitados) y d la longitud del camino reconstruido.
+    en algun haz (conjunto de visitados) y d la longitud del camino; la traza agrega O(X_t) para sus eventos.
     AI usage: Yes.
     AI intervention: Claude (Opus 5.5) propuso el diseno por niveles, el criterio f = g + h, la convencion de
     metricas para el haz, la implementacion y esta documentacion en E7.1, y agrego en E7.2 el ``observador``
-    opcional que permite analizar que candidatos conserva y descarta cada nivel.
+    opcional que permite analizar niveles; Codex agrego el observador comun de expansiones para E9.3.
     Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_busqueda_haz.py ejecutan k = 1, 2, 4 y 8 sobre los escenarios del repositorio y
     verifican la legalidad y el costo de cada solucion, el limite del haz, el caso sin solucion y la coincidencia
     con la longitud de BFS cuando k es suficientemente grande.
     """
     k = validar_ancho_haz(k)
-    medidor = MedidorBusqueda(f"BEAM_SEARCH_K{k}")
+    medidor = MedidorBusqueda(f"BEAM_SEARCH_K{k}", observador_expansiones=observador_expansiones)
     raiz = Nodo(problema.estado_inicial)
     haz = [(_evaluar(problema, raiz, heuristica), raiz)]
     en_algun_haz = {raiz.estado}

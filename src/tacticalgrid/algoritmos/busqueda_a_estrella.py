@@ -7,7 +7,7 @@ from typing import Protocol
 from tacticalgrid.juego.estado import EstadoJuego
 from tacticalgrid.juego.problema import ProblemaNavegacion
 
-from .instrumentacion import MedidorBusqueda, Nodo, es_valor_finito, expandir
+from .instrumentacion import MedidorBusqueda, Nodo, ObservadorExpansiones, es_valor_finito, expandir
 from .resultado_busqueda import ResultadoBusqueda
 
 
@@ -87,6 +87,7 @@ def busqueda_a_estrella(
     problema: ProblemaNavegacion,
     *,
     heuristica_preparada: HeuristicaPreparada | None = None,
+    observador_expansiones: ObservadorExpansiones | None = None,
 ) -> ResultadoBusqueda:
     """Encuentra una solucion de costo minimo priorizando ``g(n) + h(n)``.
 
@@ -100,13 +101,14 @@ def busqueda_a_estrella(
     frontera si la estrategia pertenece a otro problema, o antes de insertar una prioridad no finita. Conserva
     estados y problema sin modificaciones. Las mejoras estrictas de g se reinsertan y las entradas obsoletas se
     descartan por su g. Las evaluaciones y extensiones diferidas de la estrategia ocurren durante la busqueda. La
-    finitud no elimina el redondeo propio de ``float``.
+    finitud no elimina el redondeo propio de ``float``. El observador opcional recibe las expansiones vigentes y
+    no altera prioridades, reinserciones ni desempates.
     Complexity: O(E * (T_s + C_h) + (V + E) log E + d * U) temporal y O((V + E) * U + d + S_h) espacial en el
-    peor caso, donde V son estados, E transiciones, T_s el costo de generar una transicion, C_h y S_h los costos de
-    evaluar la heuristica elegida, U las unidades y d la profundidad. No incluye construir la estrategia externa.
+    peor caso mas O(X_t) espacial para la traza, donde V son estados, E transiciones, T_s el costo de generar una
+    transicion, C_h y S_h los costos de la heuristica, U las unidades y d la profundidad. No incluye construirla.
     AI usage: Yes.
     AI intervention: Codex implemento A*, la prioridad f, la gestion de mejoras y obsoletos, su instrumentacion y
-    las guardas de finitud para E6.1; en E6.2 agrego la inyeccion opcional y la validacion de identidad.
+    las guardas de finitud para E6.1; en E6.2 agrego la heuristica inyectable y en E9.3 el observador opcional.
     Student validation: pendiente de revision humana del equipo.
     """
     if heuristica_preparada is not None and heuristica_preparada.problema is not problema:
@@ -115,7 +117,7 @@ def busqueda_a_estrella(
             "construya una estrategia para la misma instancia recibida por A*."
         )
 
-    medidor = MedidorBusqueda("A_ESTRELLA")
+    medidor = MedidorBusqueda("A_ESTRELLA", observador_expansiones=observador_expansiones)
     raiz = Nodo(problema.estado_inicial)
     desempate = count()
     prioridad_raiz = _calcular_prioridad(problema, raiz, heuristica_preparada)

@@ -2,27 +2,18 @@
 
 import argparse
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 
-from tacticalgrid.algoritmos import (
-    ResultadoBusqueda,
-    ancho_haz_desde_prueba,
-    busqueda_a_estrella,
-    busqueda_anchura,
-    busqueda_costo_uniforme,
-    busqueda_haz,
-    busqueda_profundidad,
-    validar_ancho_haz,
-)
-from tacticalgrid.escenario import ErrorValidacionEscenario, Posicion, cargar_escenario
-from tacticalgrid.escenario.escenario import Escenario
-from tacticalgrid.juego import EstadoJuego, ProblemaNavegacion, crear_estado_inicial
+from tacticalgrid.escenario import ErrorValidacionEscenario, Posicion
 
-from .renderizador import RenderizadorTablero
+from .busquedas import ALGORITMOS, preparar_busqueda
+from .control import ControlGrafico
+from .renderizador import EstadoPanelControl, RectangulosControles, RenderizadorTablero
 
 
-ALGORITMOS = ("bfs", "dfs", "ucs", "astar", "beam")
+RAIZ_PROYECTO = Path(__file__).resolve().parents[3]
+RUTA_ESCENARIO_PREDETERMINADO = RAIZ_PROYECTO / "escenarios" / "campo_20x20.json"
 
 
 def ejecutar_aplicacion(
@@ -35,15 +26,15 @@ def ejecutar_aplicacion(
 ) -> int:
     """Carga un escenario, ejecuta una busqueda opcional y mantiene visible el tablero.
 
-    Purpose: integrar carga validada, busqueda estructurada y renderizado sin incorporar mecanicas interactivas.
+    Purpose: integrar carga validada, busqueda estructurada y renderizado, incluida la capa E9.3 bajo demanda.
     Preconditions: Pygame esta instalado, existe un entorno grafico y la ruta identifica un escenario valido.
-    Postconditions: la busqueda solicitada se ejecuta una sola vez; cada fotograma refleja el estado inicial y el
-    mismo resultado inmutable, y Pygame se libera al cerrar. Sin algoritmo conserva el comportamiento de E9.1.
-    Complexity: costo de la busqueda seleccionada mas O(E*(F*C + U + T + L)) temporal durante el ciclo y
-    O(F*C + T + L) espacial de renderizado, donde L es la longitud del camino y E la cantidad de fotogramas.
+    Postconditions: carga una sesion editable; Enter y el boton Ejecutar comparten una sola accion de busqueda;
+    cambiar de escenario es atomico; E o su boton solo alternan visibilidad, y Pygame se libera al cerrar.
+    Complexity: costo de la busqueda mas O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
+    O(F*C + T + L + P) espacial, donde P son posiciones expandidas almacenadas y E los fotogramas.
     AI usage: Yes.
-    AI intervention: Codex integro E9.2 mediante argumentos de consola, ejecucion unica y entrega del resultado
-    comun al renderizador, sin modificar algoritmos ni estado de juego.
+    AI intervention: Codex integro E9.2/E9.3 y agrego controles directos para escenario, algoritmo, unidad,
+    objetivo y Beam sin recalcular por fotograma ni modificar el estado de juego.
     Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
     automatizadas de aplicacion y renderizador.
     """
@@ -58,9 +49,19 @@ def ejecutar_aplicacion(
         k = argumentos.k
 
     try:
-        escenario = cargar_escenario(ruta_escenario)
-        estado = crear_estado_inicial(escenario)
-        resultado = preparar_busqueda(escenario, estado, algoritmo, unidad, objetivo, k)
+        control = ControlGrafico.crear(ruta_escenario, _rutas_escenarios(ruta_escenario))
+        resultado = preparar_busqueda(control.escenario, control.estado, algoritmo, unidad, objetivo, k)
+        control.resultado = resultado
+        if algoritmo is not None:
+            control.algoritmo = algoritmo
+            if unidad is not None:
+                control.unidad = unidad
+            if objetivo is not None:
+                control.objetivo = Posicion(*objetivo)
+            if k is not None:
+                control.k = k
+            control.mensaje = "Busqueda inicial finalizada."
+            control.estado_busqueda = "completada" if resultado.exito else "sin solucion"
     except (ErrorValidacionEscenario, OSError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
@@ -68,95 +69,102 @@ def ejecutar_aplicacion(
     pygame.init()
     try:
         pygame.display.set_caption("TacticalGrid")
-        ancho = max(800, min(1400, escenario.columnas * 32 + RenderizadorTablero.ANCHO_PANEL + 48))
-        alto = max(600, min(1000, escenario.filas * 32 + 32))
+        ancho = max(800, min(1400, control.escenario.columnas * 32 + RenderizadorTablero.ANCHO_PANEL + 48))
+        alto = max(600, min(1000, control.escenario.filas * 32 + 32))
         ventana = pygame.display.set_mode((ancho, alto), pygame.RESIZABLE)
         renderizador = RenderizadorTablero()
+        disposicion = renderizador.calcular_disposicion(ventana, control.escenario)
+        rectangulos = renderizador.calcular_rectangulos_controles(disposicion.panel)
         en_ejecucion = True
         while en_ejecucion:
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     en_ejecucion = False
-            renderizador.renderizar(ventana, escenario, estado, resultado)
+                elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_e:
+                    control.alternar_exploracion()
+                elif evento.type == pygame.KEYDOWN and evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                    control.ejecutar()
+                elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                    _procesar_clic(control, evento.pos, disposicion, rectangulos)
+            panel = EstadoPanelControl.desde_control(control)
+            disposicion = renderizador.renderizar(
+                ventana,
+                control.escenario,
+                control.estado,
+                control.resultado,
+                exploracion_visible=control.exploracion_visible,
+                control=panel,
+            )
+            rectangulos = renderizador.calcular_rectangulos_controles(disposicion.panel)
             pygame.display.flip()
     finally:
         pygame.quit()
     return 0
 
 
-def preparar_busqueda(
-    escenario: Escenario,
-    estado: EstadoJuego,
-    algoritmo: str | None,
-    unidad: str | None = None,
-    objetivo: tuple[int, int] | None = None,
-    k: int | None = None,
-) -> ResultadoBusqueda | None:
-    """Resuelve parametros y ejecuta una unica busqueda para la interfaz.
+def ejecutar_desde_argumentos(argumentos: Sequence[str] | None = None) -> int:
+    """Interpreta exclusivamente argumentos graficos y delega la aplicacion.
 
-    Purpose: conectar la seleccion de consola con las APIs estructuradas de navegacion y busqueda.
-    Preconditions: ``escenario`` esta validado, ``estado`` le pertenece y ``algoritmo`` es uno de los nombres
-    admitidos o ``None``. Los argumentos CLI ya tienen los tipos declarados por ``argparse``.
-    Postconditions: sin algoritmo devuelve ``None`` y no ejecuta busquedas; con algoritmo devuelve exactamente su
-    ``ResultadoBusqueda``. CLI tiene prioridad sobre ``prueba`` y el estado recibido no se modifica.
-    Complexity: costo de construir ``ProblemaNavegacion`` mas el del algoritmo seleccionado; O(1) adicional para
-    resolver parametros, sin contar los datos ya cargados en el escenario.
+    Purpose: mantener separado el parser grafico del parser historico de consola.
+    Preconditions: ``argumentos`` no incluye ``--gui`` ni el nombre del programa.
+    Postconditions: ejecuta la GUI con las opciones interpretadas y devuelve su codigo de salida.
+    Complexity: O(A) temporal y espacial para A argumentos, mas el costo de la aplicacion delegada.
     AI usage: Yes.
-    AI intervention: Codex implemento la resolucion comun de unidad, objetivo y k y el despacho de los cinco
-    algoritmos para E9.2.
-    Student validation: pendiente de revision del equipo; cubierta por pruebas automatizadas de precedencia,
-    validacion y resultados reales de los cinco algoritmos.
+    AI intervention: Codex extrajo este adaptador durante la refactorizacion final de ``main.py``.
+    Student validation: pendiente de revision humana; cubierta por pruebas del despachador y parser grafico.
     """
-    if algoritmo is None:
-        if unidad is not None or objetivo is not None or k is not None:
-            raise ValueError("--unidad, --objetivo y --k requieren indicar --algoritmo.")
-        return None
-    if algoritmo not in ALGORITMOS:
-        raise ValueError(f"Algoritmo no admitido: {algoritmo!r}.")
-    if algoritmo != "beam" and k is not None:
-        raise ValueError("--k solo puede usarse con --algoritmo beam.")
-
-    configuracion = escenario.configuracion_prueba
-    if not isinstance(configuracion, Mapping) or configuracion.get("modo") != "busqueda":
-        configuracion = {}
-
-    identificador = unidad if unidad is not None else configuracion.get("unidad_inicio")
-    if not isinstance(identificador, str) or not identificador:
-        raise ValueError("Debe indicar --unidad o definir 'prueba.unidad_inicio' en el JSON.")
-
-    posicion_objetivo = _resolver_objetivo(objetivo, configuracion)
-    problema = ProblemaNavegacion(escenario, identificador, posicion_objetivo, estado)
-
-    if algoritmo == "beam":
-        ancho = validar_ancho_haz(k) if k is not None else ancho_haz_desde_prueba(configuracion)
-        if ancho is None:
-            raise ValueError("Beam Search necesita --k o el campo 'prueba.k' en el JSON.")
-        return busqueda_haz(problema, ancho)
-
-    funciones = {
-        "bfs": busqueda_anchura,
-        "dfs": busqueda_profundidad,
-        "ucs": busqueda_costo_uniforme,
-        "astar": busqueda_a_estrella,
-    }
-    return funciones[algoritmo](problema)
+    opciones = _leer_argumentos(argumentos)
+    return ejecutar_aplicacion(
+        opciones.escenario,
+        algoritmo=opciones.algoritmo,
+        unidad=opciones.unidad,
+        objetivo=tuple(opciones.objetivo) if opciones.objetivo is not None else None,
+        k=opciones.k,
+    )
 
 
-def _resolver_objetivo(
-    objetivo: tuple[int, int] | None,
-    configuracion: Mapping[str, object],
-) -> Posicion:
-    """Convierte el objetivo de CLI o JSON al tipo de posicion del dominio."""
-    if objetivo is not None:
-        return Posicion(*objetivo)
-    datos = configuracion.get("objetivo")
-    if not isinstance(datos, Mapping):
-        raise ValueError("Debe indicar --objetivo FILA COLUMNA o definir 'prueba.objetivo' en el JSON.")
-    fila = datos.get("fila")
-    columna = datos.get("columna")
-    if type(fila) is not int or type(columna) is not int:
-        raise ValueError("El objetivo debe contener fila y columna enteras.")
-    return Posicion(fila, columna)
+def _rutas_escenarios(ruta_actual: str | Path) -> tuple[Path, ...]:
+    """Cataloga JSON incluidos y conserva una ruta externa recibida explicitamente."""
+    incluidas = tuple((RAIZ_PROYECTO / "escenarios").glob("*.json"))
+    return tuple(sorted({ruta.resolve() for ruta in incluidas} | {Path(ruta_actual).resolve()}))
+
+
+def _procesar_clic(
+    control: ControlGrafico,
+    punto: tuple[int, int],
+    disposicion,
+    rectangulos: RectangulosControles,
+) -> None:
+    """Traduce un clic a una unica operacion de control o a seleccion de objetivo.
+
+    Purpose: centralizar hitboxes y garantizar que teclado y boton de exploracion compartan estado.
+    Preconditions: disposicion y rectangulos corresponden al ultimo fotograma renderizado.
+    Postconditions: ejecuta a lo sumo una accion; seleccionar tablero no mueve unidades ni modifica el dominio.
+    Complexity: O(1) salvo carga de escenario o busqueda solicitadas explicitamente.
+    AI usage: Yes.
+    AI intervention: Codex implemento la interaccion directa de Pygame para la integracion final de E9.3.
+    Student validation: pendiente de revision humana; cubierta por pruebas de eventos y controles SDL dummy.
+    """
+    acciones = (
+        (rectangulos.escenario_anterior, lambda: control.cambiar_escenario(-1)),
+        (rectangulos.escenario_siguiente, lambda: control.cambiar_escenario(1)),
+        (rectangulos.algoritmo_anterior, lambda: control.cambiar_algoritmo(-1)),
+        (rectangulos.algoritmo_siguiente, lambda: control.cambiar_algoritmo(1)),
+        (rectangulos.unidad_anterior, lambda: control.cambiar_unidad(-1)),
+        (rectangulos.unidad_siguiente, lambda: control.cambiar_unidad(1)),
+        (rectangulos.k_menor, lambda: control.cambiar_k(-1)),
+        (rectangulos.k_mayor, lambda: control.cambiar_k(1)),
+        (rectangulos.ejecutar, control.ejecutar),
+        (rectangulos.exploracion, control.alternar_exploracion),
+    )
+    for rectangulo, accion in acciones:
+        if rectangulo.collidepoint(punto):
+            accion()
+            return
+    if disposicion.tablero.collidepoint(punto):
+        columna = (punto[0] - disposicion.tablero.x) // disposicion.tamano_celda
+        fila = (punto[1] - disposicion.tablero.y) // disposicion.tamano_celda
+        control.seleccionar_objetivo(Posicion(fila, columna))
 
 
 def _leer_argumentos(argumentos: Sequence[str] | None = None) -> argparse.Namespace:
@@ -166,7 +174,7 @@ def _leer_argumentos(argumentos: Sequence[str] | None = None) -> argparse.Namesp
         "escenario",
         nargs="?",
         type=Path,
-        default=Path("escenarios/campo_20x20.json"),
+        default=RUTA_ESCENARIO_PREDETERMINADO,
         help="ruta al escenario JSON (predeterminado: escenarios/campo_20x20.json)",
     )
     analizador.add_argument("--algoritmo", choices=ALGORITMOS, help="busqueda cuyo camino se visualizara")
@@ -187,4 +195,4 @@ def _leer_argumentos(argumentos: Sequence[str] | None = None) -> argparse.Namesp
 
 
 if __name__ == "__main__":
-    raise SystemExit(ejecutar_aplicacion())
+    raise SystemExit(ejecutar_desde_argumentos())

@@ -8,7 +8,7 @@ from .busqueda_anchura import busqueda_anchura
 from .busqueda_costo_uniforme import busqueda_costo_uniforme
 from .busqueda_haz import NivelHaz, ancho_haz_desde_prueba, busqueda_haz, validar_ancho_haz
 from .busqueda_profundidad import busqueda_profundidad
-from .instrumentacion import MedidorBusqueda, Nodo, expandir
+from .instrumentacion import EventoExpansion, MedidorBusqueda, Nodo, ObservadorExpansiones, TrazaExpansiones, expandir
 from .minimax import ResultadoMinimax, minimax, profundidad_desde_configuracion
 from .resultado_busqueda import ResultadoBusqueda
 from .utilidad import (
@@ -36,9 +36,12 @@ __all__ = [
     "profundidad_desde_configuracion",
     "valorar_acciones",
     "MedidorBusqueda",
+    "EventoExpansion",
     "NivelHaz",
     "Nodo",
+    "ObservadorExpansiones",
     "ResultadoBusqueda",
+    "TrazaExpansiones",
     "ancho_haz_desde_prueba",
     "busqueda_a_estrella",
     "busqueda_anchura",
