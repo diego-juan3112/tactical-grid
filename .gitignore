@@ -1,5 +1,15 @@
+# Entornos virtuales
 .venv/
+
+# Caché y archivos compilados de Python
 __pycache__/
 *.py[cod]
+
+# Metadatos de paquetes
 *.egg-info/
+
+# Caché de pruebas
 .pytest_cache/
+
+# Configuración local de Visual Studio Code
+.vscode/

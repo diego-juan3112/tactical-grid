@@ -1,11 +1,13 @@
 """Pruebas de E6.1 para A* con heuristica Manhattan escalada."""
 
+import importlib
 import json
 from pathlib import Path
 
 import pytest
 
 from tacticalgrid.algoritmos import busqueda_a_estrella, busqueda_costo_uniforme, heuristica_manhattan
+from tacticalgrid.algoritmos.heuristica_obstaculos import HeuristicaObstaculos
 from tacticalgrid.escenario.cargador import cargar_escenario
 from tacticalgrid.escenario.escenario import Posicion
 from tacticalgrid.juego.accion import Accion
@@ -14,6 +16,7 @@ from tacticalgrid.juego.problema import ProblemaNavegacion
 from tacticalgrid.juego.unidad import Unidad
 
 CARPETA_ESCENARIOS = Path(__file__).resolve().parents[2] / "escenarios"
+MODULO_A_ESTRELLA = importlib.import_module("tacticalgrid.algoritmos.busqueda_a_estrella")
 
 
 def _problema(archivo: str) -> ProblemaNavegacion:
@@ -86,6 +89,19 @@ class ProblemaGrafoOrtogonal:
 
     def posicion(self, estado: EstadoJuego) -> Posicion:
         return estado.unidades[0].posicion
+
+
+class EstrategiaRegistro:
+    """Doble preparado que registra cada evaluacion y permite controlar h por estado."""
+
+    def __init__(self, problema, valores: dict[EstadoJuego, int | float] | None = None) -> None:
+        self.problema = problema
+        self.valores = valores or {}
+        self.evaluados: list[EstadoJuego] = []
+
+    def evaluar(self, estado: EstadoJuego) -> int | float:
+        self.evaluados.append(estado)
+        return self.valores.get(estado, 0)
 
 
 def test_heuristica_manhattan_calcula_distancia_escalada() -> None:
@@ -295,3 +311,285 @@ def test_a_estrella_iguala_el_costo_optimo_de_ucs(archivo, costo_esperado, longi
     assert a_estrella.costo == ucs.costo == costo_esperado
     assert a_estrella.longitud == longitud_esperada
     _validar_solucion(problema, a_estrella)
+
+
+def test_omitir_estrategia_y_usar_none_conservan_resultado_y_metricas() -> None:
+    problema = _problema("obstaculo_rodeo.json")
+
+    implicita = busqueda_a_estrella(problema)
+    explicita = busqueda_a_estrella(problema, heuristica_preparada=None)
+
+    campos = (
+        "exito",
+        "costo",
+        "acciones",
+        "camino",
+        "estados_generados",
+        "estados_expandidos",
+        "maximo_frontera",
+    )
+    assert tuple(getattr(implicita, campo) for campo in campos) == tuple(
+        getattr(explicita, campo) for campo in campos
+    )
+
+
+def test_none_selecciona_manhattan_sin_invocar_estrategia_externa(monkeypatch) -> None:
+    problema = _problema("ruta_corta_vs_economica.json")
+    evaluados: list[EstadoJuego] = []
+
+    def registrar(problema_actual, estado):
+        evaluados.append(estado)
+        return heuristica_manhattan(problema_actual, estado)
+
+    monkeypatch.setattr(MODULO_A_ESTRELLA, "heuristica_manhattan", registrar)
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=None)
+
+    assert resultado.exito
+    assert evaluados[0] == problema.estado_inicial
+    assert len(evaluados) == resultado.estados_generados
+
+
+def test_estrategia_inyectada_se_evalua_en_raiz_e_hijos() -> None:
+    inicio = _estado(Posicion(0, 0))
+    intermedio = _estado(Posicion(0, 1))
+    objetivo = _estado(Posicion(0, 2))
+    problema = ProblemaGrafoOrtogonal(
+        inicio,
+        objetivo,
+        {inicio: ((intermedio, 1),), intermedio: ((objetivo, 1),)},
+    )
+    estrategia = EstrategiaRegistro(problema, {inicio: 2, intermedio: 1, objetivo: 0})
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=estrategia)
+
+    assert resultado.exito
+    assert estrategia.evaluados == [inicio, intermedio, objetivo]
+
+
+def test_estrategia_inyectada_conserva_desempate_por_orden_de_insercion() -> None:
+    inicio = _estado(Posicion(0, 0))
+    objetivo_primero = _estado(Posicion(0, 1))
+    alternativa = _estado(Posicion(1, 0))
+    problema = ProblemaGrafoOrtogonal(
+        inicio,
+        objetivo_primero,
+        {inicio: ((objetivo_primero, 1), (alternativa, 1))},
+    )
+    estrategia = EstrategiaRegistro(problema)
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=estrategia)
+
+    assert resultado.camino == (Posicion(0, 0), Posicion(0, 1))
+    assert estrategia.evaluados == [inicio, objetivo_primero, alternativa]
+    assert problema.expandidos == [inicio]
+
+
+def test_estrategia_inyectada_conserva_identidad_compuesta_y_reinsercion() -> None:
+    inicio = _estado(Posicion(0, 0), posicion_recurso=Posicion(0, 1))
+    sin_recurso = _estado(Posicion(0, 1))
+    rama_barata = _estado(Posicion(1, 0))
+    misma_posicion_con_recurso = _estado(Posicion(0, 1), portador="A1")
+    objetivo = _estado(Posicion(1, 1), portador="A1")
+    problema = ProblemaGrafoOrtogonal(
+        inicio,
+        objetivo,
+        {
+            inicio: ((sin_recurso, 1), (rama_barata, 5)),
+            sin_recurso: ((misma_posicion_con_recurso, 10),),
+            rama_barata: ((misma_posicion_con_recurso, 1),),
+            misma_posicion_con_recurso: ((objetivo, 100),),
+        },
+    )
+    estrategia = EstrategiaRegistro(problema)
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=estrategia)
+
+    assert sin_recurso != misma_posicion_con_recurso
+    assert problema.posicion(sin_recurso) == problema.posicion(misma_posicion_con_recurso)
+    assert resultado.costo == 106
+    assert problema.expandidos.count(misma_posicion_con_recurso) == 1
+    assert (resultado.estados_generados, resultado.estados_expandidos, resultado.maximo_frontera) == (6, 4, 2)
+
+
+@pytest.mark.parametrize(
+    ("archivo", "costo_esperado"),
+    [
+        ("obstaculo_rodeo.json", 16),
+        ("ruta_corta_vs_economica.json", 12),
+        ("campo_20x20.json", 34),
+    ],
+)
+def test_a_estrella_con_hto_iguala_ucs_y_reconstruye_camino_valido(archivo, costo_esperado) -> None:
+    problema = _problema(archivo)
+    heuristica = HeuristicaObstaculos(problema)
+
+    a_estrella_hto = busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+    ucs = busqueda_costo_uniforme(problema)
+
+    assert a_estrella_hto.exito == ucs.exito
+    assert a_estrella_hto.costo == ucs.costo == costo_esperado
+    _validar_solucion(problema, a_estrella_hto)
+    _validar_solucion(problema, ucs)
+
+
+def test_a_estrella_no_repite_la_preparacion_bfs_de_hto(monkeypatch) -> None:
+    problema = _problema("obstaculo_rodeo.json")
+    original = HeuristicaObstaculos._calcular_distancias
+    preparaciones = 0
+
+    def contar(heuristica):
+        nonlocal preparaciones
+        preparaciones += 1
+        return original(heuristica)
+
+    monkeypatch.setattr(HeuristicaObstaculos, "_calcular_distancias", contar)
+    heuristica = HeuristicaObstaculos(problema)
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+
+    assert resultado.exito
+    assert preparaciones == 1
+
+
+def test_estrategia_de_otro_problema_falla_antes_de_evaluar_o_crear_frontera(monkeypatch) -> None:
+    problema_a = _problema("obstaculo_rodeo.json")
+    problema_b = _problema("obstaculo_rodeo.json")
+    estrategia = EstrategiaRegistro(problema_a)
+    medidores_creados = 0
+
+    def registrar_medidor(*args, **kwargs):
+        nonlocal medidores_creados
+        medidores_creados += 1
+        raise AssertionError("No debe crearse la instrumentacion antes de validar la identidad.")
+
+    monkeypatch.setattr(MODULO_A_ESTRELLA, "MedidorBusqueda", registrar_medidor)
+
+    with pytest.raises(ValueError, match="otro ProblemaNavegacion"):
+        busqueda_a_estrella(problema_b, heuristica_preparada=estrategia)
+
+    assert estrategia.evaluados == []
+    assert problema_b is not problema_a
+    assert medidores_creados == 0
+
+
+def test_a01_se_propaga_si_cambia_el_contexto_despues_de_preparar_hto() -> None:
+    problema = _problema("obstaculo_rodeo.json")
+    heuristica = HeuristicaObstaculos(problema)
+    problema.objetivo = Posicion(0, 0)
+
+    with pytest.raises(ValueError, match="contexto.*objetivo"):
+        busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+
+    assert heuristica.estimaciones == (0,)
+
+
+def test_m01_error_de_recurrencia_se_propaga_y_conserva_prefijo(
+    tmp_path, contenido_escenario_valido
+) -> None:
+    contenido_escenario_valido["tipos_terreno"]["camino"]["costo"] = 1e308
+    ruta = tmp_path / "recurrencia_no_representable.json"
+    ruta.write_text(json.dumps(contenido_escenario_valido), encoding="utf-8")
+    problema = ProblemaNavegacion(cargar_escenario(ruta), "A1", Posicion(0, 2))
+    heuristica = HeuristicaObstaculos(problema)
+
+    with pytest.raises(ValueError, match=r"recurrencia HTO.*solicitar H\(4\).*calcular H\(2\)"):
+        busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+
+    assert heuristica.estimaciones == (0, 1e308)
+
+
+def test_estimacion_inyectada_no_finita_falla_antes_de_insertar_raiz() -> None:
+    inicio = _estado(Posicion(0, 0))
+    objetivo = _estado(Posicion(0, 1))
+    problema = ProblemaGrafoOrtogonal(inicio, objetivo, {})
+    estrategia = EstrategiaRegistro(problema, {inicio: float("nan")})
+
+    with pytest.raises(ValueError, match="heuristica seleccionada.*no finita"):
+        busqueda_a_estrella(problema, heuristica_preparada=estrategia)
+
+    assert estrategia.evaluados == [inicio]
+    assert problema.expandidos == []
+
+
+def test_suma_g_mas_h_finita_que_desborda_no_inserta_el_hijo(monkeypatch) -> None:
+    inicio = _estado(Posicion(0, 0))
+    intermedio = _estado(Posicion(0, 1))
+    objetivo = _estado(Posicion(0, 2))
+    problema = ProblemaGrafoOrtogonal(
+        inicio,
+        objetivo,
+        {inicio: ((intermedio, 1e308),)},
+    )
+    estrategia = EstrategiaRegistro(problema, {inicio: 0, intermedio: 8e307})
+    inserciones = []
+
+    def registrar_insercion(*args):
+        inserciones.append(args)
+
+    monkeypatch.setattr(MODULO_A_ESTRELLA.heapq, "heappush", registrar_insercion)
+
+    with pytest.raises(ValueError, match=r"prioridad f\(n\).*rango numerico finito"):
+        busqueda_a_estrella(problema, heuristica_preparada=estrategia)
+
+    assert inserciones == []
+    assert estrategia.evaluados == [inicio, intermedio]
+
+
+def test_hto_inicio_igual_objetivo_no_extiende_recurrencia() -> None:
+    problema_base = _problema("ruta_corta_vs_economica.json")
+    problema = ProblemaNavegacion(problema_base.escenario, "A1", Posicion(2, 0))
+    heuristica = HeuristicaObstaculos(problema)
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+
+    assert resultado.exito
+    assert (resultado.costo, resultado.longitud) == (0, 0)
+    assert (resultado.estados_generados, resultado.estados_expandidos) == (1, 0)
+    assert heuristica.estimaciones == (0,)
+
+
+def test_hto_objetivo_no_transitable_devuelve_fracaso(tmp_path, contenido_escenario_valido) -> None:
+    ruta = tmp_path / "objetivo_no_transitable.json"
+    ruta.write_text(json.dumps(contenido_escenario_valido), encoding="utf-8")
+    problema = ProblemaNavegacion(cargar_escenario(ruta), "A1", Posicion(0, 1))
+    heuristica = HeuristicaObstaculos(problema)
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+
+    assert not resultado.exito
+    assert dict(heuristica.distancias) == {}
+    assert resultado.camino == resultado.acciones == ()
+
+
+def test_hto_unidad_desconectada_devuelve_fracaso(tmp_path, contenido_escenario_valido) -> None:
+    contenido_escenario_valido["terreno"][1][1] = "muro"
+    ruta = tmp_path / "unidad_desconectada.json"
+    ruta.write_text(json.dumps(contenido_escenario_valido), encoding="utf-8")
+    problema = ProblemaNavegacion(cargar_escenario(ruta), "A1", Posicion(0, 2))
+    heuristica = HeuristicaObstaculos(problema)
+
+    resultado = busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+
+    assert not resultado.exito
+    assert heuristica.evaluar(problema.estado_inicial) == 0
+
+
+@pytest.mark.parametrize("costo_paso", [0.1, 0.5])
+def test_hto_y_ucs_con_costos_decimales_representables_secuencialmente(
+    costo_paso, tmp_path, contenido_escenario_valido
+) -> None:
+    contenido_escenario_valido["tipos_terreno"]["camino"]["costo"] = costo_paso
+    ruta = tmp_path / f"costo_{costo_paso}.json"
+    ruta.write_text(json.dumps(contenido_escenario_valido), encoding="utf-8")
+    problema = ProblemaNavegacion(cargar_escenario(ruta), "A1", Posicion(0, 2))
+    heuristica = HeuristicaObstaculos(problema)
+    esperado = 0.0
+    for _ in range(4):
+        esperado += costo_paso
+
+    a_estrella_hto = busqueda_a_estrella(problema, heuristica_preparada=heuristica)
+    ucs = busqueda_costo_uniforme(problema)
+
+    assert a_estrella_hto.costo == ucs.costo == esperado
+    _validar_solucion(problema, a_estrella_hto)

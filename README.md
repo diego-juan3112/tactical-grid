@@ -17,7 +17,7 @@ Juego tactico 2D por turnos para Sistemas Inteligentes I. El juego permite obser
 - `escenario`: lee, valida y representa JSON; provee dimensiones, terrenos, costos y transitabilidad.
 - `juego`: representa `EstadoJuego` y `Unidad`; aqui viviran reglas, acciones y sucesores.
 - `algoritmos`: contiene contratos de resultados y alojara estrategias de busqueda y decision.
-- `interfaz`: inicializa Pygame y consumira estado y resultados.
+- `interfaz`: carga el escenario elegido, construye el estado inicial y renderiza ambos mediante Pygame.
 - `servidor`: expone el punto ASGI tecnico para Uvicorn; no accede a las cuatro capas.
 
 ```text
@@ -445,6 +445,18 @@ python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs
 
 A* y UCS deben obtener el mismo costo optimo bajo estas condiciones; no se exige que coincidan el camino, las
 metricas ni el tiempo. La opcion `ambos` conserva su significado anterior y ejecuta solamente BFS y UCS.
+
+### Casos mínimos 3 y 4: obstáculo y comparación de heurísticas
+
+[Casos mínimos 3 y 4](docs/casos-minimos-obstaculo-y-heuristicas.md) documenta la ruta obligada por el muro de
+`obstaculo_rodeo.json` y compara A* con Manhattan, A* con HTO y UCS sobre la misma configuración. Las pruebas de
+`tests/algoritmos/test_casos_minimos_heuristicas.py` verifican el rodeo, la legalidad del camino, el costo y las
+métricas discretas. La comparación se reproduce con:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python \
+  scripts/comparar_heuristicas_e62.py --repeticiones 1 --calentamiento 0
+```
 
 ## Beam Search — E7.1
 
@@ -904,12 +916,41 @@ python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --prof
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 2
 ```
 
-Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`
-del escenario. Para elegirlos explícitamente, use `--unidad ID` y `--objetivo FILA COLUMNA`; por ejemplo:
+## Visualizacion del tablero y caminos — E9.1/E9.2
+
+La interfaz grafica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`. Si no se
+indica `--algoritmo`, conserva la vista estatica de E9.1 y no ejecuta una busqueda:
 
 ```bash
-python3 main.py --algoritmo ucs --unidad A1 --objetivo 9 10
+tacticalgrid
+tacticalgrid escenarios/ruta_corta_vs_economica.json
+tacticalgrid escenarios/recurso_en_transporte.json
 ```
+
+E9.2 ejecuta una busqueda una sola vez antes del ciclo grafico y dibuja su `ResultadoBusqueda.camino` sobre el
+tablero. Los nombres admitidos son `bfs`, `dfs`, `ucs`, `astar` y `beam`:
+
+```bash
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo bfs
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo dfs
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo ucs
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo astar
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo beam --k 4
+```
+
+La unidad y el objetivo indicados por consola tienen prioridad. Si se omiten, se leen de
+`prueba.unidad_inicio` y `prueba.objetivo` del escenario, siempre que `prueba.modo` sea `busqueda`. No se inventan
+valores cuando faltan ambos orígenes:
+
+```bash
+tacticalgrid escenarios/campo_20x20.json --algoritmo astar --unidad A1 --objetivo 10 15
+tacticalgrid escenarios/campo_20x20.json --algoritmo beam --unidad A1 --objetivo 9 10 --k 4
+```
+
+Beam Search requiere un entero `k >= 1`: `--k` tiene prioridad y, si se omite, se usa `prueba.k`. A* usa Manhattan
+por defecto. La linea cian conserva el orden exacto del camino; el anillo verde identifica el origen y el coral el
+destino. Las bases, el recurso, las unidades y la cuadricula se dibujan encima para mantener su identidad. El panel
+muestra el algoritmo y `exito` o `sin solucion`; en el segundo caso no se dibuja ninguna ruta.
 
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 
@@ -968,7 +1009,7 @@ tacticalgrid
 python -m uvicorn tacticalgrid.servidor.asgi:aplicacion --reload
 ```
 
-En Linux se verificaron la instalacion en `.venv`, pytest y Uvicorn; el clon no se repitio porque este repositorio ya estaba presente. `uvicorn tacticalgrid.servidor.asgi:aplicacion --reload` inicia el servidor ASGI en desarrollo. `tacticalgrid` abre la interfaz minima de Pygame y se cierra mediante el control de la ventana.
+En Linux se verificaron la instalacion en `.venv`, pytest y Uvicorn; el clon no se repitio porque este repositorio ya estaba presente. `uvicorn tacticalgrid.servidor.asgi:aplicacion --reload` inicia el servidor ASGI en desarrollo. `tacticalgrid [ruta.json]` abre el tablero en Pygame y se cierra mediante el control de la ventana.
 
 Para salir del entorno virtual en Windows o Linux:
 
