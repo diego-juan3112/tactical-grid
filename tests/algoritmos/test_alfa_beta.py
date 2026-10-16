@@ -25,47 +25,7 @@ def _cargar(tmp_path, contenido: dict, nombre: str = "escenario.json") -> Escena
     return cargar_escenario(ruta)
 
 
-@pytest.fixture
-def pasillo(tmp_path) -> Escenario:
-    """Pasillo 1x8 de camino con recurso en (0, 1), A1 en (0, 3) y B1 en (0, 6).
-
-    Solo pesa ``carrera_recurso`` (peso 1): cada hoja vale distancia(B1, recurso) - distancia(A1, recurso).
-    Arbol a profundidad 2 (MAX = A; orden de acciones: izquierda antes que derecha), calculado a mano:
-
-    - a1: A1 -> (0, 2), distancia de A1 = 1.
-        B1 -> (0, 5): 4 - 1 = 3.   B1 -> (0, 7): 6 - 1 = 5.   MIN = 3.   alfa = 3.
-    - a2: A1 -> (0, 4), distancia de A1 = 3.
-        B1 -> (0, 5): 4 - 3 = 1 <= alfa (3): MIN ya no puede superar 3, se poda B1 -> (0, 7).
-    Minimax evalua 4 hojas y genera 7 nodos; alfa-beta evalua 3, genera 6 y poda 1 rama. Ambos eligen a1 con valor 3.
-    """
-    return _cargar(
-        tmp_path,
-        {
-            "version": "1.0",
-            "mapa": {"filas": 1, "columnas": 8},
-            "tipos_terreno": {"camino": {"costo": 1, "transitable": True}},
-            "terreno": [["camino"] * 8],
-            "bases": {"A": {"fila": 0, "columna": 0}, "B": {"fila": 0, "columna": 7}},
-            "recurso": {"fila": 0, "columna": 1},
-            "unidades": [
-                {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 3},
-                {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 0, "columna": 6},
-            ],
-            "turno": "A",
-            "juego": {
-                "portador_recurso": None,
-                "profundidad_maxima_minimax": 2,
-                "pesos_utilidad": {
-                    "posesion": 0,
-                    "entrega": 0,
-                    "carrera_recurso": 1,
-                    "amenaza": 0,
-                    "bloqueo": 0,
-                    "movilidad": 0,
-                },
-            },
-        },
-    )
+# El fixture ``pasillo`` (arbol de alfa-beta calculado a mano) esta en tests/conftest.py.
 
 
 def _destinos(resultado) -> dict[Posicion, float]:

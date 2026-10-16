@@ -887,6 +887,74 @@ Las pruebas de `tests/algoritmos/test_alfa_beta.py` fijan el árbol calculado a 
 con Minimax en los escenarios del repositorio (profundidades 1 a 3), que los valores de la raíz son exactos o cotas
 correctas, que la poda reduce el trabajo, que MIN no está en desventaja, los casos borde y la consola.
 
+## Métricas comparables de Minimax y alfa-beta — E8.5
+
+`algoritmos/comparacion_adversarial.py` ejecuta Minimax y alfa-beta sobre **el mismo estado, la misma profundidad y la
+misma utilidad**, y reúne las siete métricas del enunciado de ambos en un solo objeto, para presentarlas lado a lado y
+analizarlas en el informe técnico:
+
+```python
+comparacion = comparar_minimax_alfa_beta(escenario, estado, profundidad_maxima=3)
+comparacion.minimax, comparacion.alfa_beta          # un ResultadoMinimax de cada algoritmo
+comparacion.misma_accion, comparacion.mismo_valor   # verificacion del criterio de E8.4
+comparacion.reduccion_porcentual("nodos_evaluados") # ahorro de la poda, en %
+comparacion.a_diccionario()                         # estructura serializable a JSON
+```
+
+La lógica vive en la capa de algoritmos y no en la consola, para que la interfaz gráfica o el modo de prueba
+`adversarial` (E10.1) puedan reutilizarla.
+
+### Las siete métricas
+
+| Métrica | Campo | Significado |
+|---|---|---|
+| Nodos generados | `nodos_generados` | La raíz y cada sucesor creado. |
+| Nodos evaluados | `nodos_evaluados` | Hojas en las que se calculó la utilidad. |
+| Nodos podados | `nodos_podados` | Ramas evitadas por alfa-beta; siempre 0 en Minimax. |
+| Profundidad alcanzada | `profundidad_alcanzada` | Mayor profundidad visitada (la raíz es 0). |
+| Tiempo | `tiempo_segundos` | Segundos hasta la decisión. |
+| Acción seleccionada | `accion_seleccionada` | Acción legal elegida en la raíz, con su tipo táctico. |
+| Valor obtenido | `valor` | Valor Minimax de la raíz desde la perspectiva de MAX. |
+
+La **reducción porcentual** se calcula como `100 × (1 − alfa-beta / Minimax)` solo para las métricas de trabajo:
+nodos generados, nodos evaluados y tiempo. En las demás no tiene sentido: los nodos podados son 0 en Minimax, y la
+acción y el valor deben coincidir.
+
+### Decisiones para que la comparación sea justa
+
+- **Misma utilidad y mismo orden de acciones.** Ambos leen los pesos de `juego.pesos_utilidad` del escenario y
+  exploran `acciones_tacticas` en el mismo orden, que son las condiciones del criterio de E8.4.
+- **Evaluadores independientes.** Cada algoritmo construye su propio `EvaluadorUtilidad`. Si compartieran uno, el
+  segundo heredaría las distancias hacia el recurso ya calculadas por el primero y su tiempo parecería menor de lo
+  que es.
+- **Los tiempos dependen del equipo;** los conteos de nodos, la acción y el valor son deterministas y se pueden
+  reproducir exactamente.
+
+### Salida en consola
+
+```bash
+python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 3
+```
+
+```text
+Bando MAX: A | Profundidad máxima: 3
+Métrica                                 Minimax                Alfa-beta    Reducción
+Nodos generados                             662                      238       64.0 %
+Nodos evaluados                             582                      191       67.2 %
+Nodos podados                                 0                      148
+Profundidad alcanzada                         3                        3
+Tiempo (s)                             0.090913                 0.032589       64.2 %
+Acción seleccionada         A2 (3, 3) -> (4, 3)      A2 (3, 3) -> (4, 3)
+Valor obtenido                             76.0                     76.0
+Misma acción: Sí
+Mismo valor: Sí
+```
+
+Sin `--profundidad`, se usa `juego.profundidad_maxima_minimax` del escenario. Las pruebas de
+`tests/algoritmos/test_comparacion_adversarial.py` comprueban las siete métricas con el árbol del pasillo calculado a
+mano (E8.4), que cada métrica coincide con ejecutar cada algoritmo por separado en los escenarios del repositorio
+(profundidades 1 a 3), la serialización a JSON, la raíz terminal y la consola.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
@@ -914,6 +982,7 @@ python3 main.py --algoritmo ambos
 python3 main.py --algoritmo bfs_dfs
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 2
+python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 2
 ```
 
 ## Visualizacion del tablero y caminos — E9.1/E9.2

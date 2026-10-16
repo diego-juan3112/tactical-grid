@@ -24,6 +24,11 @@ from tacticalgrid.escenario import (
     cargar_escenario,
 )
 from tacticalgrid.algoritmos.alfa_beta import alfa_beta
+from tacticalgrid.algoritmos.comparacion_adversarial import (
+    METRICAS_COMPARABLES,
+    METRICAS_DE_TRABAJO,
+    comparar_minimax_alfa_beta,
+)
 from tacticalgrid.algoritmos.minimax import minimax, profundidad_desde_configuracion, validar_profundidad
 from tacticalgrid.juego import ProblemaNavegacion, crear_estado_inicial
 
@@ -39,6 +44,8 @@ DECISORES = {
     "minimax": minimax,
     "alfa_beta": alfa_beta,
 }
+
+ADVERSARIALES = (*DECISORES, "minimax_alfa_beta")
 
 ESCENARIO_INICIAL =RAIZ / "escenarios" / "campo_20x20.json"
 
@@ -119,6 +126,54 @@ def resolver_profundidad(profundidad_consola, escenario):
     return desde_json
 
 
+def describir_accion_tactica(accion_tactica):
+    """Describe una accion tactica como ``unidad (origen) -> (destino)``, o ``intercepta en`` si es intercepcion."""
+    if accion_tactica is None:
+        return "ninguna"
+    a = accion_tactica.accion
+    verbo = "intercepta en" if a.tipo == "interceptar" else "->"
+    return f"{a.identificador_unidad} ({a.origen.fila}, {a.origen.columna}) {verbo} ({a.destino.fila}, {a.destino.columna})"
+
+
+def mostrar_comparacion_adversarial(comparacion):
+    """Muestra lado a lado las siete metricas de Minimax y alfa-beta y cuanto reduce la poda cada una.
+
+    Proposito: cumplir E8.5 presentando de forma clara y comparable nodos generados, evaluados y podados,
+    profundidad alcanzada, tiempo, accion elegida y valor de ambos algoritmos sobre el mismo estado.
+    Precondiciones: ``comparacion`` es una ``ComparacionAdversarial``.
+    Postcondiciones: imprime una fila por metrica (en el orden de ``METRICAS_COMPARABLES``) con el valor de cada
+    algoritmo y, en las metricas de trabajo, la reduccion porcentual; despues indica si coinciden la accion y el
+    valor. No modifica la comparacion ni ejecuta busquedas.
+    Complejidad: O(1) temporal y espacial (siete filas).
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta presentacion en E8.5.
+    Validacion del estudiante: pendiente de revision del equipo; cubierta por la prueba de consola de
+    tests/algoritmos/test_comparacion_adversarial.py.
+    """
+
+    def formatear(campo, valor):
+        if campo == "accion_seleccionada":
+            return describir_accion_tactica(valor)
+        if campo == "tiempo_segundos":
+            return f"{valor:.6f}"
+        return f"{valor}"
+
+    print(f"\n{'=' * 92}")
+    print("COMPARACIÓN MINIMAX vs. ALFA-BETA")
+    print("=" * 92)
+    print(f"Bando MAX: {comparacion.minimax.bando_max} | Profundidad máxima: {comparacion.minimax.profundidad_maxima}")
+    print(f"{'Métrica':<22} {'Minimax':>24} {'Alfa-beta':>24} {'Reducción':>12}")
+    for etiqueta, campo in METRICAS_COMPARABLES:
+        reduccion = comparacion.reduccion_porcentual(campo) if campo in METRICAS_DE_TRABAJO else None
+        texto_reduccion = "" if reduccion is None else f"{reduccion:.1f} %"
+        print(
+            f"{etiqueta:<22} {formatear(campo, getattr(comparacion.minimax, campo)):>24} "
+            f"{formatear(campo, getattr(comparacion.alfa_beta, campo)):>24} {texto_reduccion:>12}"
+        )
+    print(f"Misma acción: {'Sí' if comparacion.misma_accion else 'No'}")
+    print(f"Mismo valor: {'Sí' if comparacion.mismo_valor else 'No'}")
+
+
 def mostrar_resultado_minimax(resultado):
     """Muestra la decision de Minimax o alfa-beta, sus metricas y el valor de cada accion de la raiz.
 
@@ -133,11 +188,7 @@ def mostrar_resultado_minimax(resultado):
     Student validation: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
     tests/algoritmos/test_minimax.py comprueba la salida.
     """
-
-    def describir(accion_tactica):
-        a = accion_tactica.accion
-        verbo = "intercepta en" if a.tipo == "interceptar" else "->"
-        return f"{a.identificador_unidad} ({a.origen.fila}, {a.origen.columna}) {verbo} ({a.destino.fila}, {a.destino.columna})"
+    describir = describir_accion_tactica
 
     print(f"\n{'=' * 60}")
     print(f"ALGORITMO: {resultado.algoritmo}")
@@ -338,6 +389,35 @@ def mostrar_comparacion_bfs_dfs(resultados):
     print(f"Caminos: {'Iguales' if bfs.camino == dfs.camino else 'Diferentes'}")
 
 
+def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta):
+    """Ejecuta Minimax, alfa-beta o su comparacion sobre el estado inicial del escenario y muestra el resultado.
+
+    Proposito: concentrar el flujo adversarial del ejecutor de consola (E8.3, E8.4 y E8.5).
+    Precondiciones: ``algoritmo`` pertenece a ``ADVERSARIALES``; ``escenario`` fue cargado y validado.
+    Postcondiciones: imprime el encabezado del escenario y el resultado del algoritmo o, para
+    ``minimax_alfa_beta``, la tabla comparativa de E8.5; devuelve 0. Lanza ``ValueError`` si no hay una profundidad
+    valida en la consola ni en el JSON.
+    Complejidad: la de la busqueda o busquedas ejecutadas.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` y agrego la opcion ``minimax_alfa_beta`` en
+    E8.5.
+    Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de
+    tests/algoritmos/test_minimax.py, test_alfa_beta.py y test_comparacion_adversarial.py.
+    """
+    profundidad = resolver_profundidad(profundidad_consola, escenario)
+    estado = crear_estado_inicial(escenario)
+    print("\nTACTICALGRID")
+    print("=" * 60)
+    print(f"Escenario: {ruta.name}")
+    print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
+    print(f"Turno: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
+    if algoritmo == "minimax_alfa_beta":
+        mostrar_comparacion_adversarial(comparar_minimax_alfa_beta(escenario, estado, profundidad))
+    else:
+        mostrar_resultado_minimax(DECISORES[algoritmo](escenario, estado, profundidad))
+    return 0
+
+
 def main():
     """Carga el escenario y ejecuta los algoritmos seleccionados.
 
@@ -353,7 +433,8 @@ def main():
     AI intervention: Codex documentó el flujo y agregó la comparación final de E5.1; en E6.1 incorporó A* sin
     alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``, y en
     E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs`` y en E4.4 la
-    opción ``bfs_dfs``; en E8.3 agregó la opción ``minimax`` y ``--profundidad``, y en E8.4 la opción ``alfa_beta``.
+    opción ``bfs_dfs``; en E8.3 agregó la opción ``minimax`` y ``--profundidad``, en E8.4 la opción ``alfa_beta`` y en
+    E8.5 la opción ``minimax_alfa_beta``, moviendo el flujo adversarial a ``ejecutar_adversarial``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -371,7 +452,7 @@ def main():
 
     parser.add_argument(
         "--algoritmo",
-        choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos", "bfs_dfs", "minimax", "alfa_beta"],
+        choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos", "bfs_dfs", *ADVERSARIALES],
         default="ucs",
         help="Algoritmo de búsqueda (predeterminado: ucs)",
     )
@@ -388,7 +469,7 @@ def main():
     parser.add_argument(
         "--profundidad",
         type=int,
-        help="Profundidad maxima para --algoritmo minimax o alfa_beta. Si se omite, se usa "
+        help="Profundidad maxima para --algoritmo minimax, alfa_beta o minimax_alfa_beta. Si se omite, se usa "
         "'juego.profundidad_maxima_minimax' del JSON.",
     )
 
@@ -415,16 +496,8 @@ def main():
     try:
         escenario = cargar_escenario(ruta)
 
-        if args.algoritmo in DECISORES:
-            profundidad = resolver_profundidad(args.profundidad, escenario)
-            estado = crear_estado_inicial(escenario)
-            print("\nTACTICALGRID")
-            print("=" * 60)
-            print(f"Escenario: {ruta.name}")
-            print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
-            print(f"Turno: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
-            mostrar_resultado_minimax(DECISORES[args.algoritmo](escenario, estado, profundidad))
-            return 0
+        if args.algoritmo in ADVERSARIALES:
+            return ejecutar_adversarial(args.algoritmo, args.profundidad, escenario, ruta)
 
         problema, unidad, objetivo = construir_problema(
             escenario,
