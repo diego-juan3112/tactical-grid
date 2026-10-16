@@ -47,20 +47,25 @@ src/tacticalgrid/
 ├── escenario/    # carga, validacion y representacion estatica desde JSON
 ├── juego/        # estado dinamico y futuras reglas del dominio
 ├── algoritmos/   # resultados y futuras estrategias de busqueda/decision
+├── modos/        # modos de prueba busqueda, partida y adversarial (E10.1)
 ├── interfaz/     # visualizacion Pygame
 └── servidor/      # punto ASGI aislado para Uvicorn
 tests/
 ├── escenario/
 ├── juego/
 ├── algoritmos/
+├── modos/
+├── interfaz/
 └── servidor/
 escenarios/
 ```
 
 `escenario` carga, valida y provee datos estaticos, costos y transitabilidad. `juego` representa el estado
 dinamico, reglas, acciones y sucesores. `algoritmos` consume contratos del dominio: no lee JSON, no conoce
-Pygame ni contiene mapas, costos o posiciones codificados. `interfaz` consume estado y resultados para
-visualizarlos; no contiene reglas ni algoritmos. No se permiten dependencias circulares.
+Pygame ni contiene mapas, costos o posiciones codificados. `modos` (E10.1) es una capa de orquestacion: interpreta el
+campo `prueba` y ejecuta el modo pedido usando `escenario`, `juego` y `algoritmos`; no abre archivos ni conoce
+Pygame, y ninguna de esas tres capas depende de ella. `interfaz` consume estado y resultados para visualizarlos; no
+contiene reglas ni algoritmos. No se permiten dependencias circulares.
 
 E1.1 define el modelo del estado: `Escenario` contiene datos estaticos y `EstadoJuego` contiene unidades, turno,
 posicion del recurso cuando no tiene portador, identificador del portador y estado general de la partida. Una
@@ -119,6 +124,13 @@ incluir, como mínimo, un escenario ≥ 20×20. E2.3 agrega el set propio (`camp
 Cada escenario propio declara su proposito en el campo adicional `descripcion` y, en modo `busqueda`, la unidad y el
 objetivo en `prueba`. Las propiedades de diseno (ruta corta mas costosa, BFS/UCS distintos, rodeo obligado) se verifican
 en `tests/escenario/test_escenarios_propios.py`: si se edita un escenario, esas pruebas deben seguir pasando.
+
+Modos de prueba (E10.1, `modos/`): `prueba.modo` decide que se ejecuta (`busqueda`, `partida` o `adversarial`) y se
+lee con `leer_configuracion_prueba`; `resolver_modo` aplica la prioridad `--modo`, familia de `--algoritmo`,
+`prueba.modo` y, por ultimo, `busqueda`. Campos propios opcionales de `prueba`: `algoritmo` (de la familia del modo;
+por defecto `ucs` en busqueda y `alfa_beta` en partida y adversarial) y `max_turnos` (limite de jugadas de la
+partida, 50 por defecto). En `partida`, ambos bandos deciden con el mismo algoritmo desde el estado cargado
+(`jugar_partida`); termina con victoria, empate por bloqueo o `limite_turnos`. La consola puede sobrescribir todo.
 
 Campo propio `prueba.k` (E7.1): ancho del haz de Beam Search, entero mayor o igual que 1. Es opcional; la consola
 (`main.py --algoritmo beam --k ...`) tiene prioridad sobre el JSON. Se lee con `ancho_haz_desde_prueba`, sin que la

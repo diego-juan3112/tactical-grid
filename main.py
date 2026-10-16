@@ -3,7 +3,6 @@
 
 import argparse
 import sys
-from collections.abc import Mapping
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent
@@ -37,6 +36,14 @@ from tacticalgrid.algoritmos.orden_acciones import (
     validar_orden,
 )
 from tacticalgrid.juego import ProblemaNavegacion, crear_estado_inicial
+from tacticalgrid.modos import (
+    MAX_TURNOS_POR_DEFECTO,
+    MODOS,
+    jugar_partida,
+    leer_configuracion_prueba,
+    resolver_modo,
+    validar_max_turnos,
+)
 
 
 ALGORITMOS = {
@@ -56,7 +63,7 @@ ADVERSARIALES = (*DECISORES, "minimax_alfa_beta")
 ESCENARIO_INICIAL =RAIZ / "escenarios" / "campo_20x20.json"
 
 
-def construir_problema(escenario, unidad=None, destino=None):
+def construir_problema(escenario, unidad=None, destino=None, configuracion=None):
     """Construye un problema de navegación con los datos del escenario.
 
     Purpose: resolver la unidad y el objetivo indicados por consola o por la configuración de prueba y crear
@@ -68,17 +75,14 @@ def construir_problema(escenario, unidad=None, destino=None):
     unidades y recorrer los T tipos de terreno para obtener el costo mínimo de paso.
     AI usage: Yes.
     AI intervention: Codex completo esta documentación académica durante el cierre de auditoría de E5.1 y
-    corrigió su complejidad temporal en E6.1 para incluir el recorrido del catálogo de terrenos.
+    corrigió su complejidad temporal en E6.1 para incluir el recorrido del catálogo de terrenos. Claude (Opus 5.5)
+    hizo en E10.1 que la unidad y el objetivo del JSON se tomen de ``configuracion`` (``leer_configuracion_prueba``),
+    que ya los valida, en lugar de releer ``prueba``.
     Student validation: pendiente de revisión humana del cambio de E6.1.
     """
 
-    prueba = escenario.configuracion_prueba
-
-    if not isinstance(prueba, Mapping) or prueba.get("modo") != "busqueda":
-        prueba = {}
-
-    if unidad is None:
-        unidad = prueba.get("unidad_inicio")
+    if unidad is None and configuracion is not None:
+        unidad = configuracion.unidad
 
     if not unidad:
         raise ValueError(
@@ -86,24 +90,16 @@ def construir_problema(escenario, unidad=None, destino=None):
             "'prueba.unidad_inicio' en el JSON."
         )
 
-    if destino is None:
-        datos = prueba.get("objetivo")
+    if destino is not None:
+        objetivo = Posicion(*destino)
+    elif configuracion is not None and configuracion.objetivo is not None:
+        objetivo = configuracion.objetivo
+    else:
+        raise ValueError(
+            "Debe indicar --objetivo FILA COLUMNA o definir "
+            "'prueba.objetivo' en el JSON."
+        )
 
-        if not isinstance(datos, Mapping):
-            raise ValueError(
-                "Debe indicar --objetivo FILA COLUMNA o definir "
-                "'prueba.objetivo' en el JSON."
-            )
-
-        fila = datos.get("fila")
-        columna = datos.get("columna")
-
-        if type(fila) is not int or type(columna) is not int:
-            raise ValueError("El objetivo debe contener fila y columna enteras.")
-
-        destino = (fila, columna)
-
-    objetivo = Posicion(*destino)
     problema = ProblemaNavegacion(escenario, unidad, objetivo)
 
     return problema, unidad, objetivo
@@ -437,16 +433,153 @@ def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_
     profundidad = resolver_profundidad(profundidad_consola, escenario)
     orden = resolver_orden(orden_consola, escenario)
     estado = crear_estado_inicial(escenario)
-    print("\nTACTICALGRID")
-    print("=" * 60)
-    print(f"Escenario: {ruta.name}")
-    print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
+    _imprimir_encabezado("adversarial", ruta, escenario, 60)
     print(f"Turno: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
     if algoritmo == "minimax_alfa_beta":
         mostrar_comparacion_adversarial(comparar_minimax_alfa_beta(escenario, estado, profundidad, orden=orden))
     else:
         mostrar_resultado_minimax(DECISORES[algoritmo](escenario, estado, profundidad, orden=orden))
     return 0
+
+
+def _imprimir_encabezado(modo, ruta, escenario, ancho):
+    """Imprime el encabezado comun de los tres modos: titulo, modo, escenario y dimensiones."""
+    print("\nTACTICALGRID")
+    print("=" * ancho)
+    print(f"MODO: {modo}")
+    print(f"Escenario: {ruta.name}")
+    print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
+
+
+def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
+    """Resuelve la navegacion del modo ``busqueda`` con el algoritmo o la comparacion indicados y muestra el resultado.
+
+    Proposito: ejecutar el modo ``busqueda`` del enunciado (BFS, DFS, UCS, A* o Beam Search) y las comparaciones de
+    consola (``ambos`` y ``bfs_dfs``), con la unidad y el objetivo de la consola o del campo ``prueba``.
+    Precondiciones: ``algoritmo`` es de la familia de busqueda; ``escenario`` fue validado; ``configuracion`` es el
+    resultado de ``leer_configuracion_prueba``.
+    Postcondiciones: imprime el encabezado y el resultado de cada algoritmo y, en las comparaciones, la tabla
+    comparativa; devuelve 0. Lanza ``ValueError`` si falta la unidad, el objetivo o (con ``beam``) el ancho ``k``.
+    Complejidad: la de las busquedas ejecutadas mas O(L) por presentar caminos de L posiciones.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` en E10.1 sin cambiar su comportamiento.
+    Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de busqueda y por
+    tests/modos/test_consola_modos.py.
+    """
+    problema, unidad, objetivo = construir_problema(escenario, args.unidad, args.objetivo, configuracion)
+    origen = problema.posicion(problema.estado_inicial)
+
+    _imprimir_encabezado("busqueda", ruta, escenario, 45)
+    print(f"Unidad: {unidad}")
+    print(f"Origen: ({origen.fila}, {origen.columna})")
+    print(f"Destino: ({objetivo.fila}, {objetivo.columna})")
+
+    if algoritmo == "beam":
+        resultados_haz = {}
+        for k in resolver_anchos_haz(args.k, escenario):
+            resultados_haz[k] = busqueda_haz(problema, k)
+            mostrar_resultado(f"beam search (k={k})", resultados_haz[k])
+        if len(resultados_haz) > 1:
+            mostrar_comparacion_haz(resultados_haz)
+        return 0
+
+    nombres = {"ambos": ("bfs", "ucs"), "bfs_dfs": ("bfs", "dfs")}.get(algoritmo, (algoritmo,))
+    resultados = {}
+    for nombre in nombres:
+        resultados[nombre] = ALGORITMOS[nombre](problema)
+        mostrar_resultado(nombre, resultados[nombre])
+
+    if algoritmo == "ambos":
+        mostrar_comparacion(resultados)
+    elif algoritmo == "bfs_dfs":
+        mostrar_comparacion_bfs_dfs(resultados)
+    return 0
+
+
+def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion):
+    """Continua la partida del escenario por turnos, con ambos bandos decidiendo con el mismo algoritmo.
+
+    Proposito: ejecutar el modo ``partida`` del enunciado ("cargar el escenario completo para continuar el juego por
+    turnos") desde la consola.
+    Precondiciones: ``algoritmo`` es ``minimax`` o ``alfa_beta``; ``escenario`` fue validado.
+    Postcondiciones: juega desde el estado cargado con la profundidad y el orden de la consola o del JSON y con el
+    limite de ``--turnos``, ``prueba.max_turnos`` o ``MAX_TURNOS_POR_DEFECTO``; imprime cada jugada y el resultado;
+    devuelve 0. Lanza ``ValueError`` si falta la profundidad o algun parametro no es valido.
+    Complejidad: la de ``jugar_partida`` mas O(T) por presentar T jugadas.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento este flujo en E10.1.
+    Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/modos/test_consola_modos.py.
+    """
+    profundidad = resolver_profundidad(args.profundidad, escenario)
+    orden = resolver_orden(args.orden, escenario)
+    if args.turnos is not None:
+        max_turnos = validar_max_turnos(args.turnos)
+    elif configuracion is not None and configuracion.max_turnos is not None:
+        max_turnos = configuracion.max_turnos
+    else:
+        max_turnos = MAX_TURNOS_POR_DEFECTO
+    estado = crear_estado_inicial(escenario)
+
+    _imprimir_encabezado("partida", ruta, escenario, 60)
+    print(f"Turno inicial: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
+    print(f"Algoritmo de ambos bandos: {algoritmo} | Profundidad: {profundidad} | Orden de acciones: {orden}")
+    print(f"Límite: {max_turnos} jugadas")
+    mostrar_partida(jugar_partida(escenario, estado, profundidad, algoritmo=algoritmo, orden=orden, max_turnos=max_turnos))
+    return 0
+
+
+def mostrar_partida(partida):
+    """Imprime cada jugada de la partida (bando, accion, valor y nodos evaluados), los pases y el resultado final."""
+    print()
+    for turno in partida.turnos:
+        if turno.hubo_pase:
+            bloqueado = "B" if turno.bando == "A" else "A"
+            print(f"  (el bando {bloqueado} estaba bloqueado y pasó el turno)")
+        decision = turno.decision
+        accion = decision.accion_seleccionada
+        print(
+            f"Turno {turno.numero} | {turno.bando} | {describir_accion_tactica(accion)} [{accion.tipo_tactico}] "
+            f"| valor {decision.valor} | evaluados {decision.nodos_evaluados}"
+        )
+    jugadas = len(partida.turnos)
+    if partida.ganador is not None:
+        texto = f"victoria de {partida.ganador} en {jugadas} jugadas"
+    elif partida.resultado == "empate_bloqueo":
+        texto = f"empate por bloqueo total tras {jugadas} jugadas"
+    else:
+        texto = f"límite de {jugadas} jugadas alcanzado sin ganador"
+    print(f"\nResultado: {texto}")
+    print(f"Portador final del recurso: {partida.estado_final.portador_recurso or 'ninguno'}")
+
+
+def ejecutar_modo(args, escenario, ruta):
+    """Ejecuta el modo de prueba que piden la consola o el campo ``prueba`` del escenario (E10.1).
+
+    Proposito: que la aplicacion ejecute el modo solicitado por un escenario externo sin cambios de codigo.
+    Precondiciones: ``args`` viene de ``argparse`` y ``escenario`` fue cargado y validado.
+    Postcondiciones: lee ``prueba``, resuelve el modo con ``resolver_modo`` y el algoritmo con la prioridad consola,
+    luego ``prueba.algoritmo`` (si es del mismo modo) y luego el valor por defecto del modo (``ucs`` en busqueda y
+    ``alfa_beta`` en partida y adversarial); delega en ``ejecutar_busqueda``, ``ejecutar_partida`` o
+    ``ejecutar_adversarial`` y devuelve su codigo. Lanza ``ValueError`` si ``prueba`` o la combinacion de modo y
+    algoritmo no son validas.
+    Complejidad: la del modo ejecutado.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento el despacho por modo en E10.1.
+    Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/modos/test_consola_modos.py.
+    """
+    configuracion = leer_configuracion_prueba(escenario)
+    modo = resolver_modo(args.modo, args.algoritmo, configuracion)
+    algoritmo = args.algoritmo
+    if algoritmo is None and configuracion is not None and configuracion.modo == modo:
+        algoritmo = configuracion.algoritmo
+    if algoritmo is None:
+        algoritmo = "ucs" if modo == "busqueda" else "alfa_beta"
+
+    if modo == "adversarial":
+        return ejecutar_adversarial(algoritmo, args.profundidad, escenario, ruta, args.orden)
+    if modo == "partida":
+        return ejecutar_partida(algoritmo, args, escenario, ruta, configuracion)
+    return ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion)
 
 
 def main():
@@ -466,7 +599,8 @@ def main():
     E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs`` y en E4.4 la
     opción ``bfs_dfs``; en E8.3 agregó la opción ``minimax`` y ``--profundidad``, en E8.4 la opción ``alfa_beta`` y en
     E8.5 la opción ``minimax_alfa_beta``, moviendo el flujo adversarial a ``ejecutar_adversarial``; en E8.6 agregó
-    ``--orden``.
+    ``--orden``; en E10.1 agregó ``--modo`` y ``--turnos``, quitó el valor fijo de ``--algoritmo`` (el modo y el
+    algoritmo se resuelven en ``ejecutar_modo``) y movió la busqueda a ``ejecutar_busqueda``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -483,10 +617,24 @@ def main():
     )
 
     parser.add_argument(
+        "--modo",
+        choices=MODOS,
+        help="Modo de prueba a ejecutar. Si se omite, se deduce de --algoritmo o se usa 'prueba.modo' del JSON "
+        "(y, si no hay, 'busqueda').",
+    )
+
+    parser.add_argument(
         "--algoritmo",
         choices=["bfs", "dfs", "ucs", "a_estrella", "beam", "ambos", "bfs_dfs", *ADVERSARIALES],
-        default="ucs",
-        help="Algoritmo de búsqueda (predeterminado: ucs)",
+        help="Algoritmo a ejecutar. Si se omite, se usa 'prueba.algoritmo' del JSON o el del modo: ucs en "
+        "busqueda y alfa_beta en partida y adversarial.",
+    )
+
+    parser.add_argument(
+        "--turnos",
+        type=int,
+        help="Limite de jugadas del modo partida. Si se omite, se usa 'prueba.max_turnos' del JSON o "
+        f"{MAX_TURNOS_POR_DEFECTO}.",
     )
 
     parser.add_argument(
@@ -533,56 +681,7 @@ def main():
         ruta = RAIZ / ruta
 
     try:
-        escenario = cargar_escenario(ruta)
-
-        if args.algoritmo in ADVERSARIALES:
-            return ejecutar_adversarial(args.algoritmo, args.profundidad, escenario, ruta, args.orden)
-
-        problema, unidad, objetivo = construir_problema(
-            escenario,
-            args.unidad,
-            args.objetivo,
-        )
-
-        origen = problema.posicion(problema.estado_inicial)
-
-        print("\nTACTICALGRID")
-        print("=" * 45)
-        print(f"Escenario: {ruta.name}")
-        print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
-        print(f"Unidad: {unidad}")
-        print(f"Origen: ({origen.fila}, {origen.columna})")
-        print(f"Destino: ({objetivo.fila}, {objetivo.columna})")
-
-        if args.algoritmo == "beam":
-            resultados_haz = {}
-            for k in resolver_anchos_haz(args.k, escenario):
-                resultados_haz[k] = busqueda_haz(problema, k)
-                mostrar_resultado(f"beam search (k={k})", resultados_haz[k])
-            if len(resultados_haz) > 1:
-                mostrar_comparacion_haz(resultados_haz)
-            return 0
-
-        if args.algoritmo == "ambos":
-            nombres = ("bfs", "ucs")
-        elif args.algoritmo == "bfs_dfs":
-            nombres = ("bfs", "dfs")
-        else:
-            nombres = (args.algoritmo,)
-        seleccionados = {nombre: ALGORITMOS[nombre] for nombre in nombres}
-
-        resultados = {}
-        for nombre, algoritmo in seleccionados.items():
-            resultado = algoritmo(problema)
-            resultados[nombre] = resultado
-            mostrar_resultado(nombre, resultado)
-
-        if args.algoritmo == "ambos":
-            mostrar_comparacion(resultados)
-        elif args.algoritmo == "bfs_dfs":
-            mostrar_comparacion_bfs_dfs(resultados)
-
-        return 0
+        return ejecutar_modo(args, cargar_escenario(ruta), ruta)
 
     except (ErrorValidacionEscenario, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
