@@ -1072,6 +1072,76 @@ Las pruebas de `tests/modos/` cubren la lectura y validación de `prueba`, la pr
 partida calculada a mano con pases por bloqueo, partidas con ganador, empate y límite, la igualdad de las partidas
 jugadas con Minimax y con alfa-beta, y la consola en los tres modos.
 
+## Verificador de soluciones — E10.2
+
+`algoritmos/verificador.py` comprueba propiedades básicas de cada respuesta, para no confiar ciegamente en que el
+algoritmo terminó sin error. No reutiliza los cálculos internos de los algoritmos: **reproduce cada respuesta con
+las reglas del juego** (E1.2, E1.3, E8.1) y compara. Cada verificación devuelve un `ReporteVerificacion` con una
+comprobación por propiedad (correcta o fallida, con su detalle) y no se detiene en la primera falla.
+
+### Uso desde consola
+
+La opción `--verificar` funciona en los tres modos de prueba. Imprime el reporte y, si alguna comprobación falla,
+la consola termina con código 1.
+
+```bash
+python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos --verificar
+python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8 --verificar
+python3 -B main.py escenarios/recurso_en_transporte.json --modo adversarial --algoritmo minimax_alfa_beta --profundidad 3 --verificar
+python3 -B main.py escenarios/recurso_en_transporte.json --modo partida --profundidad 2 --turnos 10 --verificar
+```
+
+Ejemplo de salida para UCS:
+
+```text
+VERIFICACIÓN: UCS (busqueda)
+------------------------------------------------------------
+  ✓ movimientos_validos: 12 movimientos legales
+  ✓ sin_obstaculos: ninguna celda del camino es un obstaculo
+  ✓ camino_coherente: el camino coincide con las acciones aplicadas
+  ✓ costo_coincide: costo 12 igual a la suma de las transiciones
+  ✓ estado_final_objetivo: el estado final cumple la condicion objetivo
+  ✓ estados_validos: 13 estados validos
+  ✓ metricas_coherentes: contadores y longitud consistentes
+Resultado de la verificación: VÁLIDO
+```
+
+### Qué se comprueba
+
+| Criterio del enunciado | Búsquedas (`verificar_busqueda`) | Minimax y alfa-beta (`verificar_decision`) | Partida (`verificar_partida`) |
+|---|---|---|---|
+| Movimientos válidos | `movimientos_validos`: cada acción es ortogonal, parte de la posición actual y es legal en el estado alcanzado; `camino_coherente`: el camino coincide con las acciones | `accion_seleccionada_legal` | `jugadas_legales` |
+| Ninguna unidad atraviesa obstáculos | `sin_obstaculos`: ninguna celda del camino es un muro ni está fuera del mapa | Incluido en `estados_validos` | Incluido en `estados_validos` |
+| El costo coincide con las transiciones | `costo_coincide`: se suma el costo del JSON de cada transición reproducida | — | — |
+| El estado final satisface el objetivo | `estado_final_objetivo` | — | `resultado_coherente`: el resultado declarado (victoria, empate o límite) corresponde al estado final |
+| No se generan estados inválidos | `estados_validos`: cada estado del camino | `estados_validos`: cada estado del árbol | `estados_validos` y `estados_encadenados` |
+| Acciones de Minimax legales | — | `acciones_consideradas_legales`: **todas** las acciones de **todos** los nodos del árbol, no solo la raíz; `valores_raiz_legales`; `tacticas_coherentes` | `decisiones_verificadas`: aplica `verificar_decision` a cada jugada |
+| (adicional) | `metricas_coherentes` | `valor_correcto`, `decision_optima` y `metricas_coherentes` | — |
+
+Un estado es inválido si tiene ids repetidos, un bando o turno desconocido, una unidad fuera del mapa o sobre un
+obstáculo, dos unidades en la misma celda (salvo en navegación, donde E1.2 decidió que no se bloquean), un recurso
+sin portador ni posición o con ambos, un portador inexistente, o una victoria registrada sin que el portador esté en
+su base.
+
+### Cómo se verifica una decisión adversarial
+
+`verificar_decision` **regenera el árbol** que Minimax debió explorar, con la misma profundidad, orden de acciones,
+pase de turno y utilidad, y en cada nodo comprueba con `es_accion_valida` cada acción considerada. Con ese árbol
+calcula el valor Minimax exacto: el valor reportado debe coincidir (`valor_correcto`) y la acción elegida debe ser la
+primera con el mejor valor (`decision_optima`), también para alfa-beta, cuya decisión debe ser la misma. Para Minimax,
+los nodos generados, evaluados y la profundidad alcanzada deben coincidir exactamente con el árbol; para alfa-beta
+no pueden superarlos. Por eso verificar una decisión cuesta lo mismo que ejecutar Minimax completo.
+
+Una búsqueda que fracasa solo se verifica en su estructura (`fracaso_coherente`: sin camino, sin acciones y costo
+nulo). No se afirma que no exista ruta, porque Beam Search puede fracasar aunque exista (E7.2).
+
+Las pruebas de `tests/algoritmos/test_verificador.py` verifican las respuestas reales de BFS, DFS, UCS, A\* y Beam
+Search (k = 1, 2, 4, 8) en cuatro escenarios, de Minimax y alfa-beta con los tres órdenes de acciones y de partidas
+completas. También comprueban que el verificador **detecta** respuestas alteradas a propósito: un movimiento en
+diagonal, un paso por un muro, un costo falso, un camino que no llega, métricas imposibles, una acción ilegal o una
+intercepción inventada en la raíz, un valor falso, una acción que no es la óptima, nodos que no corresponden al árbol,
+una jugada manipulada y un resultado de partida falso, además de cada tipo de estado inválido.
+
 ## Inicio recomendado
 
 Desde la raíz del repositorio, la ejecución sin argumentos abre Pygame con `campo_20x20.json`, sin iniciar una
@@ -1134,6 +1204,7 @@ python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --prof
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 2
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 2
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 4 --orden tactico
+python3 main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs --verificar
 ```
 
 ## Visualizacion del tablero, caminos y exploracion — E9.1/E9.2/E9.3

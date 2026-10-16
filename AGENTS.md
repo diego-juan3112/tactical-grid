@@ -150,6 +150,11 @@ profundidad). La profundidad maxima se toma de `juego.profundidad_maxima_minimax
 empate se conserva la primera accion en el orden de generacion: alfa-beta (E8.4) debe usar el mismo orden y el mismo
 desempate para producir la misma decision.
 
+Verificador (E10.2, `algoritmos/verificador.py`): `verificar_busqueda`, `verificar_decision` y `verificar_partida`
+reproducen la respuesta con las reglas del juego y devuelven un `ReporteVerificacion` con una comprobacion por
+propiedad; `errores_de_estado` define que es un estado invalido. La consola los usa con `--verificar`. Si una
+verificacion falla, primero se busca el error en el algoritmo; el verificador solo se modifica si cambian las reglas.
+
 Campo propio `juego.orden_acciones` (E8.6): orden en que Minimax y alfa-beta exploran las acciones (`generacion`,
 `inverso` o `tactico`); es opcional y por defecto vale `generacion`. La consola (`main.py --orden`) tiene prioridad
 sobre el JSON. Se lee con `orden_desde_configuracion` y se aplica con `ordenar_acciones`
