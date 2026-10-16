@@ -1142,6 +1142,75 @@ diagonal, un paso por un muro, un costo falso, un camino que no llega, métricas
 intercepción inventada en la raíz, un valor falso, una acción que no es la óptima, nodos que no corresponden al árbol,
 una jugada manipulada y un resultado de partida falso, además de cada tipo de estado inválido.
 
+## Resultados y métricas reproducibles — E10.3
+
+Cualquier prueba de la consola (modo `busqueda`, `adversarial` o `partida`) puede entregar sus resultados en una
+estructura JSON equivalente a la del enunciado, junto con todo lo necesario para repetir el experimento. No es
+obligatorio crear un archivo:
+
+- `--json` imprime **solo** el registro en la salida estándar, en lugar del texto habitual. Sirve como log y se
+  puede guardar o comparar (`... --json > resultado.json`).
+- `--exportar ARCHIVO` guarda el mismo registro en un archivo y sigue mostrando el texto habitual.
+
+```bash
+python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos --json
+python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8 --exportar beam.json
+python3 -B main.py escenarios/recurso_en_transporte.json --modo adversarial --algoritmo minimax_alfa_beta --profundidad 3 --verificar --json
+```
+
+### Contenido del registro
+
+```json
+{
+  "formato": "tacticalgrid.resultados/1",
+  "escenario": {
+    "archivo": "escenarios/ruta_corta_vs_economica.json",
+    "version": "1.0",
+    "filas": 5,
+    "columnas": 9,
+    "huella_sha256": "ee55444b12fae723a21e0ec5f97e6b87c2c1b494f1a90060e21e5c9da54389b4"
+  },
+  "modo": "busqueda",
+  "parametros": {
+    "algoritmo": "ucs",
+    "unidad": "A1",
+    "objetivo": [2, 8]
+  },
+  "comando": "python main.py escenarios/ruta_corta_vs_economica.json --modo busqueda --algoritmo ucs --unidad A1 --objetivo 2 8",
+  "nota": "Todos los algoritmos son deterministas: ...",
+  "resultados": [
+    {
+      "algoritmo": "UCS",
+      "exito": true,
+      "camino": [[2, 0], [1, 0], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [1, 8], [2, 8]],
+      "costo": 12,
+      "estados_generados": 22,
+      "estados_expandidos": 19,
+      "maximo_frontera": 3,
+      "longitud": 12,
+      "tiempo_segundos": 0.0027
+    }
+  ]
+}
+```
+
+| Campo | Para qué sirve |
+|---|---|
+| `escenario` | Archivo, versión, dimensiones y **huella SHA-256** del contenido del JSON. Si alguien cambia un costo o mueve un muro, la huella cambia: dos registros solo son comparables si su huella coincide. |
+| `modo` y `parametros` | Los valores **realmente usados**, ya resueltos entre la consola y el campo `prueba` del JSON: algoritmo, unidad, objetivo, `k`, profundidad, orden de acciones, límite de turnos y pesos de la utilidad. |
+| `comando` | La línea de consola que repite el experimento con esos mismos parámetros. |
+| `resultados` | Un elemento por algoritmo ejecutado. En búsqueda, la estructura del enunciado (`algoritmo`, `exito`, `camino`, `costo`, `estados_generados`, `estados_expandidos`, `maximo_frontera`) más `longitud` y `tiempo_segundos`. En adversarial, las métricas de Minimax y alfa-beta (nodos generados, evaluados y podados, profundidad alcanzada, tiempo, acción seleccionada y valor) o la comparación de E8.5. En partida, cada jugada con su decisión. |
+| `verificacion` | Solo con `--verificar`: el reporte de E10.2 de cada resultado y si todos son válidos. |
+
+### Reproducibilidad
+
+Todos los algoritmos son deterministas: con el mismo escenario (misma huella) y los mismos parámetros, los
+resultados son idénticos salvo `tiempo_segundos`, que depende de la máquina. Las pruebas de
+`tests/modos/test_registro.py` lo comprueban de la forma más directa: ejecutan el `comando` que trae el registro y
+verifican que los resultados coinciden con los originales (sin contar el tiempo) en búsqueda, Beam Search,
+alfa-beta y partida. También comprueban que la huella cambia al modificar el escenario, que el JSON se puede leer
+completo con `--json` y que `--exportar` guarda el mismo contenido.
+
 ## Inicio recomendado
 
 Desde la raíz del repositorio, la ejecución sin argumentos abre Pygame con `campo_20x20.json`, sin iniciar una
@@ -1205,6 +1274,7 @@ python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --pr
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 2
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 4 --orden tactico
 python3 main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs --verificar
+python3 main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs --json
 ```
 
 ## Visualizacion del tablero, caminos y exploracion — E9.1/E9.2/E9.3

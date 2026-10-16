@@ -155,6 +155,12 @@ reproducen la respuesta con las reglas del juego y devuelven un `ReporteVerifica
 propiedad; `errores_de_estado` define que es un estado invalido. La consola los usa con `--verificar`. Si una
 verificacion falla, primero se busca el error en el algoritmo; el verificador solo se modifica si cambian las reglas.
 
+Registro reproducible (E10.3, `modos/registro.py`): con `--json` o `--exportar` la consola arma un
+`RegistroExperimento` con el escenario y su huella SHA-256, el modo, los parametros ya resueltos, el comando que repite
+la ejecucion, los resultados (`a_diccionario()` de cada uno) y, con `--verificar`, los reportes de E10.2. Todo resultado
+nuevo debe exponer `a_diccionario()` y registrarse en su modo; todo parametro nuevo de consola debe agregarse a los
+parametros registrados para que el comando siga reproduciendo el experimento.
+
 Campo propio `juego.orden_acciones` (E8.6): orden en que Minimax y alfa-beta exploran las acciones (`generacion`,
 `inverso` o `tactico`); es opcional y por defecto vale `generacion`. La consola (`main.py --orden`) tiene prioridad
 sobre el JSON. Se lee con `orden_desde_configuracion` y se aplica con `ordenar_acciones`

@@ -2,7 +2,11 @@
 """Aplicacion de consola de TacticalGrid y presentacion textual de resultados."""
 
 import argparse
+import contextlib
+import hashlib
+import io
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
@@ -34,8 +38,10 @@ from tacticalgrid.algoritmos.orden_acciones import (
     orden_desde_configuracion,
     validar_orden,
 )
+from tacticalgrid.algoritmos.utilidad import pesos_desde_configuracion
 from tacticalgrid.algoritmos.verificador import verificar_busqueda, verificar_decision, verificar_partida
 from tacticalgrid.juego import ProblemaNavegacion, crear_estado_inicial
+from tacticalgrid.modos.registro import RegistroExperimento, serializar
 from tacticalgrid.modos import (
     MAX_TURNOS_POR_DEFECTO,
     MODOS,
@@ -435,7 +441,16 @@ def mostrar_verificacion(reporte):
     return reporte.es_valido
 
 
-def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_consola=None, verificar=False):
+def _verificar(reporte, registro):
+    """Muestra un reporte de E10.2, lo agrega al registro de E10.3 si lo hay y devuelve si es valido."""
+    if registro is not None:
+        registro.agregar_verificacion(reporte)
+    return mostrar_verificacion(reporte)
+
+
+def ejecutar_adversarial(
+    algoritmo, profundidad_consola, escenario, ruta, orden_consola=None, verificar=False, registro=None
+):
     """Ejecuta Minimax, alfa-beta o su comparacion sobre el estado inicial del escenario y muestra el resultado.
 
     Proposito: concentrar el flujo adversarial del ejecutor de consola (E8.3, E8.4, E8.5 y E8.6).
@@ -443,12 +458,13 @@ def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_
     Postcondiciones: imprime el encabezado del escenario y el resultado del algoritmo o, para
     ``minimax_alfa_beta``, la tabla comparativa de E8.5, usando el orden de acciones de la consola, del JSON o el de
     generacion. Si ``verificar`` es verdadero, imprime ademas el reporte de ``verificar_decision`` (E10.2) de cada
-    decision. Devuelve 0, o 1 si alguna verificacion falla. Lanza ``ValueError`` si no hay una profundidad valida en
-    la consola ni en el JSON, o si el JSON trae un orden desconocido.
+    decision. Si se pasa ``registro`` (E10.3), registra el modo, los parametros resueltos, los resultados y las
+    verificaciones. Devuelve 0, o 1 si alguna verificacion falla. Lanza ``ValueError`` si no hay una profundidad
+    valida en la consola ni en el JSON, o si el JSON trae un orden desconocido.
     Complejidad: la de la busqueda o busquedas ejecutadas.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` y agrego la opcion ``minimax_alfa_beta`` en
-    E8.5, en E8.6 el orden de acciones configurable y en E10.2 la verificacion opcional.
+    E8.5, en E8.6 el orden de acciones configurable, en E10.2 la verificacion opcional y en E10.3 el registro.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de
     tests/algoritmos/test_verificador.py, tests/algoritmos/test_minimax.py, test_alfa_beta.py, test_comparacion_adversarial.py y
     test_casos_minimos_adversariales.py.
@@ -458,15 +474,28 @@ def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_
     estado = crear_estado_inicial(escenario)
     _imprimir_encabezado("adversarial", ruta, escenario, 60)
     print(f"Turno: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
+    if registro is not None:
+        registro.definir(
+            "adversarial",
+            algoritmo=algoritmo,
+            profundidad=profundidad,
+            orden_acciones=orden,
+            bando_max=estado.turno_actual,
+            pesos_utilidad=asdict(pesos_desde_configuracion(escenario.configuracion_juego)),
+        )
     if algoritmo == "minimax_alfa_beta":
         comparacion = comparar_minimax_alfa_beta(escenario, estado, profundidad, orden=orden)
         mostrar_comparacion_adversarial(comparacion)
         decisiones = (comparacion.minimax, comparacion.alfa_beta)
+        if registro is not None:
+            registro.agregar_resultado(comparacion)
     else:
         decisiones = (DECISORES[algoritmo](escenario, estado, profundidad, orden=orden),)
         mostrar_resultado_minimax(decisiones[0])
+        if registro is not None:
+            registro.agregar_resultado(decisiones[0])
     if verificar:
-        validas = [mostrar_verificacion(verificar_decision(escenario, estado, decision)) for decision in decisiones]
+        validas = [_verificar(verificar_decision(escenario, estado, decision), registro) for decision in decisiones]
         return 0 if all(validas) else 1
     return 0
 
@@ -480,7 +509,7 @@ def _imprimir_encabezado(modo, ruta, escenario, ancho):
     print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
 
 
-def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
+def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion, registro=None):
     """Resuelve la navegacion del modo ``busqueda`` con el algoritmo o la comparacion indicados y muestra el resultado.
 
     Proposito: ejecutar el modo ``busqueda`` del enunciado (BFS, DFS, UCS, A* o Beam Search) y las comparaciones de
@@ -488,13 +517,14 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
     Precondiciones: ``algoritmo`` es de la familia de busqueda; ``escenario`` fue validado; ``configuracion`` es el
     resultado de ``leer_configuracion_prueba``.
     Postcondiciones: imprime el encabezado y el resultado de cada algoritmo y, en las comparaciones, la tabla
-    comparativa. Con ``--verificar`` imprime el reporte de ``verificar_busqueda`` (E10.2) de cada resultado. Devuelve
-    0, o 1 si alguna verificacion falla. Lanza ``ValueError`` si falta la unidad, el objetivo o (con ``beam``) el
+    comparativa. Con ``--verificar`` imprime el reporte de ``verificar_busqueda`` (E10.2) de cada resultado. Si se
+    pasa ``registro`` (E10.3), registra parametros resueltos, resultados y verificaciones. Devuelve 0, o 1 si alguna
+    verificacion falla. Lanza ``ValueError`` si falta la unidad, el objetivo o (con ``beam``) el
     ancho ``k``.
     Complejidad: la de las busquedas ejecutadas mas O(L) por presentar caminos de L posiciones.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` en E10.1 sin cambiar su comportamiento y
-    agrego la verificacion opcional en E10.2.
+    agrego la verificacion opcional en E10.2 y el registro en E10.3.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de busqueda y por
     tests/modos/test_consola_modos.py.
     """
@@ -507,15 +537,26 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
     print(f"Destino: ({objetivo.fila}, {objetivo.columna})")
 
     verificar = getattr(args, "verificar", False)
+    anchos = resolver_anchos_haz(args.k, escenario) if algoritmo == "beam" else None
+    if registro is not None:
+        registro.definir(
+            "busqueda",
+            algoritmo=algoritmo,
+            unidad=unidad,
+            objetivo=[objetivo.fila, objetivo.columna],
+            k=None if anchos is None else list(anchos),
+        )
     if algoritmo == "beam":
         resultados_haz = {}
-        for k in resolver_anchos_haz(args.k, escenario):
+        for k in anchos:
             resultados_haz[k] = busqueda_haz(problema, k)
             mostrar_resultado(f"beam search (k={k})", resultados_haz[k])
+            if registro is not None:
+                registro.agregar_resultado(resultados_haz[k])
         if len(resultados_haz) > 1:
             mostrar_comparacion_haz(resultados_haz)
         if verificar:
-            validas = [mostrar_verificacion(verificar_busqueda(problema, r)) for r in resultados_haz.values()]
+            validas = [_verificar(verificar_busqueda(problema, r), registro) for r in resultados_haz.values()]
             return 0 if all(validas) else 1
         return 0
 
@@ -524,18 +565,20 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion):
     for nombre in nombres:
         resultados[nombre] = ALGORITMOS[nombre](problema)
         mostrar_resultado(nombre, resultados[nombre])
+        if registro is not None:
+            registro.agregar_resultado(resultados[nombre])
 
     if algoritmo == "ambos":
         mostrar_comparacion(resultados)
     elif algoritmo == "bfs_dfs":
         mostrar_comparacion_bfs_dfs(resultados)
     if verificar:
-        validas = [mostrar_verificacion(verificar_busqueda(problema, r)) for r in resultados.values()]
+        validas = [_verificar(verificar_busqueda(problema, r), registro) for r in resultados.values()]
         return 0 if all(validas) else 1
     return 0
 
 
-def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion):
+def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion, registro=None):
     """Continua la partida del escenario por turnos, con ambos bandos decidiendo con el mismo algoritmo.
 
     Proposito: ejecutar el modo ``partida`` del enunciado ("cargar el escenario completo para continuar el juego por
@@ -543,11 +586,13 @@ def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion):
     Precondiciones: ``algoritmo`` es ``minimax`` o ``alfa_beta``; ``escenario`` fue validado.
     Postcondiciones: juega desde el estado cargado con la profundidad y el orden de la consola o del JSON y con el
     limite de ``--turnos``, ``prueba.max_turnos`` o ``MAX_TURNOS_POR_DEFECTO``; imprime cada jugada y el resultado
-    y, con ``--verificar``, el reporte de ``verificar_partida`` (E10.2). Devuelve 0, o 1 si la verificacion falla.
+    y, con ``--verificar``, el reporte de ``verificar_partida`` (E10.2). Si se pasa ``registro`` (E10.3), registra
+    parametros resueltos, la partida y la verificacion. Devuelve 0, o 1 si la verificacion falla.
     Lanza ``ValueError`` si falta la profundidad o algun parametro no es valido.
     Complejidad: la de ``jugar_partida`` mas O(T) por presentar T jugadas.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) implemento este flujo en E10.1 y la verificacion opcional en E10.2.
+    Intervencion de IA: Claude (Opus 5.5) implemento este flujo en E10.1, la verificacion opcional en E10.2 y el
+    registro en E10.3.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/modos/test_consola_modos.py.
     """
     profundidad = resolver_profundidad(args.profundidad, escenario)
@@ -564,10 +609,21 @@ def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion):
     print(f"Turno inicial: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
     print(f"Algoritmo de ambos bandos: {algoritmo} | Profundidad: {profundidad} | Orden de acciones: {orden}")
     print(f"Límite: {max_turnos} jugadas")
+    if registro is not None:
+        registro.definir(
+            "partida",
+            algoritmo=algoritmo,
+            profundidad=profundidad,
+            orden_acciones=orden,
+            max_turnos=max_turnos,
+            pesos_utilidad=asdict(pesos_desde_configuracion(escenario.configuracion_juego)),
+        )
     partida = jugar_partida(escenario, estado, profundidad, algoritmo=algoritmo, orden=orden, max_turnos=max_turnos)
     mostrar_partida(partida)
+    if registro is not None:
+        registro.agregar_resultado(partida)
     if getattr(args, "verificar", False):
-        return 0 if mostrar_verificacion(verificar_partida(escenario, partida)) else 1
+        return 0 if _verificar(verificar_partida(escenario, partida), registro) else 1
     return 0
 
 
@@ -595,7 +651,7 @@ def mostrar_partida(partida):
     print(f"Portador final del recurso: {partida.estado_final.portador_recurso or 'ninguno'}")
 
 
-def ejecutar_modo(args, escenario, ruta):
+def ejecutar_modo(args, escenario, ruta, registro=None):
     """Ejecuta el modo de prueba que piden la consola o el campo ``prueba`` del escenario (E10.1).
 
     Proposito: que la aplicacion ejecute el modo solicitado por un escenario externo sin cambios de codigo.
@@ -603,11 +659,11 @@ def ejecutar_modo(args, escenario, ruta):
     Postcondiciones: lee ``prueba``, resuelve el modo con ``resolver_modo`` y el algoritmo con la prioridad consola,
     luego ``prueba.algoritmo`` (si es del mismo modo) y luego el valor por defecto del modo (``ucs`` en busqueda y
     ``alfa_beta`` en partida y adversarial); delega en ``ejecutar_busqueda``, ``ejecutar_partida`` o
-    ``ejecutar_adversarial`` y devuelve su codigo. Lanza ``ValueError`` si ``prueba`` o la combinacion de modo y
-    algoritmo no son validas.
+    ``ejecutar_adversarial`` (pasandoles ``registro``, E10.3) y devuelve su codigo. Lanza ``ValueError`` si ``prueba`` o
+    la combinacion de modo y algoritmo no son validas.
     Complejidad: la del modo ejecutado.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) implemento el despacho por modo en E10.1.
+    Intervencion de IA: Claude (Opus 5.5) implemento el despacho por modo en E10.1 y paso el registro en E10.3.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/modos/test_consola_modos.py.
     """
     configuracion = leer_configuracion_prueba(escenario)
@@ -620,11 +676,34 @@ def ejecutar_modo(args, escenario, ruta):
 
     if modo == "adversarial":
         return ejecutar_adversarial(
-            algoritmo, args.profundidad, escenario, ruta, args.orden, getattr(args, "verificar", False)
+            algoritmo, args.profundidad, escenario, ruta, args.orden, getattr(args, "verificar", False), registro
         )
     if modo == "partida":
-        return ejecutar_partida(algoritmo, args, escenario, ruta, configuracion)
-    return ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion)
+        return ejecutar_partida(algoritmo, args, escenario, ruta, configuracion, registro)
+    return ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion, registro)
+
+
+def crear_registro(ruta, escenario, verificar=False):
+    """Crea el registro reproducible (E10.3) de una ejecucion sobre el escenario leido de ``ruta``.
+
+    Purpose: identificar sin ambiguedad el escenario usado, con una huella de su contenido, para que el experimento se
+    pueda repetir y para detectar si el mapa cambio entre dos ejecuciones.
+    Preconditions: ``ruta`` es el archivo del que se cargo ``escenario``.
+    Postconditions: devuelve un ``RegistroExperimento`` con el archivo (relativo a la raiz del repositorio si esta
+    dentro de el, para que el comando de reproduccion sea portable) y la huella SHA-256 de sus bytes. No modifica el
+    archivo.
+    Complexity: O(N) temporal por calcular la huella de un archivo de N bytes y O(1) espacial adicional.
+    AI usage: Yes.
+    AI intervention: Claude (Opus 5.5) implemento esta funcion en E10.3.
+    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/modos/test_registro.py
+    comprueban la huella y que cambia al modificar el escenario.
+    """
+    try:
+        archivo = ruta.resolve().relative_to(RAIZ.resolve()).as_posix()
+    except ValueError:
+        archivo = str(ruta)
+    huella = hashlib.sha256(ruta.read_bytes()).hexdigest()
+    return RegistroExperimento(archivo=archivo, huella_sha256=huella, escenario=escenario, verificar=verificar)
 
 
 def ejecutar_consola(argumentos=None):
@@ -636,7 +715,8 @@ def ejecutar_consola(argumentos=None):
     legible; los datos del escenario se validan en ``cargar_escenario``.
     Postconditions: devuelve 0 tras mostrar los resultados y, para ``ambos``, su comparación; devuelve 1 y
     muestra un error si el escenario o los parámetros de navegación no son válidos, o si ``--verificar`` detecta que
-    alguna respuesta no es correcta.
+    alguna respuesta no es correcta. Con ``--json`` imprime solo el registro reproducible (E10.3) y con
+    ``--exportar`` lo guarda en un archivo ademas de mostrar el texto.
     Complexity: corresponde a la carga del escenario y a las búsquedas seleccionadas; la presentación agrega
     O(L) temporal y espacial para un camino de L posiciones.
     AI usage: Yes.
@@ -648,7 +728,7 @@ def ejecutar_consola(argumentos=None):
     E8.5 la opción ``minimax_alfa_beta``, moviendo el flujo adversarial a ``ejecutar_adversarial``; en E8.6 agregó
     ``--orden``; en E10.1 agregó ``--modo`` y ``--turnos``, quitó el valor fijo de ``--algoritmo`` (el modo y el
     algoritmo se resuelven en ``ejecutar_modo``) y movió la busqueda a ``ejecutar_busqueda``; en E10.2 agregó
-    ``--verificar``.
+    ``--verificar`` y en E10.3 ``--json`` y ``--exportar``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -716,6 +796,19 @@ def ejecutar_consola(argumentos=None):
     )
 
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Imprime solo el registro reproducible del experimento en JSON (E10.3), sin el texto habitual.",
+    )
+
+    parser.add_argument(
+        "--exportar",
+        type=Path,
+        metavar="ARCHIVO",
+        help="Guarda el registro reproducible del experimento en ARCHIVO como JSON (E10.3); el texto se sigue mostrando.",
+    )
+
+    parser.add_argument(
         "--unidad",
         type=str,
         help="Identificador de la unidad que se desplazará",
@@ -736,7 +829,26 @@ def ejecutar_consola(argumentos=None):
         ruta = RAIZ / ruta
 
     try:
-        return ejecutar_modo(args, cargar_escenario(ruta), ruta)
+        escenario = cargar_escenario(ruta)
+        if not args.json and args.exportar is None:
+            return ejecutar_modo(args, escenario, ruta)
+        registro = crear_registro(ruta, escenario, args.verificar)
+        if args.json:
+            with contextlib.redirect_stdout(io.StringIO()):
+                codigo = ejecutar_modo(args, escenario, ruta, registro)
+        else:
+            codigo = ejecutar_modo(args, escenario, ruta, registro)
+        texto = serializar(registro.a_diccionario())
+        if args.exportar is not None:
+            try:
+                args.exportar.write_text(texto + "\n", encoding="utf-8")
+            except OSError as error:
+                raise ValueError(f"No se pudo exportar el registro a {args.exportar}: {error}") from error
+            if not args.json:
+                print(f"\nRegistro del experimento exportado a {args.exportar}")
+        if args.json:
+            print(texto)
+        return codigo
 
     except (ErrorValidacionEscenario, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
