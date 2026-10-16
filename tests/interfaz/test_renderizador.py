@@ -2,15 +2,19 @@
 
 import os
 from dataclasses import replace
+from pathlib import Path
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
 import pytest
 
+from tacticalgrid.algoritmos.resultado_busqueda import ResultadoBusqueda
+from tacticalgrid.escenario import cargar_escenario
 from tacticalgrid.escenario.escenario import Escenario, Posicion, UnidadInicial
 from tacticalgrid.escenario.terreno import TipoTerreno
 from tacticalgrid.interfaz.renderizador import RenderizadorTablero
+from tacticalgrid.interfaz.aplicacion import preparar_busqueda
 from tacticalgrid.juego.estado import EstadoJuego, crear_estado_inicial
 from tacticalgrid.juego.unidad import Unidad
 
@@ -259,3 +263,151 @@ def test_composicion_superpuesta_mantiene_base_unidad_identificador_y_portador()
     assert renderizador.COLOR_TEXTO in colores
     assert renderizador.COLOR_RECURSO in colores
     assert renderizador.COLOR_CUADRICULA in colores
+
+
+RAIZ = Path(__file__).resolve().parents[2]
+RUTA_COMPARACION = RAIZ / "escenarios" / "ruta_corta_vs_economica.json"
+
+
+@pytest.mark.parametrize(
+    ("algoritmo", "k"),
+    [("bfs", None), ("dfs", None), ("ucs", None), ("astar", None), ("beam", 4)],
+)
+def test_traza_en_orden_el_camino_real_de_cada_algoritmo(monkeypatch, algoritmo: str, k: int | None):
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, algoritmo, k=k)
+    superficie = _superficie()
+    renderizador = RenderizadorTablero()
+    llamadas = []
+    dibujar_lineas = pygame.draw.lines
+
+    def registrar_lineas(superficie_destino, color, cerrada, puntos, grosor):
+        llamadas.append((color, tuple(puntos), grosor))
+        return dibujar_lineas(superficie_destino, color, cerrada, puntos, grosor)
+
+    monkeypatch.setattr(pygame.draw, "lines", registrar_lineas)
+    disposicion = renderizador.renderizar(superficie, escenario, estado, resultado)
+    centros_esperados = tuple(_celda(disposicion, posicion).center for posicion in resultado.camino)
+
+    assert resultado is not None and resultado.exito
+    assert llamadas[0][0] == renderizador.COLOR_OBSTACULO
+    assert llamadas[1][0] == renderizador.COLOR_CAMINO
+    assert llamadas[0][1] == llamadas[1][1] == centros_esperados
+
+
+def test_identifica_origen_destino_y_no_marca_celdas_ajenas_al_camino():
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, "bfs")
+    superficie = _superficie()
+    renderizador = RenderizadorTablero()
+
+    disposicion = renderizador.renderizar(superficie, escenario, estado, resultado)
+    colores_origen = _colores_en(superficie, _celda(disposicion, resultado.camino[0]))
+    colores_destino = _colores_en(superficie, _celda(disposicion, resultado.camino[-1]))
+    colores_ajenos = _colores_en(superficie, _celda(disposicion, Posicion(4, 4)), margen=2)
+
+    assert renderizador.COLOR_ORIGEN in colores_origen
+    assert renderizador.COLOR_DESTINO in colores_destino
+    assert renderizador.COLOR_CAMINO not in colores_ajenos
+    assert renderizador.COLOR_ORIGEN not in colores_ajenos
+    assert renderizador.COLOR_DESTINO not in colores_ajenos
+
+
+def test_renderizar_camino_no_modifica_resultado_estado_ni_metricas():
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, "ucs")
+    datos_antes = resultado.a_diccionario()
+    acciones_antes = resultado.acciones
+
+    RenderizadorTablero().renderizar(_superficie(), escenario, estado, resultado)
+
+    assert resultado.a_diccionario() == datos_antes
+    assert resultado.acciones == acciones_antes
+    assert estado == crear_estado_inicial(escenario)
+
+
+def test_resultado_real_sin_solucion_no_dibuja_camino_y_lo_informa_en_panel(monkeypatch):
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, "bfs", "A1", (1, 1))
+    superficie = _superficie()
+    renderizador = RenderizadorTablero()
+    textos = []
+    dibujar_texto = renderizador._dibujar_texto
+
+    def registrar_texto(superficie_destino, texto, color, posicion, fuente):
+        textos.append(texto)
+        return dibujar_texto(superficie_destino, texto, color, posicion, fuente)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto", registrar_texto)
+    disposicion = renderizador.renderizar(superficie, escenario, estado, resultado)
+
+    assert not resultado.exito and resultado.camino == ()
+    assert "Estado: sin solucion" in textos
+    assert renderizador.COLOR_CAMINO not in _colores_en(superficie, disposicion.tablero)
+
+
+def test_resultado_exitoso_vacio_no_falla_ni_inventa_un_camino():
+    escenario = _escenario()
+    resultado = ResultadoBusqueda("PRUEBA", True, (), 0, 1, 0, 1)
+    superficie = _superficie()
+    renderizador = RenderizadorTablero()
+
+    disposicion = renderizador.renderizar(superficie, escenario, crear_estado_inicial(escenario), resultado)
+
+    assert renderizador.COLOR_CAMINO not in _colores_en(superficie, disposicion.tablero)
+
+
+def test_sin_busqueda_no_muestra_estado_de_resultado(monkeypatch):
+    escenario = _escenario()
+    renderizador = RenderizadorTablero()
+    textos = []
+    dibujar_texto = renderizador._dibujar_texto
+
+    def registrar_texto(superficie_destino, texto, color, posicion, fuente):
+        textos.append(texto)
+        return dibujar_texto(superficie_destino, texto, color, posicion, fuente)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto", registrar_texto)
+    renderizador.renderizar(_superficie(), escenario, crear_estado_inicial(escenario))
+
+    assert not any(texto.startswith(("Busqueda:", "Estado:")) for texto in textos)
+
+
+def test_resultado_nuevo_y_fracaso_sustituyen_completamente_el_camino_anterior():
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    bfs = preparar_busqueda(escenario, estado, "bfs")
+    ucs = preparar_busqueda(escenario, estado, "ucs")
+    fracaso = preparar_busqueda(escenario, estado, "bfs", "A1", (1, 1))
+    superficie = _superficie()
+    renderizador = RenderizadorTablero()
+
+    renderizador.renderizar(superficie, escenario, estado, bfs)
+    disposicion = renderizador.renderizar(superficie, escenario, estado, ucs)
+    celda_exclusiva_bfs = _celda(disposicion, Posicion(2, 4))
+    assert renderizador.COLOR_CAMINO not in _colores_en(superficie, celda_exclusiva_bfs, margen=2)
+
+    renderizador.renderizar(superficie, escenario, estado, fracaso)
+    assert renderizador.COLOR_CAMINO not in _colores_en(superficie, disposicion.tablero)
+
+
+def test_cambiar_escenario_y_omitir_resultado_no_conserva_la_ruta_anterior():
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, "bfs")
+    superficie = _superficie()
+    renderizador = RenderizadorTablero()
+    renderizador.renderizar(superficie, escenario, estado, resultado)
+
+    escenario_nuevo = _escenario(3, 11)
+    disposicion = renderizador.renderizar(
+        superficie,
+        escenario_nuevo,
+        crear_estado_inicial(escenario_nuevo),
+    )
+
+    assert renderizador.COLOR_CAMINO not in _colores_en(superficie, disposicion.tablero)
