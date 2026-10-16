@@ -5,6 +5,7 @@ from hashlib import sha256
 
 import pygame
 
+from tacticalgrid.algoritmos.resultado_busqueda import ResultadoBusqueda
 from tacticalgrid.escenario.escenario import Escenario, Posicion
 from tacticalgrid.escenario.terreno import TipoTerreno
 from tacticalgrid.juego.estado import EstadoJuego
@@ -32,6 +33,9 @@ class RenderizadorTablero:
     COLOR_OBSTACULO: Color = (20, 22, 25)
     COLOR_BASES: dict[str, Color] = {"A": (38, 117, 191), "B": (190, 68, 68)}
     COLOR_RECURSO: Color = (244, 196, 48)
+    COLOR_CAMINO: Color = (22, 224, 238)
+    COLOR_ORIGEN: Color = (68, 220, 112)
+    COLOR_DESTINO: Color = (255, 112, 82)
     ANCHO_PANEL = 250
     MARGEN = 16
 
@@ -100,27 +104,38 @@ class RenderizadorTablero:
             return (80 + resumen[0] % 116, 80 + resumen[1] % 116, 80 + resumen[2] % 116)
         return (38 + resumen[0] % 35, 38 + resumen[1] % 35, 38 + resumen[2] % 35)
 
-    def renderizar(self, superficie: pygame.Surface, escenario: Escenario, estado: EstadoJuego) -> DisposicionTablero:
+    def renderizar(
+        self,
+        superficie: pygame.Surface,
+        escenario: Escenario,
+        estado: EstadoJuego,
+        resultado_busqueda: ResultadoBusqueda | None = None,
+    ) -> DisposicionTablero:
         """Dibuja el tablero completo y su informacion vigente sobre una superficie Pygame.
 
-        Purpose: representar terrenos, obstaculos, bases, recurso, unidades, portador, turno y leyenda.
+        Purpose: representar terrenos, camino de busqueda opcional, obstaculos, bases, recurso, unidades, portador,
+        turno y leyenda.
         Preconditions: ``escenario`` esta validado y ``estado`` es coherente con el escenario.
         Postconditions: la superficie refleja el estado recibido; escenario y estado permanecen inmutables.
-        Complexity: O(F*C + U + T) temporal y O(T) espacial, con celdas, unidades y tipos de terreno.
+        Complexity: O(F*C + U + T + L) temporal y O(F*C + L) espacial, con celdas, unidades, tipos de terreno y
+        L posiciones del camino.
         AI usage: Yes.
-        AI intervention: Codex implemento la composicion por capas, simbolos y panel para E9.1.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas automatizadas y pendiente
-        de validacion visual manual.
+        AI intervention: Codex implemento la composicion por capas, simbolos y panel para E9.1; en E9.2 agrego el
+        camino proveniente de ``ResultadoBusqueda`` sin alterar su contenido.
+        Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
+        automatizadas del orden, fidelidad y superposicion de capas.
         """
         disposicion = self.calcular_disposicion(superficie, escenario)
         superficie.fill(self.COLOR_FONDO)
         celdas = self._dibujar_terrenos(superficie, escenario, disposicion)
+        if resultado_busqueda is not None and resultado_busqueda.exito and resultado_busqueda.camino:
+            self._dibujar_camino(superficie, resultado_busqueda.camino, celdas, disposicion.tamano_celda)
         self._dibujar_bases(superficie, escenario, celdas, disposicion.tamano_celda)
         if estado.portador_recurso is None and estado.posicion_recurso is not None:
             self._dibujar_recurso(superficie, celdas[estado.posicion_recurso], disposicion.tamano_celda)
         self._dibujar_unidades(superficie, estado, celdas, disposicion.tamano_celda)
         self._dibujar_cuadricula(superficie, escenario, disposicion)
-        self._dibujar_panel(superficie, escenario, estado, disposicion.panel)
+        self._dibujar_panel(superficie, escenario, estado, resultado_busqueda, disposicion.panel)
         return disposicion
 
     def _dibujar_terrenos(
@@ -163,6 +178,39 @@ class RenderizadorTablero:
                     )
                 celdas[posicion] = rectangulo
         return celdas
+
+    def _dibujar_camino(
+        self,
+        superficie: pygame.Surface,
+        camino: tuple[Posicion, ...],
+        celdas: dict[Posicion, pygame.Rect],
+        lado: int,
+    ) -> None:
+        """Traza en orden el camino calculado y diferencia sus extremos.
+
+        Purpose: convertir las posiciones ya calculadas en una linea visual sin recalcular ni corregir la ruta.
+        Preconditions: cada posicion de ``camino`` pertenece a ``celdas`` y conserva el orden del resultado.
+        Postconditions: los centros se conectan en el mismo orden; origen y destino quedan marcados y los datos de
+        entrada permanecen sin modificaciones.
+        Complexity: O(L) temporal y espacial por los L centros del camino.
+        AI usage: Yes.
+        AI intervention: Codex diseño e implemento para E9.2 la linea adaptable y los marcadores de extremos.
+        Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
+        automatizadas que comparan los centros trazados con ``ResultadoBusqueda.camino``.
+        """
+        centros = [celdas[posicion].center for posicion in camino]
+        grosor_borde = max(3, lado // 4)
+        grosor_linea = max(1, lado // 8)
+        if len(centros) > 1:
+            pygame.draw.lines(superficie, self.COLOR_OBSTACULO, False, centros, grosor_borde)
+            pygame.draw.lines(superficie, self.COLOR_CAMINO, False, centros, grosor_linea)
+        else:
+            pygame.draw.circle(superficie, self.COLOR_CAMINO, centros[0], max(2, lado // 10))
+
+        radio = max(4, lado // 2 - 3)
+        grosor_marcador = max(2, lado // 12)
+        pygame.draw.circle(superficie, self.COLOR_ORIGEN, centros[0], radio, grosor_marcador)
+        pygame.draw.circle(superficie, self.COLOR_DESTINO, centros[-1], radio, grosor_marcador)
 
     def _dibujar_bases(
         self,
@@ -279,17 +327,21 @@ class RenderizadorTablero:
         superficie: pygame.Surface,
         escenario: Escenario,
         estado: EstadoJuego,
+        resultado_busqueda: ResultadoBusqueda | None,
         panel: pygame.Rect,
     ) -> None:
         """Presenta turno y leyenda de terrenos y simbolos usados.
 
         Purpose: explicar la codificacion visual y destacar el bando activo sin duplicar el turno.
         Preconditions: el panel pertenece a la superficie y el estado contiene el turno vigente.
-        Postconditions: se muestran turno, terrenos, obstaculos, bases, recurso y portador cuando hay espacio.
+        Postconditions: se muestran turno, terrenos, obstaculos, bases, recurso y portador; cuando existe un
+        resultado tambien se muestran algoritmo, exito y la leyenda del camino, siempre que haya espacio.
         Complexity: O(T) temporal y O(1) espacial adicional, donde T es la cantidad de terrenos.
         AI usage: Yes.
-        AI intervention: Codex implemento el panel informativo derivado del escenario y estado para E9.1.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de turno y leyenda.
+        AI intervention: Codex implemento el panel de E9.1 y agrego en E9.2 el estado minimo de la busqueda y la
+        leyenda coherente con sus marcadores.
+        Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas de
+        turno, resultado y leyenda.
         """
         if panel.width <= 0 or panel.height <= 0:
             return
@@ -307,6 +359,38 @@ class RenderizadorTablero:
             )
             + 12
         )
+        if resultado_busqueda is not None:
+            estado_busqueda = "exito" if resultado_busqueda.exito else "sin solucion"
+            y = self._dibujar_texto(
+                superficie,
+                f"Busqueda: {resultado_busqueda.algoritmo}",
+                self.COLOR_TEXTO,
+                (x, y),
+                self._fuente_pequena,
+            ) + 2
+            y = self._dibujar_texto(
+                superficie,
+                f"Estado: {estado_busqueda}",
+                self.COLOR_TEXTO,
+                (x, y),
+                self._fuente_pequena,
+            ) + 4
+            if resultado_busqueda.exito:
+                muestras = (
+                    (self.COLOR_CAMINO, "camino"),
+                    (self.COLOR_ORIGEN, "origen"),
+                    (self.COLOR_DESTINO, "destino"),
+                )
+                for color, etiqueta in muestras:
+                    pygame.draw.line(superficie, color, (x, y + 7), (x + 14, y + 7), 3)
+                    y = self._dibujar_texto(
+                        superficie,
+                        etiqueta,
+                        self.COLOR_TEXTO,
+                        (x + 22, y),
+                        self._fuente_pequena,
+                    ) + 2
+            y += 6
         y = self._dibujar_texto(superficie, "Terrenos", self.COLOR_TEXTO, (x, y), self._fuente) + 6
         for nombre, tipo in escenario.tipos_terreno.items():
             if y + 18 > panel.bottom:

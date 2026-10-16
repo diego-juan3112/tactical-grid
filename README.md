@@ -837,7 +837,10 @@ python3 main.py --algoritmo bfs_dfs
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
 ```
 
-La interfaz grafica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`:
+## Visualizacion del tablero y caminos — E9.1/E9.2
+
+La interfaz grafica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`. Si no se
+indica `--algoritmo`, conserva la vista estatica de E9.1 y no ejecuta una busqueda:
 
 ```bash
 tacticalgrid
@@ -845,12 +848,30 @@ tacticalgrid escenarios/ruta_corta_vs_economica.json
 tacticalgrid escenarios/recurso_en_transporte.json
 ```
 
-Si no se indican más argumentos, la unidad y el objetivo se leen de `prueba.unidad_inicio` y `prueba.objetivo`
-del escenario. Para elegirlos explícitamente, use `--unidad ID` y `--objetivo FILA COLUMNA`; por ejemplo:
+E9.2 ejecuta una busqueda una sola vez antes del ciclo grafico y dibuja su `ResultadoBusqueda.camino` sobre el
+tablero. Los nombres admitidos son `bfs`, `dfs`, `ucs`, `astar` y `beam`:
 
 ```bash
-python3 main.py --algoritmo ucs --unidad A1 --objetivo 9 10
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo bfs
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo dfs
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo ucs
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo astar
+tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo beam --k 4
 ```
+
+La unidad y el objetivo indicados por consola tienen prioridad. Si se omiten, se leen de
+`prueba.unidad_inicio` y `prueba.objetivo` del escenario, siempre que `prueba.modo` sea `busqueda`. No se inventan
+valores cuando faltan ambos orígenes:
+
+```bash
+tacticalgrid escenarios/campo_20x20.json --algoritmo astar --unidad A1 --objetivo 10 15
+tacticalgrid escenarios/campo_20x20.json --algoritmo beam --unidad A1 --objetivo 9 10 --k 4
+```
+
+Beam Search requiere un entero `k >= 1`: `--k` tiene prioridad y, si se omite, se usa `prueba.k`. A* usa Manhattan
+por defecto. La linea cian conserva el orden exacto del camino; el anillo verde identifica el origen y el coral el
+destino. Las bases, el recurso, las unidades y la cuadricula se dibujan encima para mantener su identidad. El panel
+muestra el algoritmo y `exito` o `sin solucion`; en el segundo caso no se dibuja ninguna ruta.
 
 Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
 
