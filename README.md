@@ -955,6 +955,41 @@ Sin `--profundidad`, se usa `juego.profundidad_maxima_minimax` del escenario. La
 mano (E8.4), que cada métrica coincide con ejecutar cada algoritmo por separado en los escenarios del repositorio
 (profundidades 1 a 3), la serialización a JSON, la raíz terminal y la consola.
 
+## Casos mínimos 6 a 10 — E8.6
+
+[Casos mínimos 6 a 10](docs/casos-minimos-adversariales.md) documenta, para cada caso, el escenario, el estado
+inicial y la comparación entre el resultado esperado y el obtenido:
+
+| Caso | Resultado principal |
+|---|---|
+| 6. Estado compuesto | Con las seis unidades en las mismas casillas, sin portador A1 va hacia el recurso y con portador lo lleva a su base (`estado_compuesto_libre.json` / `estado_compuesto_portador.json`). |
+| 7. Decisión adversarial | Con profundidad 1 Minimax toma el recurso (valor 37); con profundidad 2 o más ve que B1 lo intercepta desde su base y no lo toma (−10 000) (`decision_adversarial.json`). |
+| 8. Minimax vs. alfa-beta | Misma acción y valor en profundidades 1 a 4; con profundidad 4, alfa-beta evalúa 600 hojas frente a 5238 (−89 %). |
+| 9. Orden de acciones | El orden cambia la poda, no el valor; el orden `tactico` es el que menos evalúa. Los nodos podados no miden el ahorro. |
+| 10. Profundidad | El trabajo crece unas 8,5 veces por nivel y la decisión alterna con la paridad de la profundidad. |
+
+### Orden de acciones configurable
+
+El caso 9 exige cambiar el orden de generación de acciones. `algoritmos/orden_acciones.py` ofrece tres órdenes, que
+Minimax y alfa-beta aplican en todos los nodos:
+
+- `generacion`: el orden de `acciones_tacticas`. Es el predeterminado, así que E8.3, E8.4 y E8.5 no cambian.
+- `inverso`: el mismo orden al revés.
+- `tactico`: primero interceptar al portador, luego avanzar con el recurso, aproximarse al recurso, bloquear,
+  perseguir, proteger y reposicionar.
+
+Se cambia sin tocar código, con `--orden` en la consola o con el campo propio `juego.orden_acciones` del escenario; la
+consola tiene prioridad. El orden no cambia el valor Minimax, pero sí cuánto poda alfa-beta y, entre acciones
+empatadas, cuál se elige. Con el mismo orden, Minimax y alfa-beta siguen eligiendo lo mismo.
+
+```bash
+python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden tactico
+```
+
+Las pruebas de `tests/algoritmos/test_casos_minimos_adversariales.py` fijan todas las cifras de los cinco casos, y
+las de `tests/algoritmos/test_orden_acciones.py` cubren los tres órdenes y su integración con Minimax, alfa-beta y la
+comparación.
+
 ## Ejecución desde consola
 
 Desde la raíz del repositorio, la ejecución sin argumentos usa UCS y el escenario predeterminado
@@ -983,6 +1018,7 @@ python3 main.py --algoritmo bfs_dfs
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 2
 python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 2
+python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 4 --orden tactico
 ```
 
 ## Visualizacion del tablero y caminos — E9.1/E9.2
@@ -1097,7 +1133,10 @@ Todos los escenarios viven en `escenarios/` y usan el formato JSON comun. El cam
 | `campo_20x20.json` | 20 x 20 | Mapa principal de desarrollo: anillo de camino, lago de pantano con el recurso en una isla, bosques y muros. BFS observado: 16 movimientos y costo 45; el calculo de referencia encuentra como minimo 42 entre las rutas de 16 movimientos. UCS observado: 34 movimientos y costo 34. |
 | `ruta_corta_vs_economica.json` | 5 x 9 | BFS vs. UCS: la ruta recta por pantano tiene 8 movimientos y cuesta 50; rodear por camino toma 12 movimientos y cuesta 12. Con el pantano a costo 1, ambas coinciden. |
 | `obstaculo_rodeo.json` | 8 x 7 | El objetivo esta a distancia Manhattan 3, pero un muro en U obliga a un recorrido de 15 movimientos (caso 3: obstaculo y heuristica). |
-| `recurso_en_transporte.json` | 6 x 8 | Partida con `portador_recurso` = `A2` (caso 6: estado compuesto). |
+| `recurso_en_transporte.json` | 6 x 8 | Partida con `portador_recurso` = `A2`. Se usa en los casos 8, 9 y 10 (E8.6); el caso 6 tiene su propio par de escenarios. |
+| `estado_compuesto_libre.json` | 5 x 5 | Caso 6: las seis unidades en las mismas casillas que la variante con portador, con el recurso libre en (2, 4). |
+| `estado_compuesto_portador.json` | 5 x 5 | Caso 6: las mismas casillas, pero A1 transporta el recurso. Cambia el estado, su valor y la decision. |
+| `decision_adversarial.json` | 3 x 6 | Caso 7: A1 esta a un paso del recurso, pero B1 lo intercepta desde su base; con profundidad 2 o mas, Minimax no lo toma. |
 
 Las propiedades de los escenarios se verifican con un calculo de referencia y con las implementaciones de BFS y
 UCS sobre el modelo del juego. Cuando el resultado observado depende del desempate del algoritmo, la tabla lo

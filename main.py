@@ -30,6 +30,12 @@ from tacticalgrid.algoritmos.comparacion_adversarial import (
     comparar_minimax_alfa_beta,
 )
 from tacticalgrid.algoritmos.minimax import minimax, profundidad_desde_configuracion, validar_profundidad
+from tacticalgrid.algoritmos.orden_acciones import (
+    ORDEN_GENERACION,
+    ORDENES,
+    orden_desde_configuracion,
+    validar_orden,
+)
 from tacticalgrid.juego import ProblemaNavegacion, crear_estado_inicial
 
 
@@ -103,6 +109,26 @@ def construir_problema(escenario, unidad=None, destino=None):
     return problema, unidad, objetivo
 
 
+def resolver_orden(orden_consola, escenario):
+    """Determina el orden de acciones de Minimax y alfa-beta sin modificar codigo.
+
+    Proposito: permitir cambiar el orden de generacion de acciones desde ``--orden`` o desde el campo propio
+    ``juego.orden_acciones`` del JSON, como pide el caso minimo 9 y la sustentacion.
+    Precondiciones: ``orden_consola`` es ``None`` o uno de ``ORDENES`` (argparse ya lo restringe); ``escenario`` fue
+    validado.
+    Postcondiciones: devuelve el orden de consola si se indico (tiene prioridad), si no el del JSON y, si tampoco
+    esta, ``generacion``; lanza ``ValueError`` con las opciones validas si el JSON trae un orden desconocido.
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta funcion y la opcion ``--orden`` en E8.6.
+    Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de
+    tests/algoritmos/test_casos_minimos_adversariales.py.
+    """
+    if orden_consola is not None:
+        return validar_orden(orden_consola)
+    return orden_desde_configuracion(escenario.configuracion_juego) or ORDEN_GENERACION
+
+
 def resolver_profundidad(profundidad_consola, escenario):
     """Determina la profundidad maxima de Minimax sin modificar codigo.
 
@@ -162,6 +188,7 @@ def mostrar_comparacion_adversarial(comparacion):
     print("COMPARACIÓN MINIMAX vs. ALFA-BETA")
     print("=" * 92)
     print(f"Bando MAX: {comparacion.minimax.bando_max} | Profundidad máxima: {comparacion.minimax.profundidad_maxima}")
+    print(f"Orden de acciones: {comparacion.minimax.orden_acciones}")
     print(f"{'Métrica':<22} {'Minimax':>24} {'Alfa-beta':>24} {'Reducción':>12}")
     for etiqueta, campo in METRICAS_COMPARABLES:
         reduccion = comparacion.reduccion_porcentual(campo) if campo in METRICAS_DE_TRABAJO else None
@@ -195,6 +222,7 @@ def mostrar_resultado_minimax(resultado):
     print("=" * 60)
     print(f"Bando MAX: {resultado.bando_max}")
     print(f"Profundidad máxima: {resultado.profundidad_maxima}")
+    print(f"Orden de acciones: {resultado.orden_acciones}")
     if resultado.accion_seleccionada is None:
         print("Acción seleccionada: ninguna (estado terminal o bando sin acciones)")
     else:
@@ -389,22 +417,25 @@ def mostrar_comparacion_bfs_dfs(resultados):
     print(f"Caminos: {'Iguales' if bfs.camino == dfs.camino else 'Diferentes'}")
 
 
-def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta):
+def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta, orden_consola=None):
     """Ejecuta Minimax, alfa-beta o su comparacion sobre el estado inicial del escenario y muestra el resultado.
 
-    Proposito: concentrar el flujo adversarial del ejecutor de consola (E8.3, E8.4 y E8.5).
+    Proposito: concentrar el flujo adversarial del ejecutor de consola (E8.3, E8.4, E8.5 y E8.6).
     Precondiciones: ``algoritmo`` pertenece a ``ADVERSARIALES``; ``escenario`` fue cargado y validado.
     Postcondiciones: imprime el encabezado del escenario y el resultado del algoritmo o, para
-    ``minimax_alfa_beta``, la tabla comparativa de E8.5; devuelve 0. Lanza ``ValueError`` si no hay una profundidad
-    valida en la consola ni en el JSON.
+    ``minimax_alfa_beta``, la tabla comparativa de E8.5, usando el orden de acciones de la consola, del JSON o el de
+    generacion; devuelve 0. Lanza ``ValueError`` si no hay una profundidad valida en la consola ni en el JSON, o si
+    el JSON trae un orden desconocido.
     Complejidad: la de la busqueda o busquedas ejecutadas.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` y agrego la opcion ``minimax_alfa_beta`` en
-    E8.5.
+    E8.5, y en E8.6 el orden de acciones configurable.
     Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de
-    tests/algoritmos/test_minimax.py, test_alfa_beta.py y test_comparacion_adversarial.py.
+    tests/algoritmos/test_minimax.py, test_alfa_beta.py, test_comparacion_adversarial.py y
+    test_casos_minimos_adversariales.py.
     """
     profundidad = resolver_profundidad(profundidad_consola, escenario)
+    orden = resolver_orden(orden_consola, escenario)
     estado = crear_estado_inicial(escenario)
     print("\nTACTICALGRID")
     print("=" * 60)
@@ -412,9 +443,9 @@ def ejecutar_adversarial(algoritmo, profundidad_consola, escenario, ruta):
     print(f"Dimensiones: {escenario.filas} x {escenario.columnas}")
     print(f"Turno: {estado.turno_actual} | Portador del recurso: {estado.portador_recurso or 'ninguno'}")
     if algoritmo == "minimax_alfa_beta":
-        mostrar_comparacion_adversarial(comparar_minimax_alfa_beta(escenario, estado, profundidad))
+        mostrar_comparacion_adversarial(comparar_minimax_alfa_beta(escenario, estado, profundidad, orden=orden))
     else:
-        mostrar_resultado_minimax(DECISORES[algoritmo](escenario, estado, profundidad))
+        mostrar_resultado_minimax(DECISORES[algoritmo](escenario, estado, profundidad, orden=orden))
     return 0
 
 
@@ -434,7 +465,8 @@ def main():
     alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``, y en
     E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs`` y en E4.4 la
     opción ``bfs_dfs``; en E8.3 agregó la opción ``minimax`` y ``--profundidad``, en E8.4 la opción ``alfa_beta`` y en
-    E8.5 la opción ``minimax_alfa_beta``, moviendo el flujo adversarial a ``ejecutar_adversarial``.
+    E8.5 la opción ``minimax_alfa_beta``, moviendo el flujo adversarial a ``ejecutar_adversarial``; en E8.6 agregó
+    ``--orden``.
     Student validation: pendiente de revisión del equipo.
     """
 
@@ -474,6 +506,13 @@ def main():
     )
 
     parser.add_argument(
+        "--orden",
+        choices=ORDENES,
+        help="Orden en que Minimax y alfa-beta exploran las acciones. Si se omite, se usa 'juego.orden_acciones' "
+        "del JSON o, si no esta, 'generacion'.",
+    )
+
+    parser.add_argument(
         "--unidad",
         type=str,
         help="Identificador de la unidad que se desplazará",
@@ -497,7 +536,7 @@ def main():
         escenario = cargar_escenario(ruta)
 
         if args.algoritmo in ADVERSARIALES:
-            return ejecutar_adversarial(args.algoritmo, args.profundidad, escenario, ruta)
+            return ejecutar_adversarial(args.algoritmo, args.profundidad, escenario, ruta, args.orden)
 
         problema, unidad, objetivo = construir_problema(
             escenario,

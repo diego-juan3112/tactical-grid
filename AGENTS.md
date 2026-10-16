@@ -136,6 +136,12 @@ profundidad). La profundidad maxima se toma de `juego.profundidad_maxima_minimax
 empate se conserva la primera accion en el orden de generacion: alfa-beta (E8.4) debe usar el mismo orden y el mismo
 desempate para producir la misma decision.
 
+Campo propio `juego.orden_acciones` (E8.6): orden en que Minimax y alfa-beta exploran las acciones (`generacion`,
+`inverso` o `tactico`); es opcional y por defecto vale `generacion`. La consola (`main.py --orden`) tiene prioridad
+sobre el JSON. Se lee con `orden_desde_configuracion` y se aplica con `ordenar_acciones`
+(`algoritmos/orden_acciones.py`), que deben usar ambos algoritmos en todos los nodos: el orden no cambia el valor
+Minimax, pero si la cantidad de poda y, entre acciones empatadas, cual se elige.
+
 ### Cómo ejecutarlos
 
 Crear y activar un entorno virtual con Python 3.12 o 3.13 (no 3.14), e instalar las dependencias de desarrollo.

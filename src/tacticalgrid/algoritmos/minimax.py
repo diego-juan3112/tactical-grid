@@ -8,8 +8,9 @@ Decisiones de diseno:
   turno pasa al adversario sin consumir profundidad, y si ambos estan bloqueados la partida termina en empate.
 - Un nodo es hoja si es terminal, si no tiene acciones o si alcanzo la profundidad maxima; en las hojas se calcula
   la utilidad con ``EvaluadorUtilidad``.
-- Las acciones se exploran en el orden de ``acciones_tacticas``. Ante empate de valor se conserva la primera accion,
-  de modo que alfa-beta (E8.4) pueda reproducir exactamente la misma decision con el mismo orden.
+- Las acciones se exploran en el orden de ``acciones_tacticas``, o en el orden elegido con ``orden`` (E8.6, ver
+  ``orden_acciones``). Ante empate de valor se conserva la primera accion, de modo que alfa-beta (E8.4) pueda
+  reproducir exactamente la misma decision con el mismo orden.
 - Metricas: ``nodos_generados`` cuenta la raiz y cada sucesor creado; ``nodos_evaluados`` las hojas en las que se
   calculo la utilidad; ``nodos_podados`` es siempre 0 en Minimax y existe para comparar con alfa-beta;
   ``profundidad_alcanzada`` es la mayor profundidad de un nodo visitado (la raiz tiene profundidad 0).
@@ -25,6 +26,7 @@ from tacticalgrid.juego.partida import preparar_turno
 from tacticalgrid.juego.reglas import aplicar_accion, es_terminal
 from tacticalgrid.juego.tacticas import AccionTactica, acciones_tacticas
 
+from .orden_acciones import ORDEN_GENERACION, ordenar_acciones, validar_orden
 from .utilidad import EvaluadorUtilidad, pesos_desde_configuracion
 
 CLAVE_PROFUNDIDAD = "profundidad_maxima_minimax"
@@ -48,6 +50,7 @@ class ResultadoMinimax:
     # Alineado con ``valores_raiz``: True si ese valor es solo una cota superior porque alfa-beta podo parte de su
     # subarbol. Vacio en Minimax, donde todos los valores de la raiz son exactos.
     cotas_raiz: tuple[bool, ...] = ()
+    orden_acciones: str = ORDEN_GENERACION
 
     def a_diccionario(self) -> dict[str, object]:
         """Exporta las metricas con nombres equivalentes a la tabla del enunciado, listas para ``json.dumps``."""
@@ -56,6 +59,7 @@ class ResultadoMinimax:
             "algoritmo": self.algoritmo,
             "bando_max": self.bando_max,
             "profundidad_maxima": self.profundidad_maxima,
+            "orden_acciones": self.orden_acciones,
             "nodos_generados": self.nodos_generados,
             "nodos_evaluados": self.nodos_evaluados,
             "nodos_podados": self.nodos_podados,
@@ -141,11 +145,12 @@ def _valor_minimax(
     profundidad: int,
     profundidad_maxima: int,
     contadores: _Contadores,
+    orden: str,
 ) -> float:
     """Valor Minimax de ``estado`` visto a ``profundidad`` desde la raiz (recursivo, en profundidad)."""
     contadores.profundidad_alcanzada = max(contadores.profundidad_alcanzada, profundidad)
     estado = preparar_turno(escenario, estado)
-    acciones = () if es_terminal(escenario, estado) else acciones_tacticas(escenario, estado)
+    acciones = () if es_terminal(escenario, estado) else ordenar_acciones(acciones_tacticas(escenario, estado), orden)
     if profundidad == profundidad_maxima or not acciones:
         contadores.evaluados += 1
         return evaluador.evaluar(estado)
@@ -155,7 +160,7 @@ def _valor_minimax(
     for accion_tactica in acciones:
         sucesor = aplicar_accion(escenario, estado, accion_tactica.accion)
         contadores.generados += 1
-        valor = _valor_minimax(escenario, evaluador, sucesor, profundidad + 1, profundidad_maxima, contadores)
+        valor = _valor_minimax(escenario, evaluador, sucesor, profundidad + 1, profundidad_maxima, contadores, orden)
         mejor = max(mejor, valor) if es_max else min(mejor, valor)
     return mejor
 
@@ -165,6 +170,7 @@ def minimax(
     estado: EstadoJuego,
     profundidad_maxima: int,
     evaluador: EvaluadorUtilidad | None = None,
+    orden: str = ORDEN_GENERACION,
 ) -> ResultadoMinimax:
     """Elige la mejor accion para el bando en turno explorando el arbol de juego hasta ``profundidad_maxima``.
 
@@ -183,12 +189,14 @@ def minimax(
     AI usage: Yes.
     AI intervention: Claude (Opus 5.5) propuso el diseno (MAX como bando en turno, pase de turno sin consumir
     profundidad, desempate por la primera accion), la implementacion y esta documentacion en E8.3; en E8.4 movio la
-    construccion del evaluador a ``preparar_evaluador`` para compartirla con alfa-beta, sin cambiar el resultado.
+    construccion del evaluador a ``preparar_evaluador`` para compartirla con alfa-beta, sin cambiar el resultado; en
+    E8.6 agrego el parametro ``orden`` (por defecto ``generacion``, el comportamiento anterior) para el caso minimo 9.
     Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/algoritmos/test_minimax.py
     comparan el resultado con un arbol pequeno calculado a mano, verifican la legalidad de la accion elegida, la
     simetria entre bandos, las metricas por profundidad y la lectura de la profundidad desde el JSON.
     """
     profundidad_maxima = validar_profundidad(profundidad_maxima)
+    orden = validar_orden(orden)
     inicio = time.perf_counter()
     evaluador = preparar_evaluador(escenario, estado, evaluador)
 
@@ -196,10 +204,10 @@ def minimax(
     contadores.generados = 1
     raiz = preparar_turno(escenario, estado)
     puede_actuar = not es_terminal(escenario, raiz) and raiz.turno_actual == evaluador.bando_max
-    acciones = acciones_tacticas(escenario, raiz) if puede_actuar else ()
+    acciones = ordenar_acciones(acciones_tacticas(escenario, raiz), orden) if puede_actuar else ()
 
     if not acciones:
-        valor = _valor_minimax(escenario, evaluador, raiz, 0, profundidad_maxima, contadores)
+        valor = _valor_minimax(escenario, evaluador, raiz, 0, profundidad_maxima, contadores, orden)
         seleccionada = None
         valores_raiz: tuple[tuple[AccionTactica, float], ...] = ()
     else:
@@ -208,7 +216,7 @@ def minimax(
             sucesor = aplicar_accion(escenario, raiz, accion_tactica.accion)
             contadores.generados += 1
             valores.append(
-                (accion_tactica, _valor_minimax(escenario, evaluador, sucesor, 1, profundidad_maxima, contadores))
+                (accion_tactica, _valor_minimax(escenario, evaluador, sucesor, 1, profundidad_maxima, contadores, orden))
             )
         seleccionada, valor = valores[0]
         for accion_tactica, valor_accion in valores[1:]:
@@ -228,4 +236,5 @@ def minimax(
         profundidad_alcanzada=contadores.profundidad_alcanzada,
         tiempo_segundos=time.perf_counter() - inicio,
         valores_raiz=valores_raiz,
+        orden_acciones=orden,
     )
