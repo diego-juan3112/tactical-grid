@@ -2,6 +2,24 @@
 
 Juego tactico 2D por turnos para Sistemas Inteligentes I. El juego permite observar y experimentar estrategias de busqueda y decision sobre escenarios externos.
 
+## Integrantes
+
+- Juan Diego Henao Quintero (`diego-juan3112`)
+- Ana Suárez (`Aisc07`)
+- Santiago Silva (`SilvaG35083`)
+
+## Documentación
+
+- [Documento técnico](docs/documento-tecnico.md): modelado, estados, reglas, costos, heurísticas, utilidad,
+  metodología experimental, resultados, complejidad, limitaciones y uso de IA. Las versiones Word y PDF
+  (`docs/documento-tecnico.docx` y `.pdf`) se generan desde el Markdown con el diseño de `DESIGN.md`; después de
+  editarlo, regenéralas con `python -m pip install -e ".[documentos]"` y
+  `python scripts/generar_documento_word.py --word` (la opción `--word` usa Microsoft Word para rellenar el índice
+  y exportar el PDF).
+- [Segunda heurística propia (E6.2)](docs/E6.2-segunda-heuristica-propia.md),
+  [casos mínimos 3 y 4](docs/casos-minimos-obstaculo-y-heuristicas.md) y
+  [casos mínimos 6 a 10](docs/casos-minimos-adversariales.md).
+
 ## Stack tecnico
 
 - **Python 3.12 o 3.13 (no 3.14, que Pygame aun no soporta):** facilita implementar con claridad los algoritmos de busqueda y decision, mantiene el codigo legible y modificable, e integra Pygame y pytest en el mismo proyecto.

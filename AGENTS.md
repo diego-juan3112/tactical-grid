@@ -232,9 +232,9 @@ En este orden de complejidad creciente:
 
 1. **No informada:** BFS y DFS.
 2. **Costo uniforme:** UCS (minimiza costo acumulado, no cantidad de movimientos).
-3. **Informada:** A* con `f(n) = g(n) + h(n)`, heurística Manhattan + una segunda heurística propia **[PENDIENTE DE APROBACIÓN]**
-   justificada (qué estima, qué información usa, costo computacional, admisibilidad, cuándo pierde
-   discriminación).
+3. **Informada:** A* con `f(n) = g(n) + h(n)`, heurística Manhattan + la segunda heurística propia HTO
+   (`algoritmos/heuristica_obstaculos.py`), justificada en `docs/E6.2-segunda-heuristica-propia.md` (qué estima, qué
+   información usa, costo computacional, admisibilidad, cuándo pierde discriminación).
 4. **Memoria limitada:** Beam Search, experimentado con k = 1, 2, 4, 8.
 5. **Adversarial:** Minimax y Minimax con poda alfa-beta, profundidad limitada configurable, función de
    utilidad propia desde la perspectiva de MAX.
@@ -307,4 +307,8 @@ responsabilidad de quien cambia el método.
 ## Referencias
 
 - Especificación completa del proyecto: [`Primer proyecto.pdf`](./docs/Primer%20proyecto.pdf).
+- Documento técnico consolidado: [`docs/documento-tecnico.md`](./docs/documento-tecnico.md). Si un cambio altera una
+  regla, un algoritmo o una cifra que el documento reporta, se actualiza en el mismo cambio.
+- Diseño editorial de los documentos (documento técnico y manual de usuario): [`DESIGN.md`](./DESIGN.md). Léelo antes
+  de redactar o maquetar un documento entregable.
 - Backlog de historias de usuario: Tablero de Proyectos en GitHub.
