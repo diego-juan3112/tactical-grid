@@ -1,8 +1,8 @@
 # DESIGN.md — Diseño editorial de los documentos de TacticalGrid
 
 `AGENTS.md` dice cómo se construye el proyecto; este archivo dice **cómo deben verse y leerse sus documentos**. Se
-aplica al documento técnico (`docs/documento-tecnico.md` y su versión Word) y al manual de usuario (E11.3). No se
-aplica a la interfaz Pygame ni al README.
+aplica a los dos entregables en Word: el documento técnico (`docs/documento-tecnico.docx`) y el manual de usuario
+(`docs/manual-de-usuario.docx`). No se aplica a la interfaz Pygame ni al README.
 
 La estructura sigue la convención de nueve secciones de los `DESIGN.md` de
 [awesome-claude-design](https://github.com/VoltAgent/awesome-claude-design): tokens, reglas y su razón, para que
@@ -54,7 +54,7 @@ Escala pizarra (*slate*), la misma familia de grises fríos que usa Tailwind. Ni
 - **Énfasis:** negrita moderada solo para la idea clave de un párrafo o el término que se define. A lo sumo una o dos
   por párrafo. Sin cursivas decorativas, sin subrayado como énfasis y sin mayúsculas sostenidas.
 - **Números en tablas:** alineados a la derecha. Texto alineado a la izquierda. Nunca justificado.
-- Segoe UI y Consolas vienen con Windows y Office. La entrega final se exporta a PDF desde Word, que incrusta las
+- Segoe UI y Consolas vienen con Windows y Office. Si hace falta un PDF, se exporta desde Word, que incrusta las
   fuentes y evita la sustitución en otros equipos.
 
 ## 4. Componentes
@@ -99,7 +99,7 @@ código.
 
 ### 4.5. Divisores
 
-Una línea horizontal (`---` en Markdown) de 0,5 pt `borde`, con 18 pt de espacio arriba y abajo, separa **solo**
+Una línea horizontal de 0,5 pt `borde`, con 18 pt de espacio arriba y abajo, separa **solo**
 capítulos o secciones macro. Nunca entre subsecciones.
 
 ### 4.6. Portada e índice
@@ -110,8 +110,8 @@ capítulos o secciones macro. Nunca entre subsecciones.
 
 ### 4.7. Pie de página
 
-A la izquierda, "TacticalGrid · Documento técnico"; a la derecha, el número de página. Todo en `texto-secundario` de
-8 pt. Sin encabezado de página.
+A la izquierda, el nombre del documento ("TacticalGrid · Documento técnico" o "TacticalGrid · Manual de usuario"); a
+la derecha, el número de página. Todo en `texto-secundario` de 8 pt. Sin encabezado de página.
 
 ## 5. Distribución en la página
 
@@ -142,7 +142,7 @@ una línea fina o el fondo `superficie`.
 
 - Mantener cada encabezado con el párrafo siguiente, y activar el control de viudas y huérfanas.
 - Las tablas anchas reducen la letra hasta 8 pt. No se gira la página a horizontal.
-- Exportar a PDF desde Word con las fuentes incrustadas, para la entrega.
+- Si hace falta un PDF, exportarlo desde Word con las fuentes incrustadas.
 - El documento debe leerse igual en escala de grises: ninguna información depende del color.
 
 ## 9. Guía para el agente
@@ -158,19 +158,18 @@ el contenido técnico ni las cifras, que deben seguir coincidiendo con el códig
 - Cada paso de una instrucción empieza con un verbo en imperativo: "Ejecuta", "Abre", "Compara".
 - Sin relleno, sin repetir lo que dice una tabla y sin adjetivos de marketing.
 
-### 9.3. Procedimiento para rediseñar el Word
+### 9.3. Procedimiento para editar un documento en Word
 
-1. Lee este archivo y `docs/documento-tecnico.md`.
-2. Ajusta el Markdown a las reglas de contenido: pasa a listas o definiciones las tablas que no comparan datos, pasa
-   a notas los datos críticos que están en celdas, y deja un divisor solo entre capítulos.
-3. Implementa el diseño en `scripts/generar_documento_word.py`, de preferencia con un `reference.docx` que defina los
-   estilos de pandoc: `Title`, `Subtitle`, `Heading 1` a `Heading 3`, `Body Text`, `First Paragraph`, `Compact`,
-   `Block Text`, `Source Code`, `Verbatim Char`, `Hyperlink`, `TOC Heading` y el estilo de tabla `Table`.
-4. Reemplaza también los colores del tema (`word/theme/theme1.xml`): `accent1` y `hlink` son azules por defecto en
-   pandoc y en Word, y tiñen los títulos y los enlaces aunque los estilos no lo pidan.
-5. Regenera el `.docx` con `python scripts/generar_documento_word.py`.
-6. Verifica con la lista de la sección 9.4 y ejecuta `python -m pytest`.
-7. Exporta a PDF desde Word para la entrega.
+1. Lee este archivo.
+2. Abre el `.docx` en Word y edita el contenido con sus estilos, sin formato directo: Título, Título 1 a Título 3,
+   Texto independiente, Texto de bloque para las notas y Source Code para comandos y diagramas.
+3. Para un documento nuevo, parte de uno de los dos `.docx` existentes y reemplaza su contenido. Así hereda estilos,
+   márgenes, pie de página y un tema sin azul. Un documento creado desde la plantilla normal de Word pinta de azul los
+   títulos y los enlaces con los colores `accent1` y `hlink` del tema, aunque los estilos no lo pidan.
+4. Si cambias una cifra, una regla o un comando, comprueba antes en la consola y con `python -m pytest` que el valor
+   nuevo es el que produce el código.
+5. Actualiza el índice: clic derecho sobre él, **Actualizar campos** y **Actualizar toda la tabla**.
+6. Verifica con la lista de la sección 9.4.
 
 ### 9.4. Lista de verificación
 
@@ -183,4 +182,5 @@ el contenido técnico ni las cifras, que deben seguir coincidiendo con el códig
 - [ ] Las tablas no tienen bordes verticales y su encabezado se repite en cada página.
 - [ ] La portada no usa tablas, el índice llega hasta el nivel 2 y el pie de página muestra el número de página.
 - [ ] El documento se lee igual en escala de grises.
-- [ ] Las cifras no cambiaron: `python -m pytest` pasa, incluido `tests/test_documento_tecnico.py`.
+- [ ] Las cifras y los comandos coinciden con el código: `python -m pytest` pasa y cada comando citado produce el
+      resultado que el documento reporta.
