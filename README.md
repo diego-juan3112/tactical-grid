@@ -10,12 +10,11 @@ Juego tactico 2D por turnos para Sistemas Inteligentes I. El juego permite obser
 
 ## Documentación
 
-- [Documento técnico](docs/documento-tecnico.md): modelado, estados, reglas, costos, heurísticas, utilidad,
-  metodología experimental, resultados, complejidad, limitaciones y uso de IA. Las versiones Word y PDF
-  (`docs/documento-tecnico.docx` y `.pdf`) se generan desde el Markdown con el diseño de `DESIGN.md`; después de
-  editarlo, regenéralas con `python -m pip install -e ".[documentos]"` y
-  `python scripts/generar_documento_word.py --word` (la opción `--word` usa Microsoft Word para rellenar el índice
-  y exportar el PDF).
+- [Documento técnico](docs/documento-tecnico.docx) (Word): modelado, estados, reglas, costos, heurísticas, utilidad,
+  metodología experimental, resultados, complejidad, limitaciones y uso de IA.
+- [Manual de usuario](docs/manual-de-usuario.docx) (Word): instalación en Windows y Linux, interfaz gráfica, modos
+  de consola, escenarios externos, verificación y exportación de resultados, con capturas de cada paso.
+- Ambos documentos siguen el diseño editorial de [DESIGN.md](DESIGN.md) y se editan directamente en Word.
 - [Segunda heurística propia (E6.2)](docs/E6.2-segunda-heuristica-propia.md),
   [casos mínimos 3 y 4](docs/casos-minimos-obstaculo-y-heuristicas.md) y
   [casos mínimos 6 a 10](docs/casos-minimos-adversariales.md).

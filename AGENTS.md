@@ -307,8 +307,9 @@ responsabilidad de quien cambia el método.
 ## Referencias
 
 - Especificación completa del proyecto: [`Primer proyecto.pdf`](./docs/Primer%20proyecto.pdf).
-- Documento técnico consolidado: [`docs/documento-tecnico.md`](./docs/documento-tecnico.md). Si un cambio altera una
-  regla, un algoritmo o una cifra que el documento reporta, se actualiza en el mismo cambio.
+- Documento técnico consolidado: [`docs/documento-tecnico.docx`](./docs/documento-tecnico.docx), y manual de
+  usuario: [`docs/manual-de-usuario.docx`](./docs/manual-de-usuario.docx). Se editan directamente en Word. Si un
+  cambio altera una regla, un algoritmo, una cifra o un comando que reportan, se actualizan en el mismo cambio.
 - Diseño editorial de los documentos (documento técnico y manual de usuario): [`DESIGN.md`](./DESIGN.md). Léelo antes
   de redactar o maquetar un documento entregable.
 - Backlog de historias de usuario: Tablero de Proyectos en GitHub.
