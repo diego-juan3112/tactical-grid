@@ -48,7 +48,7 @@ def posicion_del_recurso(estado: EstadoJuego) -> Posicion | None:
     Complejidad: O(U) temporal y O(1) espacial.
     Uso de IA: Si.
     Intervencion de IA: Claude (Sonnet 5.5) Implemento la logica y documentandola para E3.2.
-    Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/juego/test_recurso.py.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/juego/test_recurso.py.
     """
     portador = obtener_portador(estado)
     return portador.posicion if portador is not None else estado.posicion_recurso

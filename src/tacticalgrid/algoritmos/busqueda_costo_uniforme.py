@@ -16,26 +16,28 @@ def busqueda_costo_uniforme(
 ) -> ResultadoBusqueda:
     """Encuentra una solucion de costo acumulado minimo mediante una cola de prioridad.
 
-    Purpose: explorar primero el nodo vigente con menor costo acumulado y devolver una solucion optima para
+    Proposito: explorar primero el nodo vigente con menor costo acumulado y devolver una solucion optima para
     costos de transicion positivos, usando las metricas comunes de E4.1.
-    Preconditions: problema implementa el contrato Problema; sus estados son hashables y sus costos de
+    Precondiciones: problema implementa el contrato Problema; sus estados son hashables y sus costos de
     transicion son positivos.
-    Postconditions: devuelve la solucion de costo acumulado minimo o un resultado de fracaso si la frontera se
+    Postcondiciones: devuelve la solucion de costo acumulado minimo o un resultado de fracaso si la frontera se
     agota; la expansion comun lanza ``ValueError`` antes de propagar un costo acumulado no finito. Conserva el
     problema y sus estados sin modificaciones. Una mejora estricta se inserta nuevamente y cuenta como estado
     generado; una entrada obsoleta se descarta sin comprobar objetivo ni contar una expansion. La guarda de
     finitud no elimina el redondeo propio de las operaciones representables con ``float``. El observador opcional
     recibe solo expansiones vigentes, nunca entradas obsoletas, y no altera prioridades.
-    Complexity: O(E * U log U + (V + E) log E + d * U) temporal y O((V + E) * U + d) espacial en el peor
+    Complejidad: O(E * U log U + (V + E) log E + d * U) temporal y O((V + E) * U + d) espacial en el peor
     caso, donde V son estados alcanzables, E transiciones examinadas, U unidades por EstadoJuego y d la
     profundidad de la solucion. Ademas de las operaciones de la cola, cada transicion reconstruye y canoniza
     un EstadoJuego en O(U log U), su procesamiento en conjuntos o diccionarios calcula un hash O(U), y la
     reconstruccion final consulta la posicion en cada estado en O(d * U). La traza agrega O(X_t). La frontera
     puede conservar reinserciones y entradas obsoletas.
-    AI usage: Yes.
-    AI intervention: Codex implemento UCS, la gestion de mejoras y entradas obsoletas, su integracion con E4.1 y
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento UCS, la gestion de mejoras y entradas obsoletas, su integracion con E4.1 y
     documento en E6.1 el fallo controlado; Codex agrego el observador opcional E9.3.
-    Student validation: pendiente de revision humana del cambio numerico de E6.1.
+    Validacion del estudiante: el equipo reviso el cambio numerico de E6.1; cubierta por
+    tests/algoritmos/test_busqueda_costo_uniforme.py, que comprueba el camino de menor costo, las metricas y la
+    diferencia con BFS (caso minimo 2).
     """
     medidor = MedidorBusqueda("UCS", observador_expansiones=observador_expansiones)
     raiz = Nodo(problema.estado_inicial)

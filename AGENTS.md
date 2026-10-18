@@ -261,21 +261,31 @@ frontera y `observar_frontera(len(frontera))` tras cada cambio de tamano; el alg
 
 Todo método con lógica relevante (algoritmos de búsqueda, heurísticas, generación de sucesores, cálculo de
 costos, función de utilidad, Minimax, alfa-beta, validadores) debe documentarse con estos 7 elementos — no
-basta un comentario que solo diga qué hace el método:
+basta un comentario que solo diga qué hace el método. En el docstring se escriben con la etiqueta **en
+español** (primera columna), sin tildes, una por línea y en este orden; la segunda columna es el nombre del
+elemento en la tabla del enunciado:
 
-| Elemento | Contenido esperado |
-|---|---|
-| `Purpose` | Responsabilidad concreta del método dentro de la solución. |
-| `Preconditions` | Condiciones que deben cumplirse antes de ejecutarlo. |
-| `Postconditions` | Condiciones que deben cumplirse después de una ejecución correcta. |
-| `Complexity` | Costo temporal y, cuando corresponda, espacial. |
-| `AI usage` | `Yes` o `No`, explícito. |
-| `AI intervention` | Si hubo IA, describir con precisión en qué parte intervino. |
-| `Student validation` | Cómo se revisó, probó, modificó o validó lo generado con IA. |
+| Etiqueta en el docstring | Elemento del enunciado | Contenido esperado |
+|---|---|---|
+| `Proposito:` | Purpose | Responsabilidad concreta del método dentro de la solución. |
+| `Precondiciones:` | Preconditions | Condiciones que deben cumplirse antes de ejecutarlo. |
+| `Postcondiciones:` | Postconditions | Condiciones que deben cumplirse después de una ejecución correcta. |
+| `Complejidad:` | Complexity | Costo temporal y, cuando corresponda, espacial. |
+| `Uso de IA:` | AI usage | Exactamente `Si` o `No`. |
+| `Intervencion de IA:` | AI intervention | Si hubo IA, qué herramienta y en qué parte intervino, por historia. |
+| `Validacion del estudiante:` | Student validation | Cómo el equipo revisó, probó o validó el método, citando las pruebas que lo cubren. |
 
 La documentación debe corresponder **exactamente** a la versión real del método implementado — si describe
-algo distinto de lo que hace el código, se considera documentación inconsistente (y así se evalúa). No se
-exige este nivel de detalle para métodos triviales.
+algo distinto de lo que hace el código, se considera documentación inconsistente (y así se evalúa). Cuando se
+cambia un método, se actualizan en el mismo cambio su documentación y su `Intervencion de IA`. No se exige este
+nivel de detalle para métodos triviales: se considera trivial una función de menos de ocho líneas (firma,
+documentación y cuerpo incluidos), como un acceso a un atributo o una delegación directa.
+
+`tests/test_documentacion_metodos.py` hace cumplir esta convención en todo `src/` y `main.py`: falla si aparece
+una etiqueta en inglés, si un docstring usa solo parte de las siete etiquetas, si `Uso de IA` no es `Si` o `No`,
+si falta la `Intervencion de IA` cuando hubo IA, si una validación queda "pendiente", o si un método no trivial
+de los módulos obligatorios queda sin documentar. No puede juzgar si el texto es correcto: eso sigue siendo
+responsabilidad de quien cambia el método.
 
 ## Uso de IA generativa en este proyecto
 

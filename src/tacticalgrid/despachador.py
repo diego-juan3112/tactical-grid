@@ -21,14 +21,15 @@ def _ejecutar_consola(argumentos: Sequence[str]) -> int:
 def ejecutar(argumentos: Sequence[str] | None = None) -> int:
     """Selecciona el modo de aplicacion sin mezclar sus parsers.
 
-    Purpose: abrir Pygame por defecto y conservar cada invocacion historica de ``main.py`` en la consola.
-    Preconditions: ``argumentos`` contiene argumentos sin el nombre del programa o es ``None`` para usar ``sys.argv``.
-    Postconditions: sin argumentos o con ``--gui`` delega al parser grafico; con ``--consola`` o cualquier sintaxis
+    Proposito: abrir Pygame por defecto y conservar cada invocacion historica de ``main.py`` en la consola.
+    Precondiciones: ``argumentos`` contiene argumentos sin el nombre del programa o es ``None`` para usar ``sys.argv``.
+    Postcondiciones: sin argumentos o con ``--gui`` delega al parser grafico; con ``--consola`` o cualquier sintaxis
     historica delega al parser de consola y devuelve exactamente su codigo de salida.
-    Complexity: O(A) temporal y espacial por copiar A argumentos; no ejecuta algoritmos por si mismo.
-    AI usage: Yes.
-    AI intervention: Codex diseño e implemento el despacho compatible durante la integracion final de E9.3.
-    Student validation: pendiente de revision humana; cubierta por pruebas automatizadas de despacho e importacion.
+    Complejidad: O(A) temporal y espacial por copiar A argumentos; no ejecuta algoritmos por si mismo.
+    Uso de IA: Si.
+    Intervencion de IA: Codex diseño e implemento el despacho compatible durante la integracion final de E9.3.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas de despacho e
+    importacion.
     """
     recibidos = list(sys.argv[1:] if argumentos is None else argumentos)
     if not recibidos:

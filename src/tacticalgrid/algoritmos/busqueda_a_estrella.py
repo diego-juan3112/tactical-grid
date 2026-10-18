@@ -22,19 +22,21 @@ class HeuristicaPreparada(Protocol):
 def heuristica_manhattan(problema: ProblemaNavegacion, estado: EstadoJuego) -> int | float:
     """Estima el costo restante mediante Manhattan escalada por el menor costo de paso.
 
-    Purpose: proporcionar a A* una cota inferior del costo desde la posicion de la unidad navegante hasta el
+    Proposito: proporcionar a A* una cota inferior del costo desde la posicion de la unidad navegante hasta el
     objetivo, sin reducir la identidad compuesta de ``estado`` a esa posicion.
-    Preconditions: ``problema`` mueve la unidad una celda ortogonal por transicion; todos sus costos de paso son
+    Precondiciones: ``problema`` mueve la unidad una celda ortogonal por transicion; todos sus costos de paso son
     al menos ``problema.costo_minimo_paso``, que es positivo; ``estado`` pertenece al espacio del problema.
-    Postconditions: devuelve cero en el objetivo y, en otro caso, la distancia Manhattan multiplicada por la
+    Postcondiciones: devuelve cero en el objetivo y, en otro caso, la distancia Manhattan multiplicada por la
     cota minima de costo; lanza ``ValueError`` si el producto no es finito. No modifica el problema ni el estado.
     En aritmetica representable es admisible y consistente: cada paso reduce Manhattan a lo sumo en uno y cuesta
     al menos la escala aplicada.
-    Complexity: O(U) temporal por localizar la unidad entre las U unidades del estado y O(1) espacial.
-    AI usage: Yes.
-    AI intervention: Codex implemento la formula, su escalamiento y, durante el cierre de E6.1, la guarda que
+    Complejidad: O(U) temporal por localizar la unidad entre las U unidades del estado y O(1) espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento la formula, su escalamiento y, durante el cierre de E6.1, la guarda que
     impide propagar un producto no finito.
-    Student validation: pendiente de revision humana del equipo.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
+    tests/algoritmos/test_busqueda_a_estrella.py, que comprueba la estimacion escalada por el costo minimo de paso y
+    el rechazo de valores no finitos.
     """
     actual = problema.posicion(estado)
     distancia = abs(actual.fila - problema.objetivo.fila) + abs(actual.columna - problema.objetivo.columna)
@@ -54,19 +56,21 @@ def _calcular_prioridad(
 ) -> int | float:
     """Calcula ``f(n) = g(n) + h(n)`` y rechaza resultados no finitos.
 
-    Purpose: seleccionar Manhattan o la estrategia preparada explicita e impedir que A* introduzca prioridades
+    Proposito: seleccionar Manhattan o la estrategia preparada explicita e impedir que A* introduzca prioridades
     infinitas o NaN en ``heapq``.
-    Preconditions: ``nodo.costo_acumulado`` es finito, el nodo pertenece al espacio de ``problema`` y, si se
+    Precondiciones: ``nodo.costo_acumulado`` es finito, el nodo pertenece al espacio de ``problema`` y, si se
     proporciona, ``heuristica_preparada`` esta ligada por identidad al mismo problema.
-    Postconditions: devuelve la prioridad finita del nodo o lanza ``ValueError`` si la suma excede el rango
+    Postcondiciones: devuelve la prioridad finita del nodo o lanza ``ValueError`` si la suma excede el rango
     numerico soportado o la estimacion no es finita; no modifica el nodo ni el problema. La estrategia puede
     extender su preparacion diferida al evaluar.
-    Complexity: O(C_h) temporal y O(S_h) espacial incremental, donde C_h y S_h corresponden a una evaluacion de
+    Complejidad: O(C_h) temporal y O(S_h) espacial incremental, donde C_h y S_h corresponden a una evaluacion de
     la heuristica elegida; la suma y las validaciones son O(1).
-    AI usage: Yes.
-    AI intervention: Codex implemento en E6.1 la guarda numerica y en E6.2 incorporo la seleccion entre Manhattan
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento en E6.1 la guarda numerica y en E6.2 incorporo la seleccion entre Manhattan
     y una estrategia preparada sin modificar la formula f(n).
-    Student validation: pendiente de revision humana del equipo.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
+    tests/algoritmos/test_busqueda_a_estrella.py, que comprueba el calculo de f(n) = g(n) + h(n) y el rechazo de una
+    prioridad no finita.
     """
     if heuristica_preparada is None:
         estimacion = heuristica_manhattan(problema, nodo.estado)
@@ -91,25 +95,27 @@ def busqueda_a_estrella(
 ) -> ResultadoBusqueda:
     """Encuentra una solucion de costo minimo priorizando ``g(n) + h(n)``.
 
-    Purpose: ejecutar A* con Manhattan por defecto o una heuristica preparada explicita y reportar las metricas
+    Proposito: ejecutar A* con Manhattan por defecto o una heuristica preparada explicita y reportar las metricas
     comunes de E4.1 sin duplicar la exploracion.
-    Preconditions: ``problema`` cumple las precondiciones de :func:`heuristica_manhattan`; sus estados son
+    Precondiciones: ``problema`` cumple las precondiciones de :func:`heuristica_manhattan`; sus estados son
     hashables y sus costos de transicion son positivos. La estrategia opcional fue construida externamente para
     esta misma instancia de ``problema``; su costo de preparacion corresponde al llamador.
-    Postconditions: devuelve una solucion de costo acumulado minimo cuando la heuristica elegida conserva las
+    Postcondiciones: devuelve una solucion de costo acumulado minimo cuando la heuristica elegida conserva las
     condiciones de optimalidad de A*, o fracaso si la frontera se agota; lanza ``ValueError`` antes de crear la
     frontera si la estrategia pertenece a otro problema, o antes de insertar una prioridad no finita. Conserva
     estados y problema sin modificaciones. Las mejoras estrictas de g se reinsertan y las entradas obsoletas se
     descartan por su g. Las evaluaciones y extensiones diferidas de la estrategia ocurren durante la busqueda. La
     finitud no elimina el redondeo propio de ``float``. El observador opcional recibe las expansiones vigentes y
     no altera prioridades, reinserciones ni desempates.
-    Complexity: O(E * (T_s + C_h) + (V + E) log E + d * U) temporal y O((V + E) * U + d + S_h) espacial en el
+    Complejidad: O(E * (T_s + C_h) + (V + E) log E + d * U) temporal y O((V + E) * U + d + S_h) espacial en el
     peor caso mas O(X_t) espacial para la traza, donde V son estados, E transiciones, T_s el costo de generar una
     transicion, C_h y S_h los costos de la heuristica, U las unidades y d la profundidad. No incluye construirla.
-    AI usage: Yes.
-    AI intervention: Codex implemento A*, la prioridad f, la gestion de mejoras y obsoletos, su instrumentacion y
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento A*, la prioridad f, la gestion de mejoras y obsoletos, su instrumentacion y
     las guardas de finitud para E6.1; en E6.2 agrego la heuristica inyectable y en E9.3 el observador opcional.
-    Student validation: pendiente de revision humana del equipo.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
+    tests/algoritmos/test_busqueda_a_estrella.py (optimalidad frente a UCS, metricas, heuristicas y valores no
+    finitos) y tests/algoritmos/test_casos_minimos_heuristicas.py (casos minimos 3 y 4).
     """
     if heuristica_preparada is not None and heuristica_preparada.problema is not problema:
         raise ValueError(

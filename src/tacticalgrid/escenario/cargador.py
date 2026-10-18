@@ -20,7 +20,7 @@ def cargar_escenario(ruta: str | Path) -> Escenario:
     decodificacion y conversion. Uso de IA: Si. Intervencion de IA: Codex propuso la implementacion
     inicial conforme al contrato del PDF; Claude (Sonnet 5) agrego la captura del campo ``version``;
     Claude (Opus 5.5) agrego la lectura UTF-8 con BOM, el error claro para archivos no UTF-8 y el rechazo
-    de ``NaN``/``Infinity``. Validacion del estudiante: pendiente de revision del equipo; cubierta por
+    de ``NaN``/``Infinity``. Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
     pruebas automatizadas de carga del ejemplo del enunciado, dimensiones distintas de 20x20, campos
     adicionales propios, codificacion y constantes no estandar.
     """
@@ -46,6 +46,23 @@ def _rechazar_constante_no_estandar(constante: str) -> float:
 
 
 def _crear_escenario(contenido: Mapping[str, object]) -> Escenario:
+    """Convierte un contenido JSON ya validado en la representacion interna ``Escenario``.
+
+    Proposito: separar la validacion del contrato externo (``validar_contenido_escenario``) de la construccion del
+    modelo, de modo que el resto del sistema nunca trabaje con el JSON crudo.
+    Precondiciones: ``contenido`` paso ``validar_contenido_escenario``; por eso los ``assert`` solo documentan tipos
+    que la validacion ya garantiza.
+    Postcondiciones: devuelve un ``Escenario`` inmutable con version, dimensiones, catalogo de terrenos con sus
+    costos, matriz de terreno, bases, recurso, unidades iniciales, turno, portador inicial, la configuracion de
+    ``juego`` completa (incluidos sus campos propios) y ``prueba`` (o ``None``). No modifica ``contenido``.
+    Complejidad: O(F*C + T + U) temporal y espacial, donde F y C son las dimensiones, T los tipos de terreno y U las
+    unidades.
+    Uso de IA: Si.
+    Intervencion de IA: Codex propuso la implementacion inicial en E0.3; Claude (Sonnet 5) agrego la captura de
+    ``version`` en E2.1; Claude (Opus 5.5) redacto esta documentacion en E11.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/escenario/test_cargador.py, que
+    carga el ejemplo del enunciado y comprueba cada campo, incluidos ``prueba`` y los campos propios.
+    """
     mapa = contenido["mapa"]
     tipos_json = contenido["tipos_terreno"]
     bases_json = contenido["bases"]

@@ -42,18 +42,18 @@ class ProblemaNavegacion:
     ) -> None:
         """Define un problema de navegacion sobre un escenario cargado.
 
-        Purpose: fijar de forma inequivoca estado inicial, unidad que actua, celda objetivo y la cota inferior
+        Proposito: fijar de forma inequivoca estado inicial, unidad que actua, celda objetivo y la cota inferior
         de costo que puede usar una heuristica sobre esta navegacion.
-        Preconditions: ``escenario`` fue validado por la capa de escenario.
-        Postconditions: ``estado_inicial`` es el estado dado o el inicial del escenario; ``costo_minimo_paso``
+        Precondiciones: ``escenario`` fue validado por la capa de escenario.
+        Postcondiciones: ``estado_inicial`` es el estado dado o el inicial del escenario; ``costo_minimo_paso``
         contiene el menor costo de terreno transitable; se lanza ``ValueError`` si la unidad no existe o si el
         objetivo esta fuera del mapa.
-        Complexity: O(U log U + T) temporal y O(U) espacial al construir y normalizar el estado inicial y
+        Complejidad: O(U log U + T) temporal y O(U) espacial al construir y normalizar el estado inicial y
         recorrer los T tipos de terreno.
-        AI usage: Yes.
-        AI intervention: Claude (Opus 5.5) propuso la construccion original; Codex incorporo en E6.1 el calculo
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) propuso la construccion original; Codex incorporo en E6.1 el calculo
         unico de la cota minima de costo desde el escenario validado y actualizo esta documentacion.
-        Student validation: pendiente de revision humana del cambio de E6.1.
+        Validacion del estudiante: el equipo reviso el cambio de E6.1; cubierta por tests/juego/test_problema.py.
         """
         if not escenario.contiene_posicion(objetivo):
             raise ValueError(f"El objetivo {objetivo} esta fuera de los limites del escenario.")
@@ -72,17 +72,18 @@ class ProblemaNavegacion:
     def costo_minimo_paso(self) -> int | float:
         """Devuelve la cota inferior de costo para cualquier transicion de navegacion.
 
-        Purpose: exponer a las heuristicas el menor costo transitable del escenario sin acoplar los algoritmos
+        Proposito: exponer a las heuristicas el menor costo transitable del escenario sin acoplar los algoritmos
         al catalogo de terrenos ni duplicar su lectura.
-        Preconditions: el problema fue construido con un ``Escenario`` validado, cuyos terrenos transitables
+        Precondiciones: el problema fue construido con un ``Escenario`` validado, cuyos terrenos transitables
         tienen costos individuales numericos, positivos y finitos.
-        Postconditions: devuelve siempre el mismo valor positivo calculado durante la construccion; no modifica
+        Postcondiciones: devuelve siempre el mismo valor positivo calculado durante la construccion; no modifica
         el problema ni el escenario.
-        Complexity: O(1) temporal y O(1) espacial por consulta.
-        AI usage: Yes.
-        AI intervention: Codex implemento esta propiedad y aclaro en E6.1 que la finitud individual no garantiza
+        Complejidad: O(1) temporal y O(1) espacial por consulta.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento esta propiedad y aclaro en E6.1 que la finitud individual no garantiza
         por si sola que productos o acumulaciones posteriores sean representables.
-        Student validation: pendiente de revision humana del equipo.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/juego/test_problema.py y
+        tests/algoritmos/test_heuristica_obstaculos.py.
         """
         return self._costo_minimo_paso
 

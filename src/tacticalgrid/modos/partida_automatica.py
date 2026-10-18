@@ -106,8 +106,8 @@ def jugar_partida(
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) propuso el diseno (IA contra IA desde el estado cargado, registro de pases y
     limite de turnos sin regla de repeticion), la implementacion y sus pruebas en E10.1.
-    Validacion del estudiante: se valida la implementacion tras su integracion en tests/modos/test_partida_automatica.py,
-    que incluye una partida calculada a mano con pases por bloqueo.
+    Validacion del estudiante: se valida la implementacion tras su integracion en
+    tests/modos/test_partida_automatica.py, que incluye una partida calculada a mano con pases por bloqueo.
     """
     profundidad = validar_profundidad(profundidad)
     orden = validar_orden(orden)

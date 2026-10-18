@@ -77,7 +77,8 @@ def leer_configuracion_prueba(escenario: Escenario) -> ConfiguracionPrueba | Non
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) propuso los campos propios ``algoritmo`` y ``max_turnos`` y la
     implementacion en E10.1, unificando la lectura de ``unidad_inicio`` y ``objetivo`` que hacia ``main.py``.
-    Validacion del estudiante: se valida la implementacion de la configuracion de prueba, cubierta por tests/modos/test_configuracion_prueba.py.
+    Validacion del estudiante: se valida la implementacion de la configuracion de prueba, cubierta por
+    tests/modos/test_configuracion_prueba.py.
     """
     prueba = escenario.configuracion_prueba
     if prueba is None:
@@ -110,7 +111,8 @@ def resolver_modo(
     Complejidad: O(1) temporal y espacial.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) propuso la regla de precedencia y la implementacion en E10.1.
-    Validacion del estudiante: se valida la implementacion de la configuracion de prueba, cubierta por tests/modos/test_configuracion_prueba.py.
+    Validacion del estudiante: se valida la implementacion de la configuracion de prueba, cubierta por
+    tests/modos/test_configuracion_prueba.py.
     """
     if modo_consola is not None:
         if modo_consola not in MODOS:

@@ -49,7 +49,19 @@ class PesosUtilidad:
     movilidad: float = 1
 
     def __post_init__(self) -> None:
-        """Rechaza pesos que no sean numeros finitos y una victoria que no sea positiva."""
+        """Valida los pesos de la funcion de utilidad al crearlos.
+
+        Proposito: impedir que un peso invalido del JSON (``juego.pesos_utilidad``) produzca utilidades no finitas o
+        una victoria que no domine al resto de criterios.
+        Precondiciones: los campos ya tienen los valores por defecto o los recibidos.
+        Postcondiciones: retorna sin efectos si todos los pesos son numeros (no booleanos) finitos y ``victoria`` es
+        positiva; si no, lanza ``ValueError`` nombrando el peso y el valor recibido.
+        Complejidad: O(P) temporal y O(1) espacial, donde P es la cantidad de criterios (siete).
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) lo implemento en E8.2 y redacto esta documentacion en E11.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_utilidad.py,
+        que rechaza pesos booleanos, infinitos y una victoria no positiva, desde el JSON y al construir los pesos.
+        """
         for campo in fields(self):
             valor = getattr(self, campo.name)
             if isinstance(valor, bool) or not isinstance(valor, (int, float)) or not math.isfinite(valor):
@@ -61,16 +73,16 @@ class PesosUtilidad:
 def pesos_desde_configuracion(configuracion_juego: Mapping[str, object] | None) -> PesosUtilidad:
     """Construye los pesos a partir del campo propio opcional ``juego.pesos_utilidad`` del escenario.
 
-    Purpose: permitir cambiar los pesos de la utilidad editando el JSON, sin modificar codigo, para experimentar como
+    Proposito: permitir cambiar los pesos de la utilidad editando el JSON, sin modificar codigo, para experimentar como
     cambia el comportamiento de Minimax.
-    Preconditions: ``configuracion_juego`` es ``Escenario.configuracion_juego`` o ``None``.
-    Postconditions: devuelve los pesos por defecto si no hay ``pesos_utilidad``; si lo hay, devuelve los pesos por
+    Precondiciones: ``configuracion_juego`` es ``Escenario.configuracion_juego`` o ``None``.
+    Postcondiciones: devuelve los pesos por defecto si no hay ``pesos_utilidad``; si lo hay, devuelve los pesos por
     defecto reemplazando solo los indicados. Lanza ``ValueError`` si ``pesos_utilidad`` no es un objeto, si incluye
     un criterio desconocido o si algun peso no es un numero finito (o ``victoria`` no es positiva).
-    Complexity: O(P) temporal y espacial, donde P es la cantidad de criterios.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso el campo propio y la implementacion en E8.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Complejidad: O(P) temporal y espacial, donde P es la cantidad de criterios.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso el campo propio y la implementacion en E8.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_utilidad.py cargan pesos desde el JSON y rechazan criterios y valores invalidos.
     """
     if configuracion_juego is None or CLAVE_PESOS not in configuracion_juego:
@@ -90,17 +102,17 @@ def pesos_desde_configuracion(configuracion_juego: Mapping[str, object] | None) 
 def costos_hacia(escenario: Escenario, destino: Posicion) -> dict[Posicion, int | float]:
     """Calcula el costo minimo de terreno desde cada celda transitable hasta ``destino``.
 
-    Purpose: medir distancias relevantes de la utilidad con los costos del JSON y respetando obstaculos, en lugar de
+    Proposito: medir distancias relevantes de la utilidad con los costos del JSON y respetando obstaculos, en lugar de
     usar distancias en linea recta que ignoran muros y terrenos caros.
-    Preconditions: ``destino`` esta dentro del mapa; los costos transitables son positivos (validados en E2.2).
-    Postconditions: devuelve un diccionario con el costo de la ruta mas barata desde cada celda alcanzable hasta
+    Precondiciones: ``destino`` esta dentro del mapa; los costos transitables son positivos (validados en E2.2).
+    Postcondiciones: devuelve un diccionario con el costo de la ruta mas barata desde cada celda alcanzable hasta
     ``destino``, sumando el costo de cada celda en la que se entra (el destino vale 0); las celdas que no alcanzan el
     destino no aparecen. No modifica el escenario.
-    Complexity: O(F*C log(F*C)) temporal y O(F*C) espacial: Dijkstra desde el destino sobre las F*C celdas, con aristas
+    Complejidad: O(F*C log(F*C)) temporal y O(F*C) espacial: Dijkstra desde el destino sobre las F*C celdas, con aristas
     invertidas (pasar de x a y cuesta el terreno de y).
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso usar Dijkstra invertido desde cada destino y lo implemento en E8.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso usar Dijkstra invertido desde cada destino y lo implemento en E8.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_utilidad.py comparan estos costos con el costo optimo de UCS y comprueban que cambian al
     cambiar el costo de un terreno en el JSON.
     """
@@ -140,15 +152,15 @@ class EvaluadorUtilidad:
     def __init__(self, escenario: Escenario, bando_max: str, pesos: PesosUtilidad | None = None) -> None:
         """Prepara el evaluador para un escenario, un bando MAX y unos pesos.
 
-        Purpose: precalcular una sola vez lo que no depende del estado (costos hacia cada base) para que evaluar un
+        Proposito: precalcular una sola vez lo que no depende del estado (costos hacia cada base) para que evaluar un
         nodo del arbol de Minimax sea rapido.
-        Preconditions: ``escenario`` fue validado; ``bando_max`` es ``"A"`` o ``"B"``.
-        Postconditions: el evaluador queda listo; los costos hacia una posicion del recurso se calculan la primera
+        Precondiciones: ``escenario`` fue validado; ``bando_max`` es ``"A"`` o ``"B"``.
+        Postcondiciones: el evaluador queda listo; los costos hacia una posicion del recurso se calculan la primera
         vez que se necesitan y se reutilizan. Lanza ``ValueError`` si ``bando_max`` no es un bando valido.
-        Complexity: O(F*C log(F*C)) temporal y O(F*C) espacial por los dos mapas de costos hacia las bases.
-        AI usage: Yes.
-        AI intervention: Claude (Opus 5.5) propuso la precomputacion y la implemento en E8.2.
-        Student validation: el estudiante reviso y valido el codigo; ademas, lo cubren las pruebas de
+        Complejidad: O(F*C log(F*C)) temporal y O(F*C) espacial por los dos mapas de costos hacia las bases.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) propuso la precomputacion y la implemento en E8.2.
+        Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, lo cubren las pruebas de
         tests/algoritmos/test_utilidad.py.
         """
         if bando_max not in BANDOS:
@@ -178,19 +190,19 @@ class EvaluadorUtilidad:
     def desglosar(self, estado: EstadoJuego) -> dict[str, float]:
         """Devuelve el aporte de cada criterio a la utilidad del estado desde la perspectiva de MAX.
 
-        Purpose: hacer explicable la evaluacion: permite decir por que un estado (o la accion que lleva a el) vale
+        Proposito: hacer explicable la evaluacion: permite decir por que un estado (o la accion que lleva a el) vale
         mas que otro y como cambiaria al variar un peso.
-        Preconditions: ``estado`` es coherente con el escenario del evaluador.
-        Postconditions: en un estado terminal devuelve solo ``{"terminal": v}`` con ``v`` igual a ``+victoria``,
+        Precondiciones: ``estado`` es coherente con el escenario del evaluador.
+        Postcondiciones: en un estado terminal devuelve solo ``{"terminal": v}`` con ``v`` igual a ``+victoria``,
         ``-victoria`` o 0. En otro caso devuelve los criterios ``posesion``, ``entrega``, ``carrera_recurso``,
         ``amenaza``, ``bloqueo`` y ``movilidad`` (los que no aplican valen 0). La suma de los valores es
         :meth:`evaluar`. Intercambiar MAX y MIN cambia el signo de cada valor. No modifica el estado.
-        Complexity: O(U^2) temporal por las comparaciones entre unidades y O(U) espacial; las distancias se leen de
+        Complejidad: O(U^2) temporal por las comparaciones entre unidades y O(U) espacial; las distancias se leen de
         mapas precalculados en O(1), salvo la primera vez que aparece una nueva posicion libre del recurso.
-        AI usage: Yes.
-        AI intervention: Claude (Opus 5.5) propuso los criterios, su formulacion de suma cero y la implementacion en
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) propuso los criterios, su formulacion de suma cero y la implementacion en
         E8.2.
-        Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+        Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
         tests/algoritmos/test_utilidad.py comprueban cada criterio por separado, la antisimetria entre roles, los
         valores terminales y el cambio de preferencia al variar pesos.
         """
@@ -249,15 +261,15 @@ class AccionValorada:
 def valorar_acciones(evaluador: EvaluadorUtilidad, estado: EstadoJuego) -> tuple[AccionValorada, ...]:
     """Valora cada accion legal del bando en turno por la utilidad (para MAX) del estado que produce.
 
-    Purpose: explicar a un paso por que una accion recibe mejor valoracion que otra, mostrando que criterio cambia;
+    Proposito: explicar a un paso por que una accion recibe mejor valoracion que otra, mostrando que criterio cambia;
     es la evaluacion que Minimax hace en las hojas, sin mirar la respuesta del adversario.
-    Preconditions: ``estado`` es coherente con el escenario del evaluador.
-    Postconditions: devuelve una ``AccionValorada`` por cada accion de ``acciones_tacticas``, en el mismo orden; la
+    Precondiciones: ``estado`` es coherente con el escenario del evaluador.
+    Postcondiciones: devuelve una ``AccionValorada`` por cada accion de ``acciones_tacticas``, en el mismo orden; la
     tupla esta vacia si no hay acciones. No modifica el estado.
-    Complexity: O(A * (U + U^2)) temporal y O(A * U) espacial, donde A es la cantidad de acciones legales.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso e implemento esta consulta en E8.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Complejidad: O(A * (U + U^2)) temporal y O(A * U) espacial, donde A es la cantidad de acciones legales.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso e implemento esta consulta en E8.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_utilidad.py la usan para comparar acciones y explicar la mejor.
     """
     valoradas = []

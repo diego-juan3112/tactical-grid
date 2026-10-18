@@ -28,6 +28,16 @@ def test_carga_escenario_expone_version_del_formato(ruta_escenario_valido) -> No
     assert escenario.version == "1.0"
 
 
+def test_el_escenario_protege_sus_mapas_contra_modificaciones(ruta_escenario_valido) -> None:
+    escenario = cargar_escenario(ruta_escenario_valido)
+
+    for mapa in (escenario.tipos_terreno, escenario.bases, escenario.configuracion_juego):
+        with pytest.raises(TypeError):
+            mapa["nuevo"] = None
+    with pytest.raises(AttributeError):
+        escenario.filas = 99
+
+
 def test_carga_escenario_con_dimensiones_distintas_de_20x20(tmp_path) -> None:
     """Evidencia del criterio de aceptacion: el cargador no asume 20x20 fijo."""
     contenido = {
