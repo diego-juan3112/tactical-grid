@@ -1,8 +1,8 @@
 # DESIGN.md — Diseño editorial de los documentos de TacticalGrid
 
 `AGENTS.md` dice cómo se construye el proyecto; este archivo dice **cómo deben verse y leerse sus documentos**. Se
-aplica a los dos entregables en Word: el documento técnico (`docs/documento-tecnico.docx`) y el manual de usuario
-(`docs/manual-de-usuario.docx`). No se aplica a la interfaz Pygame ni al README.
+aplica a los dos entregables en Word: el documento técnico (`docs/entregables/documento-tecnico.docx`) y el manual de usuario
+(`docs/entregables/manual-de-usuario.docx`). No se aplica a la interfaz Pygame ni al README.
 
 La estructura sigue la convención de nueve secciones de los `DESIGN.md` de
 [awesome-claude-design](https://github.com/VoltAgent/awesome-claude-design): tokens, reglas y su razón, para que

@@ -1,7 +1,7 @@
 """Caso minimo 1 (E4.4): BFS y DFS encuentran solucion, pero recorren el espacio de busqueda de forma distinta.
 
-Cada prueba fija una afirmacion de la seccion E4.4 del README, de modo que el experimento sea reproducible y la
-documentacion deje de ser valida si cambian los algoritmos, las reglas o los escenarios.
+Cada prueba fija una afirmacion del caso 1 de docs/casos-minimos/casos-1-2-5-busqueda.md, de modo que el experimento
+sea reproducible y la documentacion deje de ser valida si cambian los algoritmos, las reglas o los escenarios.
 """
 
 import os

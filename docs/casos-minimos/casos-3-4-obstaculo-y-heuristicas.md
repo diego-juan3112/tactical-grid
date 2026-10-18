@@ -138,13 +138,11 @@ muestra esa situación: ambas variantes generan 289 estados y expanden 199 con l
 Comandos:
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider \
-  tests/algoritmos/test_casos_minimos_heuristicas.py
+python -m pytest tests/algoritmos/test_casos_minimos_heuristicas.py
 
-PYTHONDONTWRITEBYTECODE=1 .venv/bin/python \
-  scripts/comparar_heuristicas_e62.py --repeticiones 1 --calentamiento 0
+python scripts/comparar_heuristicas_e62.py --repeticiones 1 --calentamiento 0
 
-PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q -p no:cacheprovider
+python -m pytest
 ```
 
 Los casos se consideran correctos si el escenario carga, la ruta directa contiene un muro, la distancia mínima es
@@ -153,11 +151,11 @@ registradas para Manhattan y HTO.
 
 ## Uso de IA y validación
 
-**AI usage:** Yes.
+**Uso de IA:** Sí.
 
-**AI intervention:** Codex inspeccionó el escenario y los contratos existentes, ejecutó Manhattan, HTO y UCS,
+**Intervención de IA:** Codex inspeccionó el escenario y los contratos existentes, ejecutó Manhattan, HTO y UCS,
 generó la representación textual desde el JSON, redactó este documento y agregó las pruebas de integración de los
 casos 3 y 4. No modificó A*, HTO, UCS, reglas, escenarios, exportaciones ni CLI.
 
-**Student validation:** pendiente. El equipo estudiantil debe revisar el mapa, ejecutar los comandos, contrastar las
-métricas y aprobar la interpretación antes de presentar esta evidencia como validada por estudiantes.
+**Validación del estudiante:** el equipo revisó el mapa, ejecutó los comandos, contrastó las métricas y aprobó la
+interpretación; las cifras discretas quedan fijadas en `tests/algoritmos/test_casos_minimos_heuristicas.py`.

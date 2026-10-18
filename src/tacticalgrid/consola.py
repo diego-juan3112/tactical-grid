@@ -423,23 +423,36 @@ def mostrar_comparacion_bfs_dfs(resultados):
     print(f"Caminos: {'Iguales' if bfs.camino == dfs.camino else 'Diferentes'}")
 
 
+def _marcas_de_verificacion():
+    """Devuelve las marcas de correcto y fallido que la salida estandar actual puede escribir."""
+    codificacion = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        "✓✗".encode(codificacion)
+    except (UnicodeEncodeError, LookupError):
+        return "[OK]", "[FALLA]"
+    return "✓", "✗"
+
+
 def mostrar_verificacion(reporte):
     """Imprime un reporte del verificador (E10.2) y devuelve ``True`` si todas las comprobaciones se cumplen.
 
     Proposito: mostrar en consola, comprobacion por comprobacion, si la respuesta de un algoritmo es correcta.
     Precondiciones: ``reporte`` es un ``ReporteVerificacion``.
     Postcondiciones: imprime una linea por comprobacion con su marca (correcta o fallida) y su detalle, y el veredicto
-    final; devuelve ``reporte.es_valido``. No modifica el reporte.
+    final; devuelve ``reporte.es_valido``. Si la salida no puede codificar las marcas, como cp1252 al redirigir en
+    Windows, usa ``[OK]`` y ``[FALLA]`` en lugar de fallar. No modifica el reporte.
     Complejidad: O(C) temporal y O(1) espacial adicional, donde C es la cantidad de comprobaciones.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) implemento esta presentacion en E10.2.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta presentacion en E10.2 y agrego en E11.6 las marcas de
+    respaldo para salidas que no admiten los simbolos.
     Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
-    tests/algoritmos/test_verificador.py comprueban el reporte en los tres modos.
+    tests/algoritmos/test_verificador.py comprueban el reporte en los tres modos y con la salida en cp1252.
     """
     print(f"\nVERIFICACIÓN: {reporte.sujeto}")
     print("-" * 60)
+    correcta, fallida = _marcas_de_verificacion()
     for comprobacion in reporte.comprobaciones:
-        marca = "✓" if comprobacion.correcta else "✗"
+        marca = correcta if comprobacion.correcta else fallida
         print(f"  {marca} {comprobacion.nombre}: {comprobacion.detalle}")
     print(f"Resultado de la verificación: {'VÁLIDO' if reporte.es_valido else 'INVÁLIDO'}")
     return reporte.es_valido

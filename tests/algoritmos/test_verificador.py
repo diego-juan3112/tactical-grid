@@ -377,6 +377,24 @@ def test_consola_verifica_cada_modo(argumentos) -> None:
     assert "Resultado de la verificación: VÁLIDO" in salida.stdout
 
 
+def test_consola_verifica_aunque_la_salida_no_admita_las_marcas() -> None:
+    # En Windows, al redirigir la salida a un archivo o a una tuberia, Python escribe en cp1252, que no tiene ✓ ni ✗.
+    salida = subprocess.run(
+        [sys.executable, "-B", str(RAIZ / "main.py"), "escenarios/ruta_corta_vs_economica.json",
+         "--algoritmo", "ucs", "--verificar"],
+        cwd=RAIZ,
+        env=os.environ | {"PYTHONIOENCODING": "cp1252"},
+        capture_output=True,
+        text=True,
+        encoding="cp1252",
+        check=False,
+    )
+
+    assert salida.returncode == 0, salida.stderr
+    assert "[OK] movimientos_validos" in salida.stdout
+    assert "Resultado de la verificación: VÁLIDO" in salida.stdout
+
+
 def test_consola_sin_verificar_no_muestra_el_reporte() -> None:
     salida = _ejecutar_main("escenarios/ruta_corta_vs_economica.json", "--algoritmo", "ucs")
 

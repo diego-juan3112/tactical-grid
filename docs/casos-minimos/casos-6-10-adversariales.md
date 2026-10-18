@@ -20,8 +20,8 @@ escenarios, las pruebas fallan y el análisis debe revisarse.
 | 10. Profundidad | El mismo estado se evalúa con distintas profundidades y se analizan los efectos. | `recurso_en_transporte.json` |
 
 Los escenarios nuevos respetan las reglas del enunciado y del proyecto: tres unidades por bando,
-`juego.profundidad_maxima_minimax = 4` y `prueba.modo = "adversarial"`. Este proyecto todavía no lee el modo de
-prueba desde el JSON (eso corresponde a E10.1); los casos se ejecutan desde la consola con `--algoritmo`.
+`juego.profundidad_maxima_minimax = 4` y `prueba.modo = "adversarial"`. Los comandos de este documento indican
+`--algoritmo` para fijar el algoritmo de cada caso, aunque el escenario ya declare su modo de prueba.
 
 Convenciones de los mapas: `.` camino (costo 1), `p` pasto (2), `b` bosque (4), `~` pantano (7), `#` muro,
 `[A]`/`[B]` base de cada bando y `R` recurso libre. MAX es el bando en turno (A en todos los casos).
@@ -162,7 +162,7 @@ recurso_en_transporte.json
 | 4 | A1 (0,2) → (0,3) | 72 | 5900 / 5238 | 787 / 600 / 907 | 89 % |
 
 Coincide con lo esperado en las tres afirmaciones. El mecanismo se puede seguir a mano en el árbol del pasillo de
-E8.4 (sección "Poda alfa-beta — E8.4" del README): Minimax genera 7 nodos y evalúa 4; alfa-beta genera 6, evalúa 3 y
+E8.4 ([poda alfa-beta](../tecnico/04-decision-adversarial.md#poda-alfa-beta--e84)): Minimax genera 7 nodos y evalúa 4; alfa-beta genera 6, evalúa 3 y
 poda 1 rama, y ambos eligen la misma jugada con valor 3.
 
 ---
@@ -268,24 +268,24 @@ Desde la raíz del repositorio, con el entorno virtual activo:
 
 ```bash
 # Caso 6: misma posición, decisión distinta
-python -B main.py escenarios/estado_compuesto_libre.json --algoritmo alfa_beta
-python -B main.py escenarios/estado_compuesto_portador.json --algoritmo alfa_beta
+python main.py --consola escenarios/estado_compuesto_libre.json --algoritmo alfa_beta
+python main.py --consola escenarios/estado_compuesto_portador.json --algoritmo alfa_beta
 
 # Caso 7: con profundidad 1 toma el recurso; con 2 o más, no
-python -B main.py escenarios/decision_adversarial.json --algoritmo minimax --profundidad 1
-python -B main.py escenarios/decision_adversarial.json --algoritmo minimax --profundidad 2
+python main.py --consola escenarios/decision_adversarial.json --algoritmo minimax --profundidad 1
+python main.py --consola escenarios/decision_adversarial.json --algoritmo minimax --profundidad 2
 
 # Caso 8: tabla comparativa Minimax vs. alfa-beta
-python -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4
+python main.py --consola escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4
 
 # Caso 9: el mismo estado con los tres órdenes
-python -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden generacion
-python -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden inverso
-python -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden tactico
+python main.py --consola escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden generacion
+python main.py --consola escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden inverso
+python main.py --consola escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden tactico
 
 # Caso 10: el mismo estado con profundidades 1 a 4
-python -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 1
-python -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4
+python main.py --consola escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 1
+python main.py --consola escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4
 
 # Todas las afirmaciones de este documento
 python -m pytest tests/algoritmos/test_casos_minimos_adversariales.py
@@ -300,4 +300,5 @@ python -m pytest tests/algoritmos/test_casos_minimos_adversariales.py
 - **Cómo se obtuvieron los datos:** los resultados esperados se razonaron antes de ejecutar; los valores del caso 7
   con profundidad 1 se verificaron a mano criterio por criterio. Los resultados obtenidos se tomaron de la ejecución
   de los algoritmos del proyecto y quedaron fijados en las pruebas.
-- **Validación del estudiante:** pendiente de revisión del equipo.
+- **Validación del estudiante:** el equipo revisó los escenarios, los resultados esperados y las cifras obtenidas;
+  todas quedan fijadas en `tests/algoritmos/test_casos_minimos_adversariales.py`.

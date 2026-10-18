@@ -44,23 +44,27 @@ La estructura real es:
 
 ```text
 src/tacticalgrid/
-├── consola.py    # ejecutor y presentacion textual historicos
+├── consola.py     # ejecutor y presentacion textual
 ├── despachador.py # seleccion entre GUI predeterminada y consola
-├── escenario/    # carga, validacion y representacion estatica desde JSON
-├── juego/        # estado dinamico y futuras reglas del dominio
-├── algoritmos/   # resultados y futuras estrategias de busqueda/decision
-├── modos/        # modos de prueba busqueda, partida y adversarial (E10.1)
-├── interfaz/     # visualizacion Pygame
+├── escenario/     # carga, validacion y representacion estatica desde JSON
+├── juego/         # estado dinamico, reglas, acciones, recurso y tacticas
+├── algoritmos/    # busquedas, heuristicas, utilidad, Minimax, alfa-beta y verificador
+├── modos/         # modos de prueba busqueda, partida y adversarial, y registro reproducible
+├── interfaz/      # visualizacion Pygame
 └── servidor/      # punto ASGI aislado para Uvicorn
-tests/
-├── escenario/
-├── juego/
-├── algoritmos/
-├── modos/
-├── interfaz/
-└── servidor/
-escenarios/
+tests/             # una carpeta por capa, mas las pruebas de documentacion
+escenarios/        # escenarios JSON propios
+scripts/           # experimentos reproducibles fuera de la aplicacion
+docs/
+├── entregables/   # documento tecnico y manual de usuario (Word)
+├── tecnico/       # detalle tecnico por area, en Markdown
+├── casos-minimos/ # los diez casos minimos del enunciado
+├── enunciado/     # especificacion del proyecto (PDF)
+└── imagenes/      # capturas usadas por la documentacion
 ```
+
+`README.md` es la portada del proyecto: presentacion, ejecucion, uso rapido y enlaces. El detalle de cada historia vive
+en `docs/tecnico/` y `docs/casos-minimos/`; el indice esta en `docs/README.md`.
 
 `escenario` carga, valida y provee datos estaticos, costos y transitabilidad. `juego` representa el estado
 dinamico, reglas, acciones y sucesores. `algoritmos` consume contratos del dominio: no lee JSON, no conoce
@@ -233,7 +237,7 @@ En este orden de complejidad creciente:
 1. **No informada:** BFS y DFS.
 2. **Costo uniforme:** UCS (minimiza costo acumulado, no cantidad de movimientos).
 3. **Informada:** A* con `f(n) = g(n) + h(n)`, heurística Manhattan + la segunda heurística propia HTO
-   (`algoritmos/heuristica_obstaculos.py`), justificada en `docs/E6.2-segunda-heuristica-propia.md` (qué estima, qué
+   (`algoritmos/heuristica_obstaculos.py`), justificada en `docs/tecnico/03-heuristica-hto.md` (qué estima, qué
    información usa, costo computacional, admisibilidad, cuándo pierde discriminación).
 4. **Memoria limitada:** Beam Search, experimentado con k = 1, 2, 4, 8.
 5. **Adversarial:** Minimax y Minimax con poda alfa-beta, profundidad limitada configurable, función de
@@ -306,10 +310,11 @@ responsabilidad de quien cambia el método.
 
 ## Referencias
 
-- Especificación completa del proyecto: [`Primer proyecto.pdf`](./docs/Primer%20proyecto.pdf).
-- Documento técnico consolidado: [`docs/documento-tecnico.docx`](./docs/documento-tecnico.docx), y manual de
-  usuario: [`docs/manual-de-usuario.docx`](./docs/manual-de-usuario.docx). Se editan directamente en Word. Si un
-  cambio altera una regla, un algoritmo, una cifra o un comando que reportan, se actualizan en el mismo cambio.
+- Especificación completa del proyecto: [`primer-proyecto.pdf`](./docs/enunciado/primer-proyecto.pdf).
+- Entregables en Word: [documento técnico](./docs/entregables/documento-tecnico.docx) y
+  [manual de usuario](./docs/entregables/manual-de-usuario.docx). Se editan directamente en Word. Si un cambio altera
+  una regla, un algoritmo, una cifra o un comando que reportan, se actualizan en el mismo cambio.
+- Índice de la documentación técnica y de los casos mínimos: [`docs/README.md`](./docs/README.md).
 - Diseño editorial de los documentos (documento técnico y manual de usuario): [`DESIGN.md`](./DESIGN.md). Léelo antes
   de redactar o maquetar un documento entregable.
 - Backlog de historias de usuario: Tablero de Proyectos en GitHub.

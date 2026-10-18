@@ -1,1462 +1,233 @@
 # TacticalGrid
 
-Juego tactico 2D por turnos para Sistemas Inteligentes I. El juego permite observar y experimentar estrategias de busqueda y decision sobre escenarios externos.
+**Juego táctico 2D por turnos para experimentar con búsqueda y toma de decisiones.**
 
-## Integrantes
+![Python 3.12 | 3.13](https://img.shields.io/badge/python-3.12%20%7C%203.13-334155)
+![Pygame](https://img.shields.io/badge/interfaz-Pygame-334155)
+![pytest](https://img.shields.io/badge/pruebas-pytest-334155)
 
-- Juan Diego Henao Quintero (`diego-juan3112`)
-- Ana Suárez (`Aisc07`)
-- Santiago Silva (`SilvaG35083`)
+Dos bandos compiten en una cuadrícula por tomar un recurso y llevarlo a su base. TacticalGrid no es un videojuego
+comercial: es un entorno para observar cómo decide un sistema inteligente cuando pasa de encontrar una ruta a
+optimizar su costo, usar conocimiento heurístico y, finalmente, enfrentarse a un adversario que también razona.
 
-## Documentación
+![Interfaz de TacticalGrid: camino de UCS sobre el escenario ruta_corta_vs_economica.json](docs/imagenes/interfaz.png)
 
-- [Documento técnico](docs/documento-tecnico.docx) (Word): modelado, estados, reglas, costos, heurísticas, utilidad,
-  metodología experimental, resultados, complejidad, limitaciones y uso de IA.
-- [Manual de usuario](docs/manual-de-usuario.docx) (Word): instalación en Windows y Linux, interfaz gráfica, modos
-  de consola, escenarios externos, verificación y exportación de resultados, con capturas de cada paso.
-- Ambos documentos siguen el diseño editorial de [DESIGN.md](DESIGN.md) y se editan directamente en Word.
-- [Segunda heurística propia (E6.2)](docs/E6.2-segunda-heuristica-propia.md),
-  [casos mínimos 3 y 4](docs/casos-minimos-obstaculo-y-heuristicas.md) y
-  [casos mínimos 6 a 10](docs/casos-minimos-adversariales.md).
+- **Siete algoritmos** sobre el mismo modelo: BFS, DFS, UCS, A* con dos heurísticas, Beam Search, Minimax y Minimax
+  con poda alfa-beta.
+- **Escenarios externos en JSON**, validados por completo antes de usarse. Ningún mapa, posición ni costo está
+  escrito en el código.
+- **Tres modos de prueba:** `busqueda`, `adversarial` y `partida`, desde la consola o el propio escenario.
+- **Respuestas verificables y reproducibles:** el verificador comprueba cada resultado con las reglas del juego, y
+  cada ejecución puede exportarse en JSON con el comando que la repite.
 
-## Stack tecnico
+Proyecto de Sistemas Inteligentes I, Ingeniería de Sistemas y Computación, Universidad de Caldas.
 
-- **Python 3.12 o 3.13 (no 3.14, que Pygame aun no soporta):** facilita implementar con claridad los algoritmos de busqueda y decision, mantiene el codigo legible y modificable, e integra Pygame y pytest en el mismo proyecto.
-- **Pygame:** TacticalGrid es un entorno tactico 2D en cuadricula; permite visualizar tablero, terrenos, unidades, caminos y resultados, con una interfaz suficiente para observar el sistema inteligente y no para producir un videojuego comercial.
-- **pytest:** permite probar escenario, juego y algoritmos independientemente de Pygame, con pruebas automatizadas y reproducibles.
-- **Uvicorn:** ejecuta un punto ASGI tecnico y aislado; no convierte el proyecto en una aplicacion web.
-- **JSON:** contrato externo para escenarios.
-- **Git:** control de versiones.
-- **.venv:** entorno virtual local recomendado para aislar dependencias.
+## Ejecución rápida
 
-## Arquitectura
+Requisitos: **Python 3.12 o 3.13** (Pygame aún no funciona con 3.14) y **Git**.
 
-- `escenario`: lee, valida y representa JSON; provee dimensiones, terrenos, costos y transitabilidad.
-- `juego`: representa `EstadoJuego` y `Unidad`; aqui viviran reglas, acciones y sucesores.
-- `algoritmos`: contiene contratos de resultados y alojara estrategias de busqueda y decision.
-- `modos`: interpreta el campo `prueba` y ejecuta los modos `busqueda`, `partida` y `adversarial` (E10.1) usando escenario, juego y algoritmos; no abre archivos ni conoce Pygame.
-- `interfaz`: carga el escenario elegido, construye el estado inicial y renderiza ambos mediante Pygame.
-- `servidor`: expone el punto ASGI tecnico para Uvicorn; no accede a las cuatro capas.
-
-```text
-JSON -> Escenario -> Juego -> Algoritmos -> Resultado
-                         ^                 ^
-                         |                 |
-                    Interfaz Pygame consume estado y resultados
-
-Uvicorn -> servidor ASGI aislado
-pytest -> prueba escenario, juego, algoritmos y servidor sin Pygame
-```
-
-`Escenario` conserva la informacion estatica: dimensiones, terrenos, bases, posicion inicial del recurso, configuracion y unidades iniciales. `EstadoJuego` conserva la informacion dinamica: unidades, turno actual, posicion del recurso cuando no tiene portador, identificador del portador y estado general de la partida. `Unidad` representa identificador, bando, tipo y posicion actual.
-
-E1.1 define `EstadoJuego` y `Unidad` como objetos inmutables y hashables. Las unidades se almacenan en una tupla canonica ordenada por identificador, por lo que su orden de entrada no modifica la identidad logica del estado. Las posiciones determinan acciones y transiciones disponibles; el turno determina que bando puede actuar; y el portador distingue situaciones visualmente iguales que requieren decisiones distintas. Cuando no hay portador, la posicion del recurso tambien forma parte del estado. El modelo no contiene dimensiones ni posiciones fijas: esas propiedades pertenecen al escenario cargado.
-
-E1.2 define acciones, sucesores, condicion objetivo y costo. Cada accion mueve una unidad del bando en turno una celda ortogonal a una celda dentro del mapa, transitable y libre; al entrar en la celda del recurso libre la unidad lo recoge, y el recurso viaja con ella. Un bando gana cuando su portador llega a su propia base. El costo de una accion es el costo del terreno destino declarado en `tipos_terreno`, por lo que cambiar un costo en el JSON cambia el comportamiento sin tocar codigo. Los algoritmos de busqueda consumen el contrato `Problema`; `ProblemaNavegacion` lleva una unidad a una celda objetivo ignorando al adversario.
-
-## Reglas deterministas de borde — E1.3
-
-Una unidad sin movimientos legales no genera acciones; las demas unidades del mismo bando pueden actuar normalmente. El bloqueo individual no cambia el turno. Si ninguna unidad del bando activo puede actuar, `resolver_bloqueo_turno()` pasa el turno una vez al adversario cuando este tiene acciones. Si ambos bandos carecen de acciones, `estado_partida` pasa a `empate_bloqueo`, que es terminal y evita pases repetidos.
-
-La ausencia de ruta se determina en las historias de busqueda. Cuando una busqueda no encuentra solucion, `ResultadoBusqueda` representa fracaso (`exito = false`) con `camino` y `acciones` vacios, y `costo = None`. Ese resultado no modifica `EstadoJuego`: unidades, turno, recurso y `estado_partida` permanecen iguales. El contrato no agrega un algoritmo de busqueda a la capa de juego.
-
-E1.3 no elimina unidades. Una intercepcion ya establecida transfiere atomicamente `portador_recurso` a la unidad adversaria y mantiene `posicion_recurso = null`; conserva las unidades y el turno. Si el nuevo portador ya esta en la base de su bando, esa misma transicion registra inmediatamente su victoria. La accion futura que origine la intercepcion sera responsable de alternar el turno mediante el flujo normal. Estas reglas son deterministas porque el mismo estado y escenario producen el mismo pase, empate o transferencia sin azar ni estado externo, y cada resultado se representa en un nuevo `EstadoJuego` inmutable.
-
-## Bucle de turnos — E3.1
-
-El dominio ofrece un flujo sincrono y paso a paso en `juego/partida.py`; el consumidor (jugador, interfaz, prueba o IA futura) decide cuándo repetirlo y qué opción elegir. No hay un bucle de partida interno ni concurrencia o lógica de tiempo real.
-
-1. `preparar_turno(escenario, estado)` devuelve sin cambios un estado terminal; de lo contrario reutiliza `resolver_bloqueo_turno()` para mantener el turno, pasarlo una vez o declarar empate por bloqueo total.
-2. `unidades_seleccionables()` expone solo unidades del bando activo con al menos una acción legal. Una unidad bloqueada no es seleccionable; `acciones_para_unidad()` para esa unidad activa devuelve una tupla vacía.
-3. El consumidor elige una unidad y una de las acciones de `acciones_para_unidad()`. Esta consulta filtra `acciones_validas()` y no duplica reglas de movimiento. Una unidad adversaria o inexistente produce `ValueError`.
-4. `aplicar_accion()` valida y ejecuta la acción según E1.2, crea un nuevo estado y alterna el turno exactamente una vez. E3.1 no vuelve a cambiarlo.
-
-La selección es transitoria y no integra `EstadoJuego`, por lo que no altera su identidad lógica ni su hash. El pase automático pertenece a E1.3; si ambos bandos están bloqueados, la partida termina en `empate_bloqueo`. `resolver_intercepcion()` conserva el turno por sí sola. A y B utilizan las mismas reglas. MAX y MIN son roles adversariales futuros: no conceden más o menos acciones, profundidad o inteligencia. La integración de E2.1 comienza con un `Escenario` cargado; `crear_estado_inicial(escenario)` construye el estado sin que el módulo de partida lea JSON.
-
-## Recoger y transportar el recurso — E3.2
-
-Las reglas del recurso viven en `juego/recurso.py`, que solo consulta y transforma `EstadoJuego` (no lee JSON, no conoce Pygame ni los algoritmos). Antes estaban mezcladas dentro de `reglas.py`; E3.2 las extrae a un módulo propio sin cambiar el comportamiento y `reglas.py` las reutiliza.
-
-- **Recoger:** una unidad recoge el recurso automáticamente al entrar en la celda donde está libre (`recoger_recurso`). Entonces `portador_recurso` pasa a ser su identificador y `posicion_recurso` queda en `null`. Pasar junto al recurso sin entrar en su celda no lo recoge.
-- **Transportar:** mientras tiene portador, el recurso viaja con él. `posicion_del_recurso(estado)` responde dónde está el recurso, libre o transportado, y `obtener_portador(estado)` devuelve la unidad que lo lleva.
-- **Ganar:** un bando gana cuando su portador está en la base de ese mismo bando (`bando_que_entrego_recurso`). Llevarlo a la base adversaria no da la victoria. Si el recurso estaba en la propia base y la unidad lo recoge allí, gana de inmediato.
-- **Simetría:** A y B usan exactamente las mismas reglas.
-
-`tests/juego/test_recurso.py` verifica cada criterio, incluida una partida completa sobre `escenarios/ejemplo_enunciado.json` en la que A1 recoge el recurso, lo transporta y gana en su base.
-
-E2.2 completa el validador de escenarios. Antes de construir el `Escenario` se comprueban todas las reglas del enunciado: dimensiones consistentes con la matriz, terrenos declarados, costos positivos, posiciones dentro del mapa, unidades sobre celdas transitables, ids unicos, bandos y turno validos, y portador existente. Cualquier incumplimiento lanza `ErrorValidacionEscenario` con un mensaje que nombra el campo, el elemento y el valor recibido. Como la validacion ocurre completa antes de aplicar nada, una carga fallida no reemplaza ni altera el escenario vigente.
-
-E2.3 agrega un set propio de escenarios en `escenarios/` para desarrollar y depurar algoritmos antes de recibir los del profesor: un mapa de 20 x 20 con todos los tipos de terreno y variantes pequenas. En `campo_20x20.json` y `ruta_corta_vs_economica.json` la ruta con menos movimientos es mas costosa que una mas larga, por lo que BFS y UCS producen caminos distintos. Las pruebas de `tests/escenario/test_escenarios_propios.py` comprueban estas propiedades sobre el modelo de E1.2, con los costos leidos del JSON.
-
-E4.1 agrega la instrumentacion comun de busqueda en `algoritmos/instrumentacion.py`, para que BFS, DFS, UCS, A* y Beam Search reporten resultados comparables sin duplicar codigo. `Nodo` guarda estado, padre, accion, costo acumulado y profundidad; `expandir` genera los hijos en el orden de las acciones, con el costo leido del escenario, y cuenta la expansion; `MedidorBusqueda` lleva estados generados (incorporados a la frontera, incluido el inicial), estados expandidos, maximo de frontera y tiempo, y construye el `ResultadoBusqueda`. `ResultadoBusqueda.a_diccionario()` devuelve la estructura del enunciado (`algoritmo`, `exito`, `camino`, `costo`, `estados_generados`, `estados_expandidos`, `maximo_frontera`) mas `longitud` y `tiempo_segundos`; el resultado tambien conserva las acciones para el verificador de soluciones.
-
-## BFS — E4.2
-
-BFS es una busqueda no informada: usa una frontera FIFO y explora los estados por niveles. Con cada accion equivalente a un movimiento, encuentra una solucion con la menor cantidad de movimientos. El costo del terreno no afecta el orden ni desempata rutas; `ResultadoBusqueda.costo` aun informa la suma real de costos del camino y `longitud` informa sus movimientos.
-
-La implementacion consume `Problema`, marca el `EstadoJuego` completo como descubierto al encolarlo y descarta estados repetidos. Esto evita ciclos y conserva diferencias de estado relevantes, como el portador del recurso. Mantiene el orden de acciones del problema para resultados deterministas. Cada `Nodo` conserva padre y accion; `MedidorBusqueda.finalizar()` reconstruye camino y acciones. Si la frontera se agota, el resultado indica fracaso, con camino y acciones vacios y costo `None`; los contadores y el tiempo reflejan la exploracion realizada. BFS reutiliza las metricas E4.1 y no depende de dimensiones, coordenadas ni escenarios particulares.
-
-## DFS — E4.3
-
-DFS es la otra busqueda no informada del proyecto: usa una frontera LIFO (una pila) y sigue cada rama hasta el fondo antes de retroceder. No garantiza el camino con menos movimientos ni el mas barato: devuelve el primero que encuentra. `ResultadoBusqueda.costo` y `longitud` informan el costo real y los movimientos de ese camino.
-
-DFS comparte con BFS todo salvo la frontera, para que la comparacion de E4.4 aisle esa unica diferencia:
-
-- Consume el contrato `Problema` y las metricas de E4.1 (`Nodo`, `expandir`, `MedidorBusqueda`), con la misma convencion de conteo.
-- Marca el `EstadoJuego` completo como descubierto al apilarlo y descarta estados repetidos. Asi evita ciclos (una unidad puede ir y volver) y termina siempre en espacios finitos, y conserva diferencias de estado como el portador del recurso.
-- Comprueba el objetivo al extraer de la pila, igual que BFS.
-- Apila los hijos en orden inverso para explorar primero el primer movimiento de `DESPLAZAMIENTOS` (arriba, abajo, izquierda, derecha). Por eso el resultado es determinista, y cambiar ese orden cambia el camino de DFS.
-- Usa una pila explicita, sin recursion, para no depender del limite de recursion de Python en mapas grandes.
-
-Ejemplo verificado en `tests/algoritmos/test_busqueda_profundidad.py`, en un mapa abierto de 3x3 con la unidad en (0, 0) y el objetivo en (0, 2): BFS llega en 2 movimientos, mientras DFS baja primero por la columna 0 y da la vuelta al mapa en 6 movimientos, con 9 estados generados, 6 expandidos y un maximo de frontera de 3. Si el objetivo es inalcanzable, DFS agota la pila tras visitar exactamente los mismos estados alcanzables que BFS.
-
-En el escenario predeterminado `campo_20x20.json` (de (1, 2) a (9, 10)), DFS expande menos estados que BFS (102 frente a 186), pero devuelve un camino mucho peor (98 movimientos y costo 283, frente a 16 movimientos y costo 45). Ademas, su frontera maxima es mayor (104 frente a 20). La ventaja de memoria que suele atribuirse a DFS, una pila de tamaño O(b * m), vale para la busqueda en arbol, que solo guarda la rama actual. En esta busqueda en grafo, cada expansion deja en la pila hermanos pendientes que se acumulan mientras se profundiza.
-
-## E4.4 — Caso mínimo 1: BFS vs. DFS
-
-### Propósito del experimento
-
-Este caso demuestra que BFS (E4.2) y DFS (E4.3) encuentran solución sobre el mismo problema, pero recorren el
-espacio de búsqueda de forma distinta. Ambos usan el mismo `ProblemaNavegacion`, la misma detección de estados
-repetidos, la misma prueba de objetivo y las métricas de E4.1; la única diferencia es la frontera: cola (FIFO) en
-BFS y pila (LIFO) en DFS. Las afirmaciones de esta sección están fijadas como pruebas en
-`tests/algoritmos/test_caso_minimo_1.py`.
-
-### Configuración reproducible
-
-Escenario principal (cumple el mínimo de 20×20):
-
-- Escenario: `escenarios/campo_20x20.json`. Unidad `A1` en `(1, 2)`; objetivo `(9, 10)`, la isla del recurso.
-- Movimientos ortogonales generados en el orden arriba, abajo, izquierda, derecha.
-
-Complemento verificado a mano:
-
-- Escenario: `escenarios/ejemplo_enunciado.json` (4×4). Unidad `A1` en `(0, 1)`; objetivo `(3, 2)`, el mismo de
-  `prueba.objetivo`.
-
-```bash
-python3 -B main.py escenarios/campo_20x20.json --algoritmo bfs_dfs
-python3 -B main.py escenarios/ejemplo_enunciado.json --algoritmo bfs_dfs
-```
-
-La opción `bfs_dfs` ejecuta ambos algoritmos sobre el mismo problema e imprime una tabla comparativa.
-
-### Resultados esperados y observados — escenario 4×4
-
-Los valores esperados se obtuvieron con una traza manual de cada frontera. Para BFS, una cola de la que se extrae
-por el frente; para DFS, una pila en la que los hijos se apilan en orden inverso, de modo que se extrae primero el
-de la acción "arriba". En ambos casos el estado se marca al incorporarlo a la frontera.
-
-```text
-      0 1 2 3
-F0    C A P P        A = inicio (0, 1), G = objetivo (3, 2)
-F1    C # B P        C camino 1, P pasto 2, B bosque 4, S pantano 7, # muro
-F2    C C S P        El recurso está en (2, 2)
-F3    P P G C
-```
-
-| Métrica | BFS esperado | BFS observado | DFS esperado | DFS observado |
-|---|---:|---:|---:|---:|
-| Encuentra solución | Sí | Sí | Sí | Sí |
-| Movimientos | 4 | 4 | 6 | 6 |
-| Costo | 14 | 14 | 8 | 8 |
-| Estados generados | 19 | 19 | 9 | 9 |
-| Estados expandidos | 12 | 12 | 6 | 6 |
-| Máximo de frontera | 7 | 7 | 3 | 3 |
-
-Orden de expansión:
-
-- **BFS:** `(0,1)`, `(0,0)`, `(0,2)`, `(1,0)`, `(1,2)`, `(0,3)`, `(2,0)`, `(2,2)*`, `(1,3)`, `(3,0)`, `(2,1)`, `(1,2)*`.
-  Primero el inicio, luego sus vecinos, luego las celdas a dos pasos, y así sucesivamente. Las marcadas con `*` son
-  estados en los que `A1` ya porta el recurso: al entrar en `(2, 2)` lo recoge, y por eso `(1, 2)` aparece dos veces
-  como estados distintos (caso 6, estado compuesto). Camino: `(0,1) → (0,2) → (1,2) → (2,2) → (3,2)`, costo
-  `2 + 4 + 7 + 1 = 14`.
-- **DFS:** `(0,1)`, `(0,0)`, `(1,0)`, `(2,0)`, `(3,0)`, `(3,1)`. Desde el inicio, "arriba" sale del mapa y "abajo" es
-  muro, así que sigue "izquierda" y desde ahí baja por la columna 0 sin volver atrás. Camino:
-  `(0,1) → (0,0) → (1,0) → (2,0) → (3,0) → (3,1) → (3,2)`, costo `1 + 1 + 1 + 2 + 2 + 1 = 8`.
-
-Los valores esperados y observados coinciden. En este mapa DFS resulta más barato que BFS, pero por azar del orden
-de las acciones: ninguno de los dos usa el costo para decidir.
-
-### Resultados esperados y observados — escenario 20×20
-
-En el mapa grande no es práctico trazar a mano las 186 expansiones de BFS, así que los valores esperados son
-propiedades derivadas de cada algoritmo y los observados son los valores medidos:
-
-| Propiedad | Esperado | Observado |
-|---|---|---|
-| Ambos encuentran solución | Sí, el objetivo es alcanzable | BFS sí, DFS sí |
-| Movimientos de BFS | El mínimo posible: la distancia Manhattan, `8 + 8 = 16` | 16 |
-| Orden de expansión de BFS | Profundidad mínima no decreciente (por ondas) | Se cumple para los 186 estados expandidos |
-| Movimientos de DFS | Mayor que 16: sigue la primera rama sin medir longitud | 98 |
-| Orden de expansión de DFS | No respeta niveles | Se cumple |
-
-| Métrica observada | BFS | DFS |
-|---|---:|---:|
-| Movimientos | 16 | 98 |
-| Costo | 45 | 283 |
-| Estados generados | 205 | 206 |
-| Estados expandidos | 186 | 102 |
-| Máximo de frontera | 20 | 104 |
-
-### Cómo recorre el mapa cada algoritmo
-
-`*` es el camino devuelto, `o` una celda expandida fuera del camino, `.` una celda no expandida y `#` un muro.
-
-```text
-BFS (186 expandidos)                         DFS (102 expandidos)
-      01234567890123456789                         01234567890123456789
-F0    oooooooooooooooooo..                   F0    ***.***.***.........
-F1    ooAooooooooooooooo..                   F1    *.A.*.*.*.*.........
-F2    oo*oooooooooooooo...                   F2    *..**.*.*.*.........
-F3    oo*ooooooooooooo....                   F3    *.**..*.*.*.........
-F4    oo*ooooooooo#####...                   F4    *.*...*.*.*.#####...
-F5    oo*ooooooooooo......                   F5    *.*...*.*.*.........
-F6    oo*oooooooooo.......                   F6    *.*...*.*.*.........
-F7    oo*ooooooooo........                   F7    *.*...*.*.*.........
-F8    oo*oooooooo.........                   F8    *.*...*.*.*.........
-F9    oo********G.........                   F9    *.*...*.*.G.........
-F10   oooooooooo..........                   F10   *.*...*.*...........
-F11   ooooooooo...........                   F11   *.*...*.*...........
-F12   oooo#ooo............                   F12   *.*.#.*.*...........
-F13   oooo#oo.............                   F13   *.*.#.*.*...........
-F14   oooo#o..............                   F14   *.*.#.*.*...........
-F15   oooo#...............                   F15   *.*.#.*.*...........
-F16   .ooo#...............                   F16   *.*.#.*.*...........
-F17   ..o.................                   F17   *.*.o.*.*...........
-F18   ....................                   F18   *.*.o.*.*...........
-F19   ....................                   F19   ***.oo***...........
-```
-
-- **BFS** avanza como una onda desde `(1, 2)`: expande todas las celdas a distancia 1, luego a distancia 2, etc. La
-  región explorada es aproximadamente un rombo alrededor del inicio, recortado por los bordes y los muros. Cuando
-  extrae el objetivo ya expandió todo lo que está a 15 movimientos o menos y parte de lo que está a 16, por eso su
-  camino es el más corto posible.
-- **DFS** se mete en una sola rama y la sigue hasta el fondo. Desde `(1, 2)` toma "arriba", luego "izquierda" hasta
-  `(0, 0)` y baja por toda la columna 0. Como marca los estados al apilarlos, las celdas vecinas que deja pendientes
-  (por ejemplo, toda la columna 1) quedan descubiertas y no vuelven a entrar a la pila. Por eso el camino avanza en
-  columnas alternas, formando una serpiente (columnas 0, 2, 6, 8 y 10), hasta que la columna 10 lo lleva al
-  objetivo. De los 102 estados que expande, 98 son posiciones de su propio camino; solo `(17,4)`, `(18,4)`, `(19,4)`
-  y `(19,5)` quedan fuera.
-- **Frontera:** BFS nunca guarda más de 20 estados porque la onda es angosta en este mapa. DFS llega a 104, porque
-  cada celda de la serpiente deja hermanos pendientes en la pila que no se retiran mientras siga profundizando.
-
-### Conclusión académica
-
-BFS y DFS son búsquedas no informadas sobre el mismo modelo, y la única diferencia entre ellos es el orden en que
-extraen de la frontera. Ese solo cambio produce exploraciones opuestas: BFS recorre el espacio por niveles y
-garantiza el menor número de movimientos, a costa de expandir casi todo lo cercano al inicio; DFS sigue una rama
-hasta el fondo, expande menos estados, pero devuelve el primer camino que encuentra, que puede ser mucho más largo
-(98 frente a 16 movimientos) y, en esta implementación en grafo, puede necesitar más frontera que BFS. Ninguno usa
-los costos del terreno; para eso están UCS y A*.
-
-
-UCS usa una cola de prioridad minima ordenada exclusivamente por el costo acumulado `g(n)`. Los costos provienen de `Problema.costo()` y, en `ProblemaNavegacion`, de la celda destino declarada en `tipos_terreno` del JSON. Por eso puede elegir mas movimientos que BFS cuando el costo total resulta menor.
-
-La implementacion conserva el mejor costo conocido por `EstadoJuego`, reinserta un estado ante una mejora estricta y descarta al extraer las entradas obsoletas. Un contador monotono resuelve empates sin comparar nodos ni estados y mantiene el orden de insercion. El inicial y cada insercion o reinsercion aceptada cuentan como generados; solo `expandir()` cuenta estados cuyos sucesores se analizan. `maximo_frontera` mide la cantidad de entradas presentes en la cola, incluidas las obsoletas aun no extraidas. `ResultadoBusqueda` incluye exito, camino, acciones, longitud, costo, generados, expandidos, maximo de frontera y tiempo.
-
-Con cola binaria y reinserciones, las operaciones propias de UCS cuestan `O((V + E) log E)`, pero el modelo agrega el procesamiento de cada `EstadoJuego`. Si `U` es la cantidad de unidades y `d` la profundidad de la solucion, la cota completa es `O(E * U log U + (V + E) log E + d * U)` temporal y `O((V + E) * U + d)` espacial. Cada transicion reconstruye y ordena la tupla de unidades, el hash de un estado procesa sus unidades y la reconstruccion final consulta la posicion sobre cada estado del camino. La frontera puede incluir reinserciones y entradas obsoletas pendientes.
-
-Ejemplo reproducible sobre el escenario de comparacion:
-
-```python
-from tacticalgrid.algoritmos import busqueda_anchura, busqueda_costo_uniforme
-from tacticalgrid.escenario import Posicion, cargar_escenario
-from tacticalgrid.juego import ProblemaNavegacion
-
-escenario = cargar_escenario("escenarios/ruta_corta_vs_economica.json")
-problema = ProblemaNavegacion(escenario, "A1", Posicion(2, 8))
-
-print(busqueda_anchura(problema).a_diccionario())
-print(busqueda_costo_uniforme(problema).a_diccionario())
-```
-
-BFS devuelve 8 movimientos y costo 50; UCS devuelve 12 movimientos y costo 12. Para ejecutar la cobertura automatizada: `python3 -m pytest tests/algoritmos/test_busqueda_costo_uniforme.py`.
-
-## E5.2 — Caso mínimo 2: ruta corta vs. ruta económica
-
-### Propósito del experimento
-
-Este caso compara BFS y UCS sobre el mismo escenario, estado inicial, unidad y objetivo para demostrar que
-minimizar la cantidad de movimientos no equivale necesariamente a minimizar el costo acumulado. Se reutiliza
-`ruta_corta_vs_economica.json`, creado en E2.3; BFS proviene de E4.2, UCS de E5.1 y ambos reportan las métricas
-comunes definidas en E4.1. Las características generales de los algoritmos se describen en las secciones
-anteriores; aquí se documenta el experimento concreto y reproducible.
-
-### Configuración reproducible
-
-- Escenario: `escenarios/ruta_corta_vs_economica.json` (5 filas por 9 columnas).
-- Unidad: `A1`, con posición inicial `(2, 0)`.
-- Objetivo posicional: `(2, 8)`.
-- Movimientos: una celda ortogonal por acción, dentro del mapa y sobre terreno transitable.
-- Costo de cada acción: costo del terreno de la celda destino; la posición inicial no se cobra.
-
-Desde la raíz del repositorio, la comparación se ejecuta con:
-
-```bash
-python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos
-```
-
-### Representación del mapa
-
-```text
-      0 1 2 3 4 5 6 7 8
-F0    C C C C C C C C C
-F1    C # # # # # # # C
-F2    A S S S S S S S G
-F3    P # # # # # # # P
-F4    P P P P P P P P P
-```
-
-`A` identifica el inicio y `G` el objetivo de la búsqueda; no son tipos de terreno. `C` es camino de costo 1,
-`S` es pantano de costo 7, `P` es pasto de costo 2 y `#` es muro no transitable. El catálogo también declara
-bosque de costo 4, aunque ninguna celda de esta matriz lo utiliza.
-
-### Resultados esperados y observados
-
-Los resultados esperados son valores de referencia establecidos mediante el análisis del escenario, sus reglas
-de movimiento y sus costos; no se presentan como una predicción histórica anterior a las primeras ejecuciones.
-Los resultados observados provienen de ejecutar las implementaciones actuales sobre el mismo
-`ProblemaNavegacion`.
-
-| Resultado | BFS: movimientos | BFS: costo | UCS: movimientos | UCS: costo |
-|---|---:|---:|---:|---:|
-| Esperado de referencia | 8 | 50 | 12 | 12 |
-| Observado | 8 | 50 | 12 | 12 |
-
-Los valores esperados y observados coinciden.
-
-### Resultado observado con BFS
-
-La ejecución produce el siguiente camino:
-
-```text
-(2, 0) → (2, 1) → (2, 2) → (2, 3) → (2, 4)
-       → (2, 5) → (2, 6) → (2, 7) → (2, 8)
-```
-
-El camino contiene 9 posiciones y 8 movimientos. Entrar en las siete celdas de pantano cuesta 49 y entrar en
-la celda final de camino cuesta 1: `7 + 7 + 7 + 7 + 7 + 7 + 7 + 1 = 50`. La posición inicial no representa
-una acción y no se suma. BFS elige este corredor directo porque explora por niveles y la primera solución tiene
-la menor profundidad, medida en movimientos; el costo acumulado no ordena su frontera.
-
-### Resultado observado con UCS
-
-La misma ejecución produce este recorrido:
-
-```text
-(2, 0) → (1, 0) → (0, 0) → (0, 1) → (0, 2)
-       → (0, 3) → (0, 4) → (0, 5) → (0, 6)
-       → (0, 7) → (0, 8) → (1, 8) → (2, 8)
-```
-
-El camino contiene 13 posiciones y 12 movimientos. Todos los destinos son celdas de camino, por lo que su
-costo es `12 × 1 = 12`. UCS prioriza el costo acumulado `g(n)` y prefiere el corredor superior: realiza cuatro
-movimientos adicionales, pero evita el pantano. La cantidad de movimientos y el costo de los movimientos son
-magnitudes distintas.
-
-### Comparación verificada
-
-| Métrica | BFS | UCS |
-|---|---|---|
-| Encuentra solución | Sí | Sí |
-| Movimientos | 8 | 12 |
-| Costo acumulado | 50 | 12 |
-| Estrategia | Menor profundidad | Menor costo acumulado |
-| Corredor | Directo | Superior |
-
-En términos cuantitativos, UCS realiza `12 - 8 = 4` movimientos adicionales. Reduce el costo en
-`50 - 12 = 38`, equivalente a `(38 / 50) × 100 = 76 %` respecto del costo obtenido por BFS en este caso. Estos
-valores describen este escenario y no constituyen una proporción general entre los algoritmos.
-
-### Explicación de la diferencia
-
-En teoría, BFS usa una frontera FIFO y explora todos los estados de una profundidad antes de avanzar a la
-siguiente. Por eso, cuando cada acción representa un movimiento, optimiza la cantidad de movimientos, pero no
-usa el costo acumulado para decidir qué nodo expandir. UCS ordena su frontera por `g(n)`, la suma de los costos
-de las acciones. Como el escenario exige costos positivos, extraer el objetivo vigente de la cola de prioridad
-conserva la garantía de obtener una solución de costo mínimo para el modelo implementado.
-
-En el experimento, el corredor directo tiene menos movimientos, pero atraviesa terreno costoso. El corredor
-superior es más largo y solo entra en celdas de costo 1. Por eso BFS selecciona el primero y UCS el segundo. La
-ruta económica depende de los costos declarados en el JSON: si cambian, puede cambiar la prioridad de UCS sin
-modificar el algoritmo. Ambos resultados se obtienen a partir del mismo `ProblemaNavegacion`, con idénticos
-escenario, estado inicial, unidad, objetivo y reglas de movimiento y costo.
-
-### Particularidad del recurso
-
-El recurso está inicialmente en `(2, 4)`. La ruta directa de BFS entra en esa celda y la transición común lo
-asigna a `A1`; la ruta superior de UCS no pasa por allí. La recogida modifica el estado dinámico, pero el objetivo
-de este problema de navegación consiste únicamente en ubicar `A1` en `(2, 8)`, y las reglas de movimiento y costo
-siguen siendo las mismas para ambos algoritmos. El caso compara rutas de navegación, no estrategias completas de
-partida.
-
-### Demostración complementaria en el escenario 20×20
-
-El caso 5×9 facilita la revisión manual de cada transición y costo. Como complemento, `campo_20x20.json` demuestra
-el mismo principio sobre un mapa que satisface el requisito dimensional general del proyecto. Ambos algoritmos
-parten de `A1` en `(1, 2)` y buscan el objetivo `(9, 10)`:
-
-```bash
-python3 -B main.py escenarios/campo_20x20.json --algoritmo ambos
-```
-
-| Métrica observada | BFS | UCS |
-|---|---:|---:|
-| Movimientos | 16 | 34 |
-| Costo acumulado | 45 | 34 |
-
-Los recorridos observados son diferentes. El cálculo de referencia confirma que existe una ruta de 16 movimientos
-con costo 42, pero no es la que devuelve BFS con el orden actual. BFS minimiza profundidad y conserva el orden de
-descubrimiento de sus sucesores; no usa el costo para desempatar entre soluciones de 16 movimientos. Por eso su
-resultado observado cuesta 45. UCS sí prioriza el costo acumulado y devuelve 34 movimientos con costo 34.
-
-El escenario 5×9 se conserva como caso mínimo didáctico y el 20×20 como demostración complementaria. Esta
-documentación no presupone una excepción académica para el tamaño 5×9; su aceptación como escenario principal de
-evaluación requiere confirmación externa.
-
-### Conclusión académica
-
-BFS y UCS encuentran caminos diferentes sobre el mismo mapa porque optimizan criterios distintos. BFS reduce la
-cantidad de movimientos y atraviesa el pantano; UCS reduce el costo acumulado y acepta un recorrido más largo por
-camino. Ninguno de los dos criterios sustituye al otro: la elección depende de si el problema pide menor
-profundidad o menor costo según los terrenos del escenario.
-
-## A* con Manhattan — E6.1
-
-A* usa una cola de prioridad minima ordenada por `f(n) = g(n) + h(n)`. `g(n)` es el costo real acumulado que
-`Nodo` y `expandir()` calculan desde `Problema.costo()`; `h(n)` es una cota del costo restante; `f(n)` decide que
-nodo vigente se extrae primero. El algoritmo conserva el mejor `g` conocido por `EstadoJuego` completo, reinserta
-una mejora estricta y descarta las entradas obsoletas mediante su `g`, no mediante `f`. Un contador monotono
-resuelve empates sin comparar nodos ni estados.
-
-La heuristica implementada es:
-
-```text
-h(n) = (|fila_n - fila_objetivo| + |columna_n - columna_objetivo|) * costo_minimo_paso
-```
-
-`ProblemaNavegacion` calcula una sola vez `costo_minimo_paso` como el menor costo de los terrenos transitables del
-escenario validado. El escalamiento es necesario porque el contrato admite costos positivos menores que 1: usar la
-distancia Manhattan sin escalar podria sobreestimar. Con las reglas actuales, cada accion de navegacion mueve una
-celda ortogonal y cuesta al menos esa cota. Por ello Manhattan escalada es admisible; tambien es consistente porque
-un paso reduce la distancia a lo sumo en uno y su costo es al menos `costo_minimo_paso`.
-
-La heuristica consulta la posicion de la unidad navegante, pero los diccionarios del algoritmo conservan la
-identidad completa de `EstadoJuego`. Estados con igual posicion y distinto portador, recurso, turno u otras unidades
-no se fusionan. Obstaculos y terrenos caros no se incorporan a `h`: mantienen la correccion, aunque reducen su
-capacidad de orientar la busqueda. La demostracion de admisibilidad debe revisarse si aparecen diagonales, saltos,
-costos no positivos o reglas de costo por unidad inferiores a la cota utilizada.
-
-Con V estados alcanzables, E transiciones examinadas, U unidades por estado y una solucion de profundidad d, la
-cota implementada es `O(E * (U log U + U) + (V + E) log E + d * U)` temporal y
-`O((V + E) * U + d)` espacial. Incluye la reconstruccion canonica de estados, hashing, evaluaciones heuristicas,
-reinserciones y entradas obsoletas. El calculo aritmetico de Manhattan es O(1), pero localizar la unidad actual en
-el estado cuesta O(U).
-
-Ejecucion y comparacion de costos:
-
-```bash
-python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo a_estrella
-python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs
-```
-
-A* y UCS deben obtener el mismo costo optimo bajo estas condiciones; no se exige que coincidan el camino, las
-metricas ni el tiempo. La opcion `ambos` conserva su significado anterior y ejecuta solamente BFS y UCS.
-
-### Casos mínimos 3 y 4: obstáculo y comparación de heurísticas
-
-[Casos mínimos 3 y 4](docs/casos-minimos-obstaculo-y-heuristicas.md) documenta la ruta obligada por el muro de
-`obstaculo_rodeo.json` y compara A* con Manhattan, A* con HTO y UCS sobre la misma configuración. Las pruebas de
-`tests/algoritmos/test_casos_minimos_heuristicas.py` verifican el rodeo, la legalidad del camino, el costo y las
-métricas discretas. La comparación se reproduce con:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 .venv/bin/python \
-  scripts/comparar_heuristicas_e62.py --repeticiones 1 --calentamiento 0
-```
-
-## Beam Search — E7.1
-
-`algoritmos/busqueda_haz.py` implementa Beam Search por niveles con ancho `k`. En cada nivel se expanden todos los
-nodos del haz, sus hijos se ordenan por `f(n) = g(n) + h(n)` (Manhattan escalada de E6.1 por defecto; la heuristica
-es un parametro, de modo que la segunda heuristica de E6.2 se puede usar sin cambiar el algoritmo) y solo los `k`
-mejores pasan al siguiente nivel; el resto se olvida. Un estado que ya entro en un haz no vuelve a entrar. El objetivo
-se comprueba al formar cada haz y los empates se resuelven por orden de generacion, por lo que el resultado es
-determinista. Reporta las metricas de E4.1 con el nombre `BEAM_SEARCH_K<k>`; un estado cuenta como generado cuando
-entra al haz, por lo que el maximo de frontera nunca supera `k`.
-
-Beam Search no es completo ni optimo. Con `k = 1` actua como una busqueda voraz; con `k` mayor que cualquier nivel no
-poda y se comporta como BFS (minimo numero de movimientos, eligiendo el objetivo de menor `f` en ese nivel). Por eso
-aumentar `k` no siempre reduce el costo. Resultados reproducibles (`tests/algoritmos/test_busqueda_haz.py`):
-
-| Escenario | k = 1 | k = 2 | k = 4 | k = 8 | UCS (optimo) |
-|---|---|---|---|---|---|
-| `ejemplo_enunciado.json` | costo 12, 6 mov. | costo 7, 6 mov. | costo 14, 4 mov. | costo 14, 4 mov. | costo 7 |
-| `ruta_corta_vs_economica.json` | costo 12, 12 mov. | costo 12, 12 mov. | costo 50, 8 mov. | costo 50, 8 mov. | costo 12 |
-| `obstaculo_rodeo.json` | costo 20, 19 mov. | sin solucion | costo 16, 15 mov. | costo 16, 15 mov. | costo 16 |
-| `campo_20x20.json` | sin solucion | sin solucion | costo 40, 34 mov. | costo 46, 36 mov. | costo 34 |
-
-El parametro opcional `observador` de `busqueda_haz` recibe un `NivelHaz` por cada nivel (candidatos conservados y
-descartados con su `f`) sin alterar el resultado; se usa en el analisis de E7.2 y sirve para visualizar la exploracion.
-
-`k` se configura sin modificar codigo: desde la consola con `--k` (admite varios valores) o desde el JSON con el
-campo propio `prueba.k`. La consola tiene prioridad sobre el JSON; un `k` que no sea un entero mayor o igual que 1 se
-rechaza con un mensaje claro.
-
-```bash
-python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8
-```
-
-## E7.2 — Caso mínimo 5: efecto de k en Beam Search
-
-### Propósito del experimento
-
-Este caso analiza cómo cambia Beam Search (E7.1) al variar el ancho del haz `k` sobre el mismo escenario, estado
-inicial, unidad y objetivo. Se busca observar qué ocurre con la exploración y con la solución cuando se restringe
-la cantidad de alternativas conservadas y, en particular, identificar el momento exacto en que el haz descarta un
-camino que después habría sido conveniente. Las afirmaciones de esta sección están fijadas como pruebas en
-`tests/algoritmos/test_caso_minimo_5.py`.
-
-### Configuración reproducible
-
-- Escenario: `escenarios/campo_20x20.json` (20 filas por 20 columnas), creado en E2.3.
-- Unidad: `A1`, con posición inicial `(1, 2)`. Objetivo posicional: `(9, 10)`, la isla del recurso.
-- Anchos evaluados: `k = 1, 2, 4, 8`.
-- Orden de los candidatos: `f(n) = g(n) + h(n)` con Manhattan escalada de E6.1; empates por orden de generación
-  (las acciones se generan arriba, abajo, izquierda, derecha).
-- Referencias sobre el mismo problema: UCS (costo óptimo) y BFS (mínimo número de movimientos).
-
-```bash
-python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8
-```
-
-La consola imprime cada resultado y, al final, una tabla comparativa por `k`.
-
-### Representación del mapa
-
-```text
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
-F0    P C C C C C C C C C C C C C C C C C C C
-F1    P C A C C C C C C C C C C C C C C C C P
-F2    P C P P P P P P P P P P P P P P P P C P
-F3    P C P B B B P P P P P P P P P P P P C P
-F4    P C P B B B B B B B B B # # # # # P C P
-F5    P C P B B B B B B B B B B B P P P P C P
-F6    P C P P P P S S S S S S S S P P P P C P
-F7    P C P P P P S S S S S S S S P P P P C P
-F8    P C P P P P S S S S S S S S P P P P C P
-F9    P C P P P P S S S C G S S S P P P P C P
-F10   P C P P P P S S S C C C C C C C C C C P
-F11   P C P P P P S S S S S S S S P C P P C P
-F12   P C P P # P S S S S S S S S P C P P C P
-F13   P C P P # P S S S S S S S S P C C C C P
-F14   P C P P # P P P P P P P P P P P P P C P
-F15   P C P P # P P P P P P P P P B B B P C P
-F16   P C P P # P P P P P P P P P B B B P C P
-F17   P C P P P P P P P P P P P P B B B P C P
-F18   P C C C C C C C C C C C C C C C C C C P
-F19   C C C C C C C C C C C C C C C C C C C P
-```
-
-`A` es el inicio y `G` el objetivo. `C` es camino (costo 1), `P` pasto (2), `B` bosque (4), `S` pantano (7) y `#`
-muro. La ruta óptima (UCS, costo 34) recorre la carretera de la fila 1 hasta la columna 18, baja por la columna 18
-hasta la fila 10 y entra a la isla por la carretera de la fila 10.
-
-### Resultados observados
-
-| k | Solución | Movimientos | Costo | Estados generados | Estados expandidos | Máximo de frontera | Niveles |
-|---:|:---:|---:|---:|---:|---:|---:|---:|
-| 1 | No | — | — | 74 | 74 | 1 | 74 |
-| 2 | No | — | — | 137 | 137 | 2 | 70 |
-| 4 | Sí | 34 | 40 | 137 | 133 | 4 | 34 |
-| 8 | Sí | 36 | 46 | 284 | 276 | 8 | 36 |
-| UCS (referencia) | Sí | 34 | 34 | 374 | 333 | — | — |
-| BFS (referencia) | Sí | 16 | 45 | — | — | — | — |
-
-El tiempo se reporta en consola, pero no se fija en la tabla porque depende de la máquina.
-
-### Dónde se descarta el camino conveniente
-
-Para cada `k` se comparó, nivel por nivel, el contenido del haz con los estados de la ruta óptima de UCS (el estado
-de profundidad `i` de esa ruta debería estar en el nivel `i` del haz). Ningún `k` entre 1 y 8 conserva la ruta de
-costo 34:
-
-| k | Nivel | Estado de la ruta óptima descartado | `f` del descartado | `f` del último conservado |
-|---:|---:|:---:|---:|---:|
-| 1 | 9 | `(1, 11)` | 18 | 17 |
-| 2 | 9 | `(1, 11)` | 18 | 18 |
-| 4 | 11 | `(1, 13)` | 22 | 22 |
-| 8 | 12 | `(1, 14)` | 24 | 24 |
-
-- **k = 1.** En el nivel 9 la unidad está en `(1, 10)`, sobre la carretera. Bajar a `(2, 10)` (pasto) da
-  `f = g + h = 10 + 7 = 17`; seguir a `(1, 11)` da `9 + 9 = 18`. La heurística premia acercarse en vertical a la isla
-  e ignora que debajo están el bosque y el pantano, así que el único lugar del haz se lo queda el desvío. A partir de
-  ahí la unidad rodea el lago por el oeste y el sur, y en el nivel 74 queda en `(15, 5)` rodeada de celdas que ya
-  pasaron por el haz: el haz se vacía y la búsqueda termina **sin solución**, aunque el objetivo es alcanzable.
-- **k = 2.** El segundo lugar del nivel 9 lo ocupa `(0, 10)`, que empata con `(1, 11)` en `f = 18` y se generó antes
-  (la acción "arriba" se genera antes que "derecha"). La ruta óptima se pierde por **empate** y el haz termina
-  atrapado en la misma zona que con `k = 1`.
-- **k = 4.** Conserva la carretera más tiempo, pero en el nivel 11 descarta `(1, 13)` (`f = 22`), otra vez por empate
-  con el último conservado. Continúa por el pasto de la fila 2 y llega con **costo 40**: seis más que el óptimo.
-- **k = 8.** En el nivel 12 la mitad del haz está ocupada por celdas del oeste (columnas 2 a 4, `f` entre 21 y 23),
-  que Manhattan considera prometedoras porque se acercan a la isla, pero el lago les cierra el paso. Esos lugares
-  desplazan a `(1, 14)` y la solución final cuesta **46**, peor que con `k = 4`.
-
-### Efecto sobre la exploración
-
-Restringir `k` limita la memoria: el máximo de frontera es exactamente `k` en los cuatro casos. Sin embargo, los
-estados generados y expandidos no crecen de forma monótona: `k = 4` genera lo mismo que `k = 2` (137) porque
-encuentra el objetivo en 34 niveles, mientras que `k = 2` explora 70 niveles hasta quedarse sin candidatos. `k = 8`
-explora más que todos (284 generados), porque mantiene ramas que no llevan a ninguna parte. Todas las variantes
-exploran menos que UCS (374 generados), que es la contrapartida de no garantizar la solución óptima.
-
-### Caso complementario: aumentar k empeora el costo
-
-En `ruta_corta_vs_economica.json` (caso mínimo 2), ocurre lo contrario: la poda ayuda.
-
-| k | Movimientos | Costo |
-|---:|---:|---:|
-| 1 | 12 | 12 |
-| 2 | 12 | 12 |
-| 4 | 8 | 50 |
-| 8 | 8 | 50 |
-
-En el nivel 1, desde `(2, 0)`, los candidatos son camino `(1, 0)` con `f = 10`, pasto `(3, 0)` con `f = 11` y pantano
-`(2, 1)` con `f = 14`. Con `k = 1` y `k = 2` el pantano se descarta y solo sobrevive el rodeo barato (costo 12, igual
-que UCS). Con `k = 4` el pantano también entra al haz; como Beam Search avanza por niveles y se detiene en el primer
-nivel que contiene el objetivo, el corredor de pantano llega en el nivel 8, antes que el rodeo (nivel 12), y la
-solución cuesta 50, la misma que BFS.
-
-### Conclusión académica
-
-`k` controla cuánta memoria usa Beam Search, pero no cuánto se acerca a la solución óptima. Un haz estrecho puede
-descartar el camino conveniente en un único nivel —por una heurística que ignora obstáculos y terrenos caros, o por un
-simple empate resuelto por el orden de las acciones— y quedar sin solución aunque exista. Un haz más ancho conserva
-más alternativas, pero también más candidatos engañosos, y al detenerse en el primer nivel que contiene el objetivo
-favorece los caminos cortos aunque sean caros. En el límite, sin poda, Beam Search se comporta como BFS. Por eso el
-efecto de `k` depende del escenario y debe evaluarse experimentalmente, no suponerse monótono.
-
-## Acciones tácticas adversariales — E8.1
-
-E8.1 define el espacio de acciones que usarán Minimax y alfa-beta, sin convertir el juego en un sistema de combate:
-no hay puntos de vida, ataques ni eliminación de unidades. El juego tiene solo dos mecánicas.
-
-- **Mover** (`tipo = "mover"`, E1.2): la unidad avanza una celda ortogonal a una celda dentro del mapa, transitable
-  y libre.
-- **Interceptar** (`tipo = "interceptar"`, nueva): una unidad ortogonalmente adyacente al portador rival usa su
-  turno para quitarle el recurso. Nadie se mueve; el recurso pasa al interceptor mediante `resolver_intercepcion`
-  (E1.3) y `aplicar_accion` alterna el turno una sola vez. En la acción, `origen` es la celda del interceptor y
-  `destino` la del portador; su costo es el del terreno de esa celda, leído del JSON. Si el interceptor está en su
-  propia base, gana en ese momento. Sin esta acción, la intercepción de E1.3 no podía ocurrir, porque una unidad
-  nunca puede entrar en la celda ocupada del portador.
-
-`acciones_validas` agrega la intercepción después de los movimientos de cada unidad, así que cada unidad aporta a lo
-sumo cinco acciones. Como ambos bandos usan las mismas reglas, si el antiguo portador sigue adyacente puede
-recuperar el recurso en su turno.
-
-Las tácticas del enunciado no son mecánicas nuevas, sino el significado de cada acción legal en la situación
-actual. `juego/tacticas.py` las clasifica, en orden de prioridad (`d` es la distancia Manhattan):
-
-| Tipo táctico | Situación | Condición |
-|---|---|---|
-| `interceptar_portador` | El rival porta el recurso | La acción es una intercepción. |
-| `aproximarse_al_recurso` | Recurso libre | El movimiento reduce `d` hasta el recurso (incluye recogerlo). |
-| `avanzar` | La unidad porta el recurso | El movimiento reduce `d` hasta su base. |
-| `proteger_zona` | Un aliado porta el recurso | El movimiento reduce `d` hasta el portador aliado (lo escolta). |
-| `bloquear_posicion` | El rival porta el recurso | El destino queda en el rectángulo entre el portador rival y su base, es decir, sobre alguna de sus rutas más cortas. |
-| `perseguir_portador` | El rival porta el recurso | No bloquea, pero reduce `d` hasta el portador rival. |
-| `reposicionar` | Cualquiera | Ninguna de las anteriores. |
-
-`acciones_tacticas(escenario, estado)` devuelve las mismas acciones que `acciones_validas`, en el mismo orden, cada
-una con su tipo táctico. La clasificación solo usa "propio" y "rival", nunca un bando concreto, por lo que A y B
-tienen las mismas tácticas: MAX y MIN serán roles, no capacidades distintas. El tipo táctico sirve para explicar
-una decisión de Minimax (por ejemplo, que bloquear sea mejor que acercarse al recurso) y para experimentar con el
-orden de las acciones; no altera la legalidad.
-
-Las pruebas de `tests/juego/test_tacticas.py` cubren cuándo se puede interceptar y cuándo no (en diagonal, a dos
-celdas, sin portador, portador aliado), su efecto y su costo, la victoria al interceptar desde la propia base, cada
-tipo táctico, la simetría entre bandos y la legalidad de todas las acciones en partidas de hasta cuatro jugadas
-sobre `ejemplo_enunciado.json`, `recurso_en_transporte.json` y `campo_20x20.json`.
-
-## Función de utilidad propia — E8.2
-
-`algoritmos/utilidad.py` evalúa un estado desde la perspectiva de MAX: mayor es mejor para MAX y menor es mejor
-para MIN. Es la función que Minimax y alfa-beta (E8.3, E8.4) usarán en las hojas del árbol.
-
-```python
-evaluador = EvaluadorUtilidad(escenario, bando_max="A")    # pesos por defecto
-evaluador.evaluar(estado)                                   # un número
-evaluador.desglosar(estado)                                 # aporte de cada criterio
-valorar_acciones(evaluador, estado)                         # cada acción legal con la utilidad a la que lleva
-```
-
-### Diseño: suma cero
-
-Cada criterio se calcula como "lo bueno para MAX menos lo bueno para MIN". Por eso, si se intercambia qué bando es
-MAX, cada criterio cambia exactamente de signo. MIN no está en desventaja: minimizar esta utilidad es lo mismo que
-maximizar la suya. Las pruebas lo comprueban sobre todos los estados alcanzables en tres jugadas de
-`ejemplo_enunciado.json` y `recurso_en_transporte.json`.
-
-### Criterios y justificación de los pesos
-
-Las distancias se miden con el **costo del terreno del JSON y respetando muros**: para cada base y para la
-posición del recurso se calcula una sola vez, con Dijkstra invertido, el costo mínimo desde cada celda. Esos costos
-coinciden con el costo óptimo de UCS. Si una celda no puede llegar al destino, se le asigna un costo mayor que
-cualquier ruta del mapa.
-
-| Criterio | Qué mide | Fórmula (MAX = +, MIN = −) | Peso | Por qué ese peso |
-|---|---|---|---:|---|
-| `terminal` | Fin de la partida | `±victoria`; empate por bloqueo = 0 | 10 000 | Muy superior a cualquier suma de los demás criterios: ganar siempre vale más que cualquier ventaja posicional. |
-| `posesion` | Quién tiene el recurso | `±posesion` | 100 | Tener el recurso es la condición necesaria para ganar; equivale a 50 unidades de costo de camino, más que cualquier distancia de los mapas de desarrollo. |
-| `entrega` | Cuánto le falta al portador | `∓entrega × costo(portador → su base)` | 2 | Cada unidad de costo ahorrada acerca la victoria. Es pequeño frente a `posesion` para que entregar no compense perder el recurso. |
-| `carrera_recurso` | Quién llega antes al recurso libre | `carrera × (costo_MIN − costo_MAX)` | 2 | Misma escala que `entrega`: con el recurso libre, la ventaja es llegar primero. |
-| `amenaza` | Rivales que pueden interceptar ya | `∓amenaza × rivales adyacentes al portador` | 60 | Un rival adyacente puede quitar el recurso en su turno (E8.1), lo que haría perder los 100 de posesión. Vale más que 30 unidades de costo, así que el portador acepta un rodeo moderado para no quedar expuesto. |
-| `bloqueo` | Rivales sobre la ruta corta del portador | `∓bloqueo × rivales en el rectángulo portador–base` | 10 | Un rival en la ruta obliga a rodear o a arriesgarse a la intercepción; es una amenaza futura, por eso pesa menos que `amenaza`. |
-| `movilidad` | Unidades disponibles | `movilidad × (unidades de MAX con movimientos − las de MIN)` | 1 | Las unidades no se eliminan, pero una unidad bloqueada no aporta. Es un desempate. |
-
-### Por qué una acción vale más que otra
-
-`valorar_acciones` aplica cada acción legal y evalúa el estado resultante. Comparando los desgloses se ve qué
-criterio decide. En `recurso_en_transporte.json`, con MAX = A, el estado inicial vale **72**
-(`posesion 100`, `entrega −18`, `bloqueo −10`):
-
-| Acción de A | Tipo táctico | Criterio que cambia | Utilidad |
-|---|---|---|---:|
-| A2 `(3,3) → (2,3)` | `avanzar` | `entrega` de −18 a −16 | **74** (la mejor) |
-| A1, A3 o A2 hacia `(4,3)` | varios | ninguno | 72 |
-| A2 `(3,3) → (3,4)` | `reposicionar` | `entrega` −20 y `bloqueo` −20 (un rival más en su ruta) | 60 (la peor) |
-
-Cuando el rival del portador puede interceptar, la intercepción es la acción mejor valorada para él con cualquiera
-de los dos bandos como MAX: cambia `posesion` de un signo al otro (una diferencia de 200).
-
-### Cómo cambia el comportamiento al variar los pesos
-
-Los pesos se cambian sin tocar código, con el campo propio opcional `juego.pesos_utilidad` del escenario. Solo se
-indican los que cambian; un criterio desconocido o un valor no numérico se rechaza con un mensaje claro:
-
-```json
-"juego": {"portador_recurso": null, "pesos_utilidad": {"amenaza": 0}}
-```
-
-Ejemplo en un mapa abierto de 5×5 (todo camino, base A en `(0, 0)`): A1 porta el recurso en `(2, 2)` y el rival B1
-está en `(1, 1)`, vigilando la ruta corta.
-
-| Acción de A1 | `entrega` | `amenaza` | `bloqueo` | Utilidad (por defecto) | Utilidad (`amenaza = 0`) |
-|---|---:|---:|---:|---:|---:|
-| Acercarse a `(1, 2)` | −6 | −60 | −10 | 24 | **84** |
-| Retroceder a `(3, 2)` | −10 | 0 | −10 | **80** | 80 |
-
-Con los pesos por defecto, el portador **retrocede**: se aleja de su base, pero evita quedar junto a B1. Con
-`amenaza = 0` ignora el riesgo y **avanza** por la ruta corta. En general: subir `amenaza` o `bloqueo` vuelve al
-portador más prudente; subir `entrega` lo vuelve más directo; subir `carrera_recurso` hace que las unidades corran
-antes hacia el recurso libre; y bajar `posesion` por debajo de `amenaza` haría que interceptar o evitar la
-intercepción pierda importancia relativa.
-
-Las pruebas de `tests/algoritmos/test_utilidad.py` fijan cada criterio por separado, los valores terminales, la
-suma cero, los ejemplos de esta sección y la validación de los pesos.
-
-## Minimax con profundidad limitada — E8.3
-
-`algoritmos/minimax.py` elige la mejor acción para el bando en turno explorando el árbol de juego hasta una
-profundidad máxima. MAX es el bando en turno en la raíz y MIN el otro: son roles, no capacidades distintas, porque
-ambos usan las mismas acciones legales (`acciones_tacticas`, E8.1) y la misma utilidad de suma cero (E8.2).
-
-```python
-resultado = minimax(escenario, estado, profundidad_maxima=4)
-resultado.accion_seleccionada   # AccionTactica elegida (acción legal + tipo táctico)
-resultado.valores_raiz          # valor Minimax de cada acción de la raíz, para explicar la decisión
-```
-
-### Funcionamiento
-
-- Antes de expandir un nodo se aplica `preparar_turno` (E3.1/E1.3): si el bando en turno está bloqueado, el turno
-  pasa al adversario sin consumir profundidad; si ambos lo están, la partida termina en empate.
-- Un nodo es hoja si es terminal, si no tiene acciones o si alcanzó la profundidad máxima. En las hojas se calcula la
-  utilidad con `EvaluadorUtilidad`, con los pesos de `juego.pesos_utilidad` si el escenario los define.
-- Los nodos MAX toman el máximo de sus hijos y los nodos MIN el mínimo. Las acciones se exploran en el orden de
-  `acciones_tacticas`; ante un empate de valor se conserva la **primera** acción, para que alfa-beta (E8.4) pueda
-  reproducir exactamente la misma decisión con el mismo orden.
-- Complejidad: `O(b^d)` nodos, con `b` acciones por nodo (a lo sumo 5 por unidad del bando en turno) y `d` la
-  profundidad máxima. Con profundidad 4, `campo_20x20.json` genera 11 023 nodos y tarda menos de 2 segundos.
-
-### Profundidad configurable sin tocar código
-
-La profundidad se lee de `juego.profundidad_maxima_minimax` del escenario (todos los escenarios del repositorio
-declaran 4) o de `--profundidad` en la consola, que tiene prioridad. Un valor que no sea un entero mayor o igual que 1
-se rechaza con un mensaje claro.
-
-```bash
-python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax
-python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
-```
-
-### Métricas
-
-| Métrica | Significado en la implementación |
-|---|---|
-| Nodos generados | La raíz y cada sucesor creado al aplicar una acción. |
-| Nodos evaluados | Hojas en las que se calculó la utilidad. |
-| Nodos podados | Siempre 0 en Minimax; existe para compararlo con alfa-beta (E8.4). |
-| Profundidad alcanzada | Mayor profundidad de un nodo visitado (la raíz es 0). Es menor que la máxima si todas las ramas terminan antes. |
-| Tiempo | Segundos desde el inicio hasta la decisión. |
-| Acción seleccionada | Acción legal de la raíz con mayor valor, con su tipo táctico. |
-| Valor obtenido | Valor Minimax de la raíz desde la perspectiva de MAX. |
-
-`ResultadoMinimax.a_diccionario()` exporta estas métricas en una estructura serializable a JSON.
-
-### Ejemplo verificado a mano: mirar más lejos cambia la decisión
-
-En un corredor 1×4 (`base A | A1 | recurso | B1 sobre la base B`), con A en turno:
-
-| Acción de A1 | Valor con profundidad 1 | Valor con profundidad 2 | Valor con profundidad 3 |
-|---|---:|---:|---:|
-| Recoger el recurso en `(0, 2)` | **37** | −10 000 | −10 000 |
-| Retroceder a `(0, 0)` | −2 | **−98** | **−38** |
-
-Con profundidad 1, recoger el recurso parece lo mejor (posesión +100, aunque B1 quede adyacente: amenaza −60). Con
-profundidad 2, Minimax ve la respuesta de MIN: B1 intercepta desde su propia base y gana. Por eso retrocede y
-prefiere dejar que B recoja el recurso (−98) antes que perder la partida. Los nodos se pueden contar a mano: con
-profundidad 2 se generan 5 (la raíz, 2 jugadas de A y 1 respuesta de B a cada una) y se evalúan 2 hojas.
-
-En `recurso_en_transporte.json` ocurre algo similar: con profundidad 1 lo mejor es que el portador A2 avance
-(utilidad 74), pero con profundidad 2 Minimax elige `A1 (0, 2) → (0, 3)`, una jugada de `proteger_zona` que se cruza
-en el camino de B2, porque deja a A en mejor posición tras la mejor respuesta de B (valor 72 frente a 64).
-
-Las pruebas de `tests/algoritmos/test_minimax.py` fijan este árbol calculado a mano, la legalidad de la acción
-elegida, la coherencia de las métricas, que MIN no está en desventaja (reflejar el tablero e intercambiar los bandos
-da el mismo valor para quien mueve), la lectura de la profundidad desde el JSON y la consola.
-
-## Poda alfa-beta — E8.4
-
-`algoritmos/alfa_beta.py` implementa Minimax con poda alfa-beta. Devuelve la **misma decisión y el mismo valor** que
-Minimax para la misma profundidad, la misma utilidad y el mismo orden de acciones, pero deja de explorar las ramas
-que ya no pueden cambiar esa decisión.
-
-```python
-resultado = alfa_beta(escenario, estado, profundidad_maxima=4)   # mismo ResultadoMinimax que minimax()
-resultado.nodos_podados                                         # ramas evitadas por la poda
-```
-
-### Funcionamiento
-
-- Recorre el mismo árbol que Minimax: mismas `acciones_tacticas` en el mismo orden, mismo `preparar_turno`, mismo
-  criterio de hoja y mismo evaluador. Ambos construyen el evaluador con `preparar_evaluador`, para garantizar que
-  usan la misma función de utilidad.
-- `alfa` es el mejor valor que MAX ya tiene asegurado en el camino actual y `beta` el mejor que tiene MIN. En un nodo
-  MIN, si un hijo baja hasta `alfa`, MAX nunca elegiría llegar a ese nodo y se podan los hijos restantes; en un nodo
-  MAX se poda cuando un hijo sube hasta `beta`.
-- **Por qué la decisión es la misma:** la raíz conserva, como Minimax, la primera acción con valor estrictamente
-  mayor. Se usa la variante *fail-soft*: una rama podada devuelve una cota superior que no supera el mejor valor ya
-  encontrado, así que nunca reemplaza a la acción elegida, y ante un empate gana la primera.
-- **Complejidad:** en el peor orden de acciones, `O(b^d)` como Minimax; con el mejor orden, `O(b^(d/2))`. Por eso el
-  orden de generación de acciones influye en cuánto se poda (se analiza en E8.6).
-
-### Métricas
-
-Se cuentan igual que en Minimax (E8.3), más los nodos podados:
-
-| Métrica | Significado en la implementación |
-|---|---|
-| Nodos generados | La raíz y cada sucesor creado. Una rama podada no se genera. |
-| Nodos evaluados | Hojas en las que se calculó la utilidad. |
-| Nodos podados | Ramas evitadas: en cada corte, las acciones hermanas que ya no se exploran. |
-| Profundidad alcanzada | Mayor profundidad visitada; puede ser menor que en Minimax si la rama más profunda se podó. |
-
-En la consola, el valor de una acción de la raíz cuya rama se podó se muestra como `<= v`: es una cota superior de su
-valor real, que ya no puede superar a la acción elegida.
-
-### Ejemplo verificado a mano
-
-En un pasillo 1×8 (`. recurso . A1 . . B1 .`) con A en turno, profundidad 2 y solo el criterio `carrera_recurso`
-activo (peso 1 desde `juego.pesos_utilidad`), cada hoja vale "distancia de B1 al recurso − distancia de A1 al recurso":
-
-| Jugada de A1 | Respuesta B1 → (0, 5) | Respuesta B1 → (0, 7) | Valor |
-|---|---:|---:|---:|
-| a1: A1 → (0, 2) | 4 − 1 = 3 | 6 − 1 = 5 | **3** (MIN), alfa = 3 |
-| a2: A1 → (0, 4) | 4 − 3 = 1 ≤ alfa | *podada* | ≤ 1 |
-
-Tras valorar a1, MAX ya tiene asegurado 3. En a2 la primera respuesta de B ya vale 1: MIN puede dejar a2 en 1 o menos,
-así que a2 nunca superará a a1 y no hace falta valorar la segunda respuesta. Ambos algoritmos eligen a1 con valor 3,
-pero Minimax genera 7 nodos y evalúa 4 hojas, mientras alfa-beta genera 6, evalúa 3 y poda 1 rama.
-
-### Resultados en los escenarios del repositorio
-
-Minimax / alfa-beta sobre el estado inicial. En todos los casos la acción y el valor son idénticos:
-
-| Escenario | Prof. | Acción elegida | Valor | Generados | Evaluados | Podados | Ahorro en evaluados | Tiempo (s) |
-|---|---:|---|---:|---:|---:|---:|---:|---:|
-| `recurso_en_transporte.json` | 2 | A1 (0, 2)→(0, 3) | 72 | 80 / 40 | 71 / 31 | 40 | 56 % | 0.009 / 0.005 |
-| `recurso_en_transporte.json` | 3 | A2 (3, 3)→(4, 3) | 76 | 662 / 238 | 582 / 191 | 148 | 67 % | 0.069 / 0.029 |
-| `recurso_en_transporte.json` | 4 | A1 (0, 2)→(0, 3) | 72 | 5900 / 787 | 5238 / 600 | 907 | 89 % | 0.738 / 0.077 |
-| `campo_20x20.json` | 2 | A1 (1, 2)→(1, 3) | −36 | 133 / 51 | 121 / 39 | 82 | 68 % | 0.021 / 0.011 |
-| `campo_20x20.json` | 3 | A1 (1, 2)→(1, 3) | −34 | 1222 / 230 | 1089 / 179 | 256 | 84 % | 0.142 / 0.029 |
-| `campo_20x20.json` | 4 | A1 (1, 2)→(1, 3) | −36 | 11023 / 799 | 9801 / 569 | 1358 | 94 % | 1.224 / 0.114 |
-
-El ahorro crece con la profundidad porque cada corte evita un subárbol completo, y los subárboles son mayores cuanto
-más lejos está la hoja. Los tiempos dependen del equipo; los conteos de nodos son deterministas.
-
-```bash
-python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta
-python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 3
-```
-
-Las pruebas de `tests/algoritmos/test_alfa_beta.py` fijan el árbol calculado a mano, la igualdad de decisión y valor
-con Minimax en los escenarios del repositorio (profundidades 1 a 3), que los valores de la raíz son exactos o cotas
-correctas, que la poda reduce el trabajo, que MIN no está en desventaja, los casos borde y la consola.
-
-## Métricas comparables de Minimax y alfa-beta — E8.5
-
-`algoritmos/comparacion_adversarial.py` ejecuta Minimax y alfa-beta sobre **el mismo estado, la misma profundidad y la
-misma utilidad**, y reúne las siete métricas del enunciado de ambos en un solo objeto, para presentarlas lado a lado y
-analizarlas en el informe técnico:
-
-```python
-comparacion = comparar_minimax_alfa_beta(escenario, estado, profundidad_maxima=3)
-comparacion.minimax, comparacion.alfa_beta          # un ResultadoMinimax de cada algoritmo
-comparacion.misma_accion, comparacion.mismo_valor   # verificacion del criterio de E8.4
-comparacion.reduccion_porcentual("nodos_evaluados") # ahorro de la poda, en %
-comparacion.a_diccionario()                         # estructura serializable a JSON
-```
-
-La lógica vive en la capa de algoritmos y no en la consola, para que la interfaz gráfica o el modo de prueba
-`adversarial` (E10.1) puedan reutilizarla.
-
-### Las siete métricas
-
-| Métrica | Campo | Significado |
-|---|---|---|
-| Nodos generados | `nodos_generados` | La raíz y cada sucesor creado. |
-| Nodos evaluados | `nodos_evaluados` | Hojas en las que se calculó la utilidad. |
-| Nodos podados | `nodos_podados` | Ramas evitadas por alfa-beta; siempre 0 en Minimax. |
-| Profundidad alcanzada | `profundidad_alcanzada` | Mayor profundidad visitada (la raíz es 0). |
-| Tiempo | `tiempo_segundos` | Segundos hasta la decisión. |
-| Acción seleccionada | `accion_seleccionada` | Acción legal elegida en la raíz, con su tipo táctico. |
-| Valor obtenido | `valor` | Valor Minimax de la raíz desde la perspectiva de MAX. |
-
-La **reducción porcentual** se calcula como `100 × (1 − alfa-beta / Minimax)` solo para las métricas de trabajo:
-nodos generados, nodos evaluados y tiempo. En las demás no tiene sentido: los nodos podados son 0 en Minimax, y la
-acción y el valor deben coincidir.
-
-### Decisiones para que la comparación sea justa
-
-- **Misma utilidad y mismo orden de acciones.** Ambos leen los pesos de `juego.pesos_utilidad` del escenario y
-  exploran `acciones_tacticas` en el mismo orden, que son las condiciones del criterio de E8.4.
-- **Evaluadores independientes.** Cada algoritmo construye su propio `EvaluadorUtilidad`. Si compartieran uno, el
-  segundo heredaría las distancias hacia el recurso ya calculadas por el primero y su tiempo parecería menor de lo
-  que es.
-- **Los tiempos dependen del equipo;** los conteos de nodos, la acción y el valor son deterministas y se pueden
-  reproducir exactamente.
-
-### Salida en consola
-
-```bash
-python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 3
-```
-
-```text
-Bando MAX: A | Profundidad máxima: 3
-Métrica                                 Minimax                Alfa-beta    Reducción
-Nodos generados                             662                      238       64.0 %
-Nodos evaluados                             582                      191       67.2 %
-Nodos podados                                 0                      148
-Profundidad alcanzada                         3                        3
-Tiempo (s)                             0.090913                 0.032589       64.2 %
-Acción seleccionada         A2 (3, 3) -> (4, 3)      A2 (3, 3) -> (4, 3)
-Valor obtenido                             76.0                     76.0
-Misma acción: Sí
-Mismo valor: Sí
-```
-
-Sin `--profundidad`, se usa `juego.profundidad_maxima_minimax` del escenario. Las pruebas de
-`tests/algoritmos/test_comparacion_adversarial.py` comprueban las siete métricas con el árbol del pasillo calculado a
-mano (E8.4), que cada métrica coincide con ejecutar cada algoritmo por separado en los escenarios del repositorio
-(profundidades 1 a 3), la serialización a JSON, la raíz terminal y la consola.
-
-## Casos mínimos 6 a 10 — E8.6
-
-[Casos mínimos 6 a 10](docs/casos-minimos-adversariales.md) documenta, para cada caso, el escenario, el estado
-inicial y la comparación entre el resultado esperado y el obtenido:
-
-| Caso | Resultado principal |
-|---|---|
-| 6. Estado compuesto | Con las seis unidades en las mismas casillas, sin portador A1 va hacia el recurso y con portador lo lleva a su base (`estado_compuesto_libre.json` / `estado_compuesto_portador.json`). |
-| 7. Decisión adversarial | Con profundidad 1 Minimax toma el recurso (valor 37); con profundidad 2 o más ve que B1 lo intercepta desde su base y no lo toma (−10 000) (`decision_adversarial.json`). |
-| 8. Minimax vs. alfa-beta | Misma acción y valor en profundidades 1 a 4; con profundidad 4, alfa-beta evalúa 600 hojas frente a 5238 (−89 %). |
-| 9. Orden de acciones | El orden cambia la poda, no el valor; el orden `tactico` es el que menos evalúa. Los nodos podados no miden el ahorro. |
-| 10. Profundidad | El trabajo crece unas 8,5 veces por nivel y la decisión alterna con la paridad de la profundidad. |
-
-### Orden de acciones configurable
-
-El caso 9 exige cambiar el orden de generación de acciones. `algoritmos/orden_acciones.py` ofrece tres órdenes, que
-Minimax y alfa-beta aplican en todos los nodos:
-
-- `generacion`: el orden de `acciones_tacticas`. Es el predeterminado, así que E8.3, E8.4 y E8.5 no cambian.
-- `inverso`: el mismo orden al revés.
-- `tactico`: primero interceptar al portador, luego avanzar con el recurso, aproximarse al recurso, bloquear,
-  perseguir, proteger y reposicionar.
-
-Se cambia sin tocar código, con `--orden` en la consola o con el campo propio `juego.orden_acciones` del escenario; la
-consola tiene prioridad. El orden no cambia el valor Minimax, pero sí cuánto poda alfa-beta y, entre acciones
-empatadas, cuál se elige. Con el mismo orden, Minimax y alfa-beta siguen eligiendo lo mismo.
-
-```bash
-python3 -B main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 4 --orden tactico
-```
-
-Las pruebas de `tests/algoritmos/test_casos_minimos_adversariales.py` fijan todas las cifras de los cinco casos, y
-las de `tests/algoritmos/test_orden_acciones.py` cubren los tres órdenes y su integración con Minimax, alfa-beta y la
-comparación.
-
-## Modos de prueba `busqueda`, `partida` y `adversarial` — E10.1
-
-El profesor puede cargar un escenario externo con un campo `prueba` y la aplicación ejecuta el modo pedido **sin
-cambios de código**. La lógica vive en `src/tacticalgrid/modos/`, una capa de orquestación que usa escenario, juego
-y algoritmos sin abrir archivos ni conocer Pygame; la consola la consume y la interfaz podrá hacerlo.
-
-```bash
-python3 -B main.py ruta/al/escenario_del_profesor.json
-```
-
-| Modo | Qué hace | Algoritmo por defecto |
-|---|---|---|
-| `busqueda` | Resuelve la navegación de `prueba.unidad_inicio` hasta `prueba.objetivo` con BFS, DFS, UCS, A* o Beam Search. | `ucs` |
-| `partida` | Carga el escenario completo y **continúa el juego por turnos** desde ese estado: ambos bandos deciden con el mismo algoritmo, profundidad y orden, hasta una victoria, un empate por bloqueo o el límite de jugadas. | `alfa_beta` |
-| `adversarial` | Evalúa el estado cargado con Minimax o alfa-beta y selecciona la acción del bando en turno. | `alfa_beta` |
-
-### Cómo se decide qué ejecutar
-
-- **Modo:** `--modo` en la consola. Si no se indica, se deduce de `--algoritmo`: un algoritmo explícito conserva su
-  comportamiento anterior, aunque el JSON declare otro modo. Si tampoco se indica, se usa `prueba.modo`, y si el
-  escenario no tiene `prueba`, `busqueda`.
-- **Algoritmo:** `--algoritmo`; si no, el campo propio `prueba.algoritmo` (debe ser de la familia del modo); si no,
-  el valor por defecto de la tabla.
-- **Resto de parámetros:** unidad y objetivo (`--unidad`, `--objetivo` o `prueba`), ancho `k` (`--k` o `prueba.k`),
-  profundidad (`--profundidad` o `juego.profundidad_maxima_minimax`), orden de acciones (`--orden` o
-  `juego.orden_acciones`) y límite de la partida (`--turnos`, el campo propio `prueba.max_turnos` o 50). La consola
-  siempre tiene prioridad sobre el JSON.
-
-Un escenario externo que solo traiga los campos del enunciado (`modo`, `unidad_inicio`, `objetivo`) funciona con los
-valores por defecto. Un `prueba` inválido (modo desconocido, objetivo sin `fila`/`columna`, algoritmo de otra familia,
-`max_turnos` no positivo) se rechaza con un mensaje que nombra el campo. Una combinación incompatible en la consola,
-como `--modo partida --algoritmo bfs`, también se rechaza.
-
-### Modo `partida`
-
-La partida continúa desde el estado del JSON (unidades, turno y portador), no se reinicia. Antes de cada jugada se
-aplica `preparar_turno` (E1.3/E3.1): si el bando en turno está bloqueado, pasa el turno, y si ambos lo están, la
-partida termina en empate. Cada bando decide como MAX con el mismo algoritmo, porque MAX y MIN son roles, no
-capacidades distintas. El límite de jugadas existe porque dos bandos que se custodian mutuamente pueden no terminar
-nunca; no se agregó una regla de empate por repetición, que no forma parte de las reglas del juego.
-
-```text
-$ python3 -B main.py escenarios/estado_compuesto_portador.json --modo partida
-Algoritmo de ambos bandos: alfa_beta | Profundidad: 4 | Orden de acciones: generacion
-Límite: 50 jugadas
-
-Turno 1 | A | A1 (2, 2) -> (1, 2) [avanzar] | valor 96.0 | evaluados 136
-Turno 2 | B | B1 (4, 1) -> (3, 1) [perseguir_portador] | valor -96.0 | evaluados 217
-...
-Turno 6 | B | B1 (2, 1) -> (3, 1) [reposicionar] | valor -10000 | evaluados 255
-Turno 7 | A | A1 (0, 2) -> (0, 1) [avanzar] | valor 10000 | evaluados 127
-Turno 8 | B | B1 (3, 1) -> (2, 1) [perseguir_portador] | valor -10000 | evaluados 35
-Turno 9 | A | A1 (0, 1) -> (0, 0) [avanzar] | valor 10000 | evaluados 28
-
-Resultado: victoria de A en 9 jugadas
-```
-
-El valor de cada jugada está expresado desde la perspectiva del bando que juega. Desde la jugada 6, B ve −10 000:
-dentro de su horizonte, A gana haga lo que haga. `jugar_partida` devuelve un `ResultadoPartida` con cada jugada (estado
-previo, decisión con sus métricas y estado resultante) y `a_diccionario()` para exportarlo a JSON.
-
-| Escenario (profundidad 4) | Resultado de la partida |
-|---|---|
-| `ejemplo_enunciado.json` | Victoria de B en 6 jugadas |
-| `estado_compuesto_portador.json` | Victoria de A en 9 jugadas |
-| `recurso_en_transporte.json`, `decision_adversarial.json` | Sin ganador al llegar al límite: ambos bandos se custodian |
-
-### Comandos
-
-```bash
-python3 -B main.py escenarios/campo_20x20.json                       # prueba.modo = busqueda -> UCS
-python3 -B main.py escenarios/decision_adversarial.json              # prueba.modo = adversarial -> alfa-beta
-python3 -B main.py escenarios/recurso_en_transporte.json --turnos 10 # prueba.modo = partida
-python3 -B main.py escenarios/campo_20x20.json --modo adversarial --profundidad 3
-python3 -B main.py escenarios/ejemplo_enunciado.json --modo partida --algoritmo minimax --profundidad 3
-```
-
-Las pruebas de `tests/modos/` cubren la lectura y validación de `prueba`, la precedencia entre consola y JSON, una
-partida calculada a mano con pases por bloqueo, partidas con ganador, empate y límite, la igualdad de las partidas
-jugadas con Minimax y con alfa-beta, y la consola en los tres modos.
-
-## Verificador de soluciones — E10.2
-
-`algoritmos/verificador.py` comprueba propiedades básicas de cada respuesta, para no confiar ciegamente en que el
-algoritmo terminó sin error. No reutiliza los cálculos internos de los algoritmos: **reproduce cada respuesta con
-las reglas del juego** (E1.2, E1.3, E8.1) y compara. Cada verificación devuelve un `ReporteVerificacion` con una
-comprobación por propiedad (correcta o fallida, con su detalle) y no se detiene en la primera falla.
-
-### Uso desde consola
-
-La opción `--verificar` funciona en los tres modos de prueba. Imprime el reporte y, si alguna comprobación falla,
-la consola termina con código 1.
-
-```bash
-python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos --verificar
-python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8 --verificar
-python3 -B main.py escenarios/recurso_en_transporte.json --modo adversarial --algoritmo minimax_alfa_beta --profundidad 3 --verificar
-python3 -B main.py escenarios/recurso_en_transporte.json --modo partida --profundidad 2 --turnos 10 --verificar
-```
-
-Ejemplo de salida para UCS:
-
-```text
-VERIFICACIÓN: UCS (busqueda)
-------------------------------------------------------------
-  ✓ movimientos_validos: 12 movimientos legales
-  ✓ sin_obstaculos: ninguna celda del camino es un obstaculo
-  ✓ camino_coherente: el camino coincide con las acciones aplicadas
-  ✓ costo_coincide: costo 12 igual a la suma de las transiciones
-  ✓ estado_final_objetivo: el estado final cumple la condicion objetivo
-  ✓ estados_validos: 13 estados validos
-  ✓ metricas_coherentes: contadores y longitud consistentes
-Resultado de la verificación: VÁLIDO
-```
-
-### Qué se comprueba
-
-| Criterio del enunciado | Búsquedas (`verificar_busqueda`) | Minimax y alfa-beta (`verificar_decision`) | Partida (`verificar_partida`) |
-|---|---|---|---|
-| Movimientos válidos | `movimientos_validos`: cada acción es ortogonal, parte de la posición actual y es legal en el estado alcanzado; `camino_coherente`: el camino coincide con las acciones | `accion_seleccionada_legal` | `jugadas_legales` |
-| Ninguna unidad atraviesa obstáculos | `sin_obstaculos`: ninguna celda del camino es un muro ni está fuera del mapa | Incluido en `estados_validos` | Incluido en `estados_validos` |
-| El costo coincide con las transiciones | `costo_coincide`: se suma el costo del JSON de cada transición reproducida | — | — |
-| El estado final satisface el objetivo | `estado_final_objetivo` | — | `resultado_coherente`: el resultado declarado (victoria, empate o límite) corresponde al estado final |
-| No se generan estados inválidos | `estados_validos`: cada estado del camino | `estados_validos`: cada estado del árbol | `estados_validos` y `estados_encadenados` |
-| Acciones de Minimax legales | — | `acciones_consideradas_legales`: **todas** las acciones de **todos** los nodos del árbol, no solo la raíz; `valores_raiz_legales`; `tacticas_coherentes` | `decisiones_verificadas`: aplica `verificar_decision` a cada jugada |
-| (adicional) | `metricas_coherentes` | `valor_correcto`, `decision_optima` y `metricas_coherentes` | — |
-
-Un estado es inválido si tiene ids repetidos, un bando o turno desconocido, una unidad fuera del mapa o sobre un
-obstáculo, dos unidades en la misma celda (salvo en navegación, donde E1.2 decidió que no se bloquean), un recurso
-sin portador ni posición o con ambos, un portador inexistente, o una victoria registrada sin que el portador esté en
-su base.
-
-### Cómo se verifica una decisión adversarial
-
-`verificar_decision` **regenera el árbol** que Minimax debió explorar, con la misma profundidad, orden de acciones,
-pase de turno y utilidad, y en cada nodo comprueba con `es_accion_valida` cada acción considerada. Con ese árbol
-calcula el valor Minimax exacto: el valor reportado debe coincidir (`valor_correcto`) y la acción elegida debe ser la
-primera con el mejor valor (`decision_optima`), también para alfa-beta, cuya decisión debe ser la misma. Para Minimax,
-los nodos generados, evaluados y la profundidad alcanzada deben coincidir exactamente con el árbol; para alfa-beta
-no pueden superarlos. Por eso verificar una decisión cuesta lo mismo que ejecutar Minimax completo.
-
-Una búsqueda que fracasa solo se verifica en su estructura (`fracaso_coherente`: sin camino, sin acciones y costo
-nulo). No se afirma que no exista ruta, porque Beam Search puede fracasar aunque exista (E7.2).
-
-Las pruebas de `tests/algoritmos/test_verificador.py` verifican las respuestas reales de BFS, DFS, UCS, A\* y Beam
-Search (k = 1, 2, 4, 8) en cuatro escenarios, de Minimax y alfa-beta con los tres órdenes de acciones y de partidas
-completas. También comprueban que el verificador **detecta** respuestas alteradas a propósito: un movimiento en
-diagonal, un paso por un muro, un costo falso, un camino que no llega, métricas imposibles, una acción ilegal o una
-intercepción inventada en la raíz, un valor falso, una acción que no es la óptima, nodos que no corresponden al árbol,
-una jugada manipulada y un resultado de partida falso, además de cada tipo de estado inválido.
-
-## Resultados y métricas reproducibles — E10.3
-
-Cualquier prueba de la consola (modo `busqueda`, `adversarial` o `partida`) puede entregar sus resultados en una
-estructura JSON equivalente a la del enunciado, junto con todo lo necesario para repetir el experimento. No es
-obligatorio crear un archivo:
-
-- `--json` imprime **solo** el registro en la salida estándar, en lugar del texto habitual. Sirve como log y se
-  puede guardar o comparar (`... --json > resultado.json`).
-- `--exportar ARCHIVO` guarda el mismo registro en un archivo y sigue mostrando el texto habitual.
-
-```bash
-python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos --json
-python3 -B main.py escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8 --exportar beam.json
-python3 -B main.py escenarios/recurso_en_transporte.json --modo adversarial --algoritmo minimax_alfa_beta --profundidad 3 --verificar --json
-```
-
-### Contenido del registro
-
-```json
-{
-  "formato": "tacticalgrid.resultados/1",
-  "escenario": {
-    "archivo": "escenarios/ruta_corta_vs_economica.json",
-    "version": "1.0",
-    "filas": 5,
-    "columnas": 9,
-    "huella_sha256": "ee55444b12fae723a21e0ec5f97e6b87c2c1b494f1a90060e21e5c9da54389b4"
-  },
-  "modo": "busqueda",
-  "parametros": {
-    "algoritmo": "ucs",
-    "unidad": "A1",
-    "objetivo": [2, 8]
-  },
-  "comando": "python main.py escenarios/ruta_corta_vs_economica.json --modo busqueda --algoritmo ucs --unidad A1 --objetivo 2 8",
-  "nota": "Todos los algoritmos son deterministas: ...",
-  "resultados": [
-    {
-      "algoritmo": "UCS",
-      "exito": true,
-      "camino": [[2, 0], [1, 0], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [1, 8], [2, 8]],
-      "costo": 12,
-      "estados_generados": 22,
-      "estados_expandidos": 19,
-      "maximo_frontera": 3,
-      "longitud": 12,
-      "tiempo_segundos": 0.0027
-    }
-  ]
-}
-```
-
-| Campo | Para qué sirve |
-|---|---|
-| `escenario` | Archivo, versión, dimensiones y **huella SHA-256** del contenido del JSON. Si alguien cambia un costo o mueve un muro, la huella cambia: dos registros solo son comparables si su huella coincide. |
-| `modo` y `parametros` | Los valores **realmente usados**, ya resueltos entre la consola y el campo `prueba` del JSON: algoritmo, unidad, objetivo, `k`, profundidad, orden de acciones, límite de turnos y pesos de la utilidad. |
-| `comando` | La línea de consola que repite el experimento con esos mismos parámetros. |
-| `resultados` | Un elemento por algoritmo ejecutado. En búsqueda, la estructura del enunciado (`algoritmo`, `exito`, `camino`, `costo`, `estados_generados`, `estados_expandidos`, `maximo_frontera`) más `longitud` y `tiempo_segundos`. En adversarial, las métricas de Minimax y alfa-beta (nodos generados, evaluados y podados, profundidad alcanzada, tiempo, acción seleccionada y valor) o la comparación de E8.5. En partida, cada jugada con su decisión. |
-| `verificacion` | Solo con `--verificar`: el reporte de E10.2 de cada resultado y si todos son válidos. |
-
-### Reproducibilidad
-
-Todos los algoritmos son deterministas: con el mismo escenario (misma huella) y los mismos parámetros, los
-resultados son idénticos salvo `tiempo_segundos`, que depende de la máquina. Las pruebas de
-`tests/modos/test_registro.py` lo comprueban de la forma más directa: ejecutan el `comando` que trae el registro y
-verifican que los resultados coinciden con los originales (sin contar el tiempo) en búsqueda, Beam Search,
-alfa-beta y partida. También comprueban que la huella cambia al modificar el escenario, que el JSON se puede leer
-completo con `--json` y que `--exportar` guarda el mismo contenido.
-
-## Inicio recomendado
-
-Desde la raíz del repositorio, la ejecución sin argumentos abre Pygame con `campo_20x20.json`, sin iniciar una
-busqueda. Es también el flujo esperado al usar **Run Python File** sobre `main.py` en VS Code:
-
-```bash
-python main.py
-python main.py --gui
-```
-
-El panel permite cambiar entre los escenarios JSON incluidos, seleccionar BFS, DFS, UCS, A* o Beam Search, elegir
-una unidad real con las flechas y ajustar `k`. El objetivo se elige haciendo clic sobre una celda transitable.
-`Enter` y el botón `Enter — Ejecutar busqueda` llaman a la misma acción y calculan una sola vez el camino y la
-traza. Cambiar cualquier selector limpia el resultado anterior para que no se confunda con la nueva configuración.
-La tecla o botón `E — Mostrar exploracion` alterna la capa sin recalcular.
-
-La ayuda de la ventana cambia con el algoritmo seleccionado:
-
-| Algoritmo | Criterio mostrado | Consecuencia práctica |
-|---|---|---|
-| BFS | Menor cantidad de movimientos | Puede atravesar terrenos costosos. |
-| DFS | Profundizar una alternativa | No garantiza una ruta corta ni económica. |
-| UCS | Menor costo acumulado | Puede elegir más movimientos para reducir el costo. |
-| A* | Costo acumulado más heurística Manhattan | Manhattan estima movimientos horizontales y verticales. |
-| Beam Search | Exploración limitada por `k` | Conserva `k` alternativas por nivel y puede descartar rutas útiles. |
-
-El resultado distingue movimientos, costo y estados expandidos. La línea cian es el camino final. La capa violeta
-de exploración muestra posiciones analizadas antes del resultado; una posición resaltada no implica que pertenezca
-al camino. Los estados expandidos pueden superar las posiciones únicas porque estados distintos pueden proyectarse
-sobre la misma celda. La leyenda indica el costo de cada terreno transitable; UCS y A* usan esos costos al decidir.
-
-## Ejecución desde consola
-
-El modo explícito de consola conserva el ejecutor textual y todos sus argumentos:
-
-```bash
-python main.py --consola escenarios/campo_20x20.json
-```
-
-Por compatibilidad, cualquier invocación histórica que incluya argumentos y no use `--gui` continúa entrando en
-consola. Por ejemplo:
-
-La demostración E5.2 selecciona explícitamente el escenario 5×9 y ambos algoritmos:
-
-```bash
-python3 -B main.py escenarios/ruta_corta_vs_economica.json --algoritmo ambos
-```
-
-Otras selecciones disponibles son:
-
-```bash
-python3 main.py --algoritmo bfs
-python3 main.py --algoritmo dfs
-python3 main.py --algoritmo ucs
-python3 main.py --algoritmo a_estrella
-python3 main.py --algoritmo beam --k 4
-python3 main.py --algoritmo ambos
-python3 main.py --algoritmo bfs_dfs
-python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax --profundidad 2
-python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 2
-python3 main.py escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 2
-python3 main.py escenarios/recurso_en_transporte.json --algoritmo alfa_beta --profundidad 4 --orden tactico
-python3 main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs --verificar
-python3 main.py escenarios/ruta_corta_vs_economica.json --algoritmo ucs --json
-```
-
-## Visualizacion del tablero, caminos y exploracion — E9.1/E9.2/E9.3
-
-La interfaz grafica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`. Si no se
-indica `--algoritmo`, conserva la vista estatica de E9.1 y no ejecuta una busqueda:
-
-```bash
-tacticalgrid
-tacticalgrid escenarios/ruta_corta_vs_economica.json
-tacticalgrid escenarios/recurso_en_transporte.json
-```
-
-E9.2 ejecuta una busqueda una sola vez antes del ciclo grafico y dibuja su `ResultadoBusqueda.camino` sobre el
-tablero. Los nombres admitidos son `bfs`, `dfs`, `ucs`, `astar` y `beam`:
-
-```bash
-tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo bfs
-tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo dfs
-tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo ucs
-tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo astar
-tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo beam --k 4
-```
-
-La unidad y el objetivo indicados por consola tienen prioridad. Si se omiten, se leen de
-`prueba.unidad_inicio` y `prueba.objetivo` del escenario, siempre que `prueba.modo` sea `busqueda`. No se inventan
-valores cuando faltan ambos orígenes:
-
-```bash
-tacticalgrid escenarios/campo_20x20.json --algoritmo astar --unidad A1 --objetivo 10 15
-tacticalgrid escenarios/campo_20x20.json --algoritmo beam --unidad A1 --objetivo 9 10 --k 4
-```
-
-Beam Search requiere un entero `k >= 1`: `--k` tiene prioridad y, si se omite, se usa `prueba.k`. A* usa Manhattan
-por defecto. La linea cian conserva el orden exacto del camino; el anillo verde identifica el origen y el coral el
-destino. Las bases, el recurso, las unidades y la cuadricula se dibujan encima para mantener su identidad. El panel
-muestra el algoritmo y `exito` o `sin solucion`; en el segundo caso no se dibuja ninguna ruta.
-
-E9.3 captura, durante esa misma ejecucion, cada `EstadoJuego` entregado realmente a la expansion comun. La capa
-permanece oculta al iniciar: `E` la muestra y una segunda pulsacion la oculta sin recalcular ni perder el camino.
-El violeta semitransparente representa posiciones asociadas con estados expandidos; no representa estados generados
-ni la frontera. Si la busqueda falla, la exploracion registrada sigue disponible.
-
-El panel distingue `Estados expandidos` de `Posiciones resaltadas`: estados compuestos diferentes pueden proyectarse
-sobre una misma celda. BFS, DFS, UCS, A* y Beam Search usan esta traza real mediante `expandir()`. Se almacenan hasta
-10 000 eventos por busqueda; si se supera el limite, el total de la metrica permanece exacto, el panel marca `Traza
-parcial` y solo se resaltan las posiciones presentes en el segmento almacenado. Sin busqueda, `E` no cambia la vista.
-El panel mantiene visible `E — Mostrar exploracion`, explica que resalta posiciones exploradas y, mientras no exista
-un resultado, indica que primero debe ejecutarse una busqueda. Al activar la capa cambia a `E — Ocultar exploracion`.
-
-Reproduccion academica con BFS y UCS:
-
-```bash
-tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo bfs
-tacticalgrid escenarios/ruta_corta_vs_economica.json --algoritmo ucs
-```
-
-Los estados explorados fuera del camino corresponden a alternativas cuyos sucesores se analizaron antes de alcanzar
-el objetivo. Por eso la exploracion suele cubrir mas celdas que la ruta final y puede colorear menos posiciones que
-el total de expansiones.
-
-### Presentacion grafica del tablero
-
-El rediseño visual usa pixel art cenital: senderos de tierra, pasto, copas de arboles, pantano,
-rocas, fortalezas, unidades por bando y un cristal estrategico. Los identificadores, el turno, la leyenda y la ruta
-de E9.2 permanecen visibles. Las orientaciones de los tiles varian de forma determinista segun terreno y posicion;
-no usan el generador aleatorio ni alteran el estado. Un terreno externo conserva un color y patron estables, informa
-su nombre en la leyenda y representa su transitabilidad sin asignarle una semantica nueva.
-
-Los PNG se resuelven desde `tacticalgrid/interfaz/recursos`, se cargan una vez y las superficies transformadas se
-cachean por sprite, tamaño y variante. Si falta un atlas, la interfaz sigue operativa con un fallback y lo informa en
-el panel. Los recursos se incluyen como datos del paquete, por lo que la ejecucion no depende del directorio actual
-ni realiza descargas. Su procedencia se documenta en
-`src/tacticalgrid/interfaz/recursos/ORIGEN.md`. No se incorporaron assets externos; el repositorio aun no define una
-licencia general de redistribucion.
-
-Las capturas reproducibles bajo SDL dummy estan en `capturas/redisenio_visual/`: incluyen el antes/despues de
-`campo_20x20.json`, `recurso_en_transporte.json` y las rutas diferentes de BFS y UCS en
-`ruta_corta_vs_economica.json`. Esa evidencia no sustituye la revision manual de una ventana real.
-
-Dependencias prohibidas: juego no importa Pygame ni JSON; algoritmos no importan Pygame, no abren JSON ni codifican mapas, posiciones o costos; interfaz no decide reglas; escenario no depende de algoritmos. Los costos se consultan desde el escenario cargado.
-
-## Estructura
-
-```text
-src/tacticalgrid/
-├── escenario/
-├── juego/
-├── algoritmos/
-├── modos/
-├── interfaz/
-│   └── recursos/ # atlas PNG empaquetados y procedencia
-└── servidor/
-tests/
-├── escenario/
-├── juego/
-├── algoritmos/
-├── modos/
-├── interfaz/
-└── servidor/
-escenarios/
-```
-
-El contrato JSON usa literalmente `version`, `mapa.filas`, `mapa.columnas`, `tipos_terreno`, `terreno`, `bases.A`, `bases.B`, `recurso`, `unidades`, `turno`, `juego.portador_recurso` y `prueba`.
-
-## Windows (PowerShell)
-
-Requiere Python 3.12 o 3.13 (no 3.14: Pygame aun no publica instalador para esa version). Con `py -0` se listan las versiones instaladas; si solo tienes 3.12, usa `py -3.12` en lugar de `py -3.13`.
+### Windows (PowerShell)
 
 ```powershell
 git clone https://github.com/diego-juan3112/tactical-grid.git
 cd tactical-grid
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python --version
-python -m pip install --upgrade pip
 python -m pip install -e ".[desarrollo]"
-python -m pytest
-tacticalgrid
-python -m uvicorn tacticalgrid.servidor.asgi:aplicacion --reload
+python main.py
 ```
 
-`python --version` debe mostrar 3.12.x o 3.13.x antes de instalar. Si muestra 3.14, borra `.venv` y vuelve a crearlo con una version admitida.
-
-## Linux
-
-Requiere Python 3.12 o 3.13 (no 3.14). Si `python3 --version` muestra otra version, usa el ejecutable explicito, por ejemplo `python3.13` o `python3.12`.
+### Linux
 
 ```bash
 git clone https://github.com/diego-juan3112/tactical-grid.git
 cd tactical-grid
-python3.13 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
-python --version
-python -m pip install --upgrade pip
 python -m pip install -e '.[desarrollo]'
-python -m pytest
-tacticalgrid
-python -m uvicorn tacticalgrid.servidor.asgi:aplicacion --reload
+python main.py
 ```
 
-En Linux se verificaron la instalacion en `.venv`, pytest y Uvicorn; el clon no se repitio porque este repositorio ya estaba presente. `uvicorn tacticalgrid.servidor.asgi:aplicacion --reload` inicia el servidor ASGI en desarrollo. `tacticalgrid [ruta.json]` abre el tablero en Pygame y se cierra mediante el control de la ventana.
-
-Para salir del entorno virtual en Windows o Linux:
+`python main.py` abre la interfaz gráfica. Para usar la consola, agrega `--consola` y la ruta de un escenario:
 
 ```bash
-deactivate
+python main.py --consola escenarios/ruta_corta_vs_economica.json --algoritmo ambos
 ```
 
-## Escenarios
+> **Si algo falla:** en Windows, si PowerShell no permite activar el entorno, ejecuta una vez
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. En Ubuntu, si `venv` no está disponible, instálalo con
+> `sudo apt install python3.12-venv`. Con solo Python 3.12 en Windows, usa `py -3.12`.
 
-Todos los escenarios viven en `escenarios/` y usan el formato JSON comun. El campo propio `descripcion` explica el proposito de cada uno; `prueba` indica la navegacion a resolver (unidad y objetivo) o el modo de juego.
+Cada vez que abras una consola nueva, activa el entorno antes de ejecutar la aplicación.
 
-| Archivo | Tamaño | Proposito |
+## Uso
+
+El [manual de usuario](docs/entregables/manual-de-usuario.docx) explica cada paso con capturas. Aquí está lo
+esencial.
+
+### Interfaz gráfica
+
+```bash
+python main.py
+python main.py --gui escenarios/ruta_corta_vs_economica.json --algoritmo ucs --unidad A1 --objetivo 2 8
+```
+
+En el panel se elige el escenario, el algoritmo (`bfs`, `dfs`, `ucs`, `astar` o `beam`), la unidad y el ancho `k` de
+Beam Search. Un clic en el tablero elige el objetivo. `Enter` ejecuta la búsqueda y `E` muestra u oculta las celdas
+exploradas.
+
+### Consola
+
+La consola ejecuta el modo que declara el campo `prueba` del escenario, o el que se indique con `--modo` y
+`--algoritmo`. Las opciones de la consola tienen prioridad sobre el JSON.
+
+```bash
+# Búsqueda: navegación de una unidad hasta un objetivo
+python main.py --consola escenarios/campo_20x20.json
+python main.py --consola escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8
+
+# Decisión adversarial: la mejor jugada del bando en turno
+python main.py --consola escenarios/decision_adversarial.json
+python main.py --consola escenarios/recurso_en_transporte.json --algoritmo minimax_alfa_beta --profundidad 3
+
+# Partida completa: ambos bandos deciden con el mismo algoritmo
+python main.py --consola escenarios/estado_compuesto_portador.json --modo partida
+```
+
+| Opción | Uso |
+|---|---|
+| `--modo` | `busqueda`, `adversarial` o `partida`. |
+| `--algoritmo` | Búsqueda: `bfs`, `dfs`, `ucs`, `a_estrella`, `beam`, `ambos` (BFS y UCS) o `bfs_dfs`. Adversarial: `minimax`, `alfa_beta` o `minimax_alfa_beta`. |
+| `--unidad`, `--objetivo FILA COLUMNA` | Unidad y destino de una búsqueda. |
+| `--k` | Ancho de Beam Search; admite varios valores. |
+| `--profundidad`, `--orden` | Profundidad de Minimax y orden de acciones (`generacion`, `inverso` o `tactico`). |
+| `--turnos` | Límite de jugadas del modo partida (50 por defecto). |
+| `--verificar` | Comprueba la respuesta con las reglas del juego. |
+| `--json`, `--exportar ARCHIVO` | Muestra o guarda el resultado en JSON, con el comando que lo reproduce. |
+
+`python main.py --consola --help` lista todas las opciones.
+
+### Escenarios externos
+
+Cualquier archivo con el formato JSON común del enunciado se carga sin cambiar el código:
+
+```bash
+python main.py --consola ruta/al/escenario.json --verificar
+```
+
+Si el escenario tiene un error, la aplicación indica el campo, el elemento y el valor que lo causan, no aplica nada y
+termina con código 1.
+
+## Escenarios incluidos
+
+| Archivo | Tamaño | Para qué sirve |
 |---|---|---|
-| `ejemplo_enunciado.json` | 4 x 4 | Ejemplo literal del enunciado. |
-| `arquitectura_basica.json` | 20 x 20 | Mapa abierto, todo camino; comprueba carga y exploracion en 20 x 20. |
-| `campo_20x20.json` | 20 x 20 | Mapa principal de desarrollo: anillo de camino, lago de pantano con el recurso en una isla, bosques y muros. BFS observado: 16 movimientos y costo 45; el calculo de referencia encuentra como minimo 42 entre las rutas de 16 movimientos. UCS observado: 34 movimientos y costo 34. |
-| `ruta_corta_vs_economica.json` | 5 x 9 | BFS vs. UCS: la ruta recta por pantano tiene 8 movimientos y cuesta 50; rodear por camino toma 12 movimientos y cuesta 12. Con el pantano a costo 1, ambas coinciden. |
-| `obstaculo_rodeo.json` | 8 x 7 | El objetivo esta a distancia Manhattan 3, pero un muro en U obliga a un recorrido de 15 movimientos (caso 3: obstaculo y heuristica). |
-| `recurso_en_transporte.json` | 6 x 8 | Partida con `portador_recurso` = `A2`. Se usa en los casos 8, 9 y 10 (E8.6); el caso 6 tiene su propio par de escenarios. |
-| `estado_compuesto_libre.json` | 5 x 5 | Caso 6: las seis unidades en las mismas casillas que la variante con portador, con el recurso libre en (2, 4). |
-| `estado_compuesto_portador.json` | 5 x 5 | Caso 6: las mismas casillas, pero A1 transporta el recurso. Cambia el estado, su valor y la decision. |
-| `decision_adversarial.json` | 3 x 6 | Caso 7: A1 esta a un paso del recurso, pero B1 lo intercepta desde su base; con profundidad 2 o mas, Minimax no lo toma. |
+| `campo_20x20.json` | 20 × 20 | Mapa principal: lago de pantano, bosques y muros. La ruta más corta no es la más barata. |
+| `arquitectura_basica.json` | 20 × 20 | Mapa abierto, todo camino. Sin `prueba`: indica `--unidad` y `--objetivo`. |
+| `ejemplo_enunciado.json` | 4 × 4 | Ejemplo literal del enunciado. |
+| `ruta_corta_vs_economica.json` | 5 × 9 | La ruta recta cruza pantano (8 movimientos, costo 50); rodear cuesta 12. |
+| `obstaculo_rodeo.json` | 8 × 7 | Un muro en U obliga a rodear un objetivo cercano. |
+| `recurso_en_transporte.json` | 6 × 8 | Partida con el recurso ya en manos de A2. |
+| `estado_compuesto_libre.json` | 5 × 5 | Mismas casillas que el siguiente, con el recurso libre. |
+| `estado_compuesto_portador.json` | 5 × 5 | Mismas casillas, pero A1 lleva el recurso. |
+| `decision_adversarial.json` | 3 × 6 | Tomar el recurso parece bueno, pero el rival lo intercepta. |
 
-Las propiedades de los escenarios se verifican con un calculo de referencia y con las implementaciones de BFS y
-UCS sobre el modelo del juego. Cuando el resultado observado depende del desempate del algoritmo, la tabla lo
-distingue del optimo de referencia.
+Las propiedades de cada escenario se comprueban en `tests/escenario/test_escenarios_propios.py`.
+
+## Pruebas
+
+```bash
+python -m pytest
+```
+
+La suite cubre escenario, juego, algoritmos, modos, interfaz (con el controlador de video *dummy*) y la convención de
+documentación de métodos. Las cifras de los diez casos mínimos están fijadas en pruebas.
+
+## Documentación
+
+### Entregables
+
+| Documento | Contenido |
+|---|---|
+| [Documento técnico](entregables/documento-tecnico.docx) | Modelado del problema, representación de estados, reglas, costos, heurísticas, función de utilidad, metodología experimental, resultados, complejidad, limitaciones y uso de IA. |
+| [Manual de usuario](entregables/manual-de-usuario.docx) | Instalación en Windows y Linux, interfaz gráfica, modos de consola, escenarios externos, verificación y exportación de resultados, con capturas de cada paso. |
+
+Ambos se editan directamente en Word y siguen el diseño editorial de [DESIGN.md](../DESIGN.md).
+
+### Detalle técnico
+
+El documento técnico resume; estos archivos explican cada parte con su historia, sus decisiones y sus ejemplos
+verificados.
+
+| Archivo | Historias | Contenido |
+|---|---|---|
+| [01 · Arquitectura y modelo](tecnico/01-arquitectura-y-modelo.md) | E0.3, E1.1–E1.3, E2.2, E2.3, E3.1, E3.2 | Capas, estado del juego, acciones y costo, reglas de borde, validación, escenarios propios, turnos y recurso. |
+| [02 · Búsqueda](tecnico/02-busqueda.md) | E4.1–E7.1 | Instrumentación común, BFS, DFS, UCS, A* con Manhattan y Beam Search. |
+| [03 · Heurística HTO](tecnico/03-heuristica-hto.md) | E6.2 | Segunda heurística: definición, admisibilidad, consistencia, costo y campaña experimental. |
+| [04 · Decisión adversarial](tecnico/04-decision-adversarial.md) | E8.1–E8.6 | Acciones tácticas, función de utilidad, Minimax, poda alfa-beta, métricas y orden de acciones. |
+| [05 · Modos, verificación y registro](tecnico/05-modos-verificacion-y-registro.md) | E10.1–E10.3 | Modos `busqueda`, `partida` y `adversarial`, verificador de soluciones y registro reproducible. |
+| [06 · Interfaz](tecnico/06-interfaz.md) | E9.1–E9.3 | Tablero, camino, capa de exploración y presentación gráfica. |
+
+### Casos mínimos
+
+Los diez casos que exige el enunciado, con su configuración, el resultado esperado y el obtenido. Las cifras están
+fijadas en pruebas automatizadas.
+
+| Casos | Archivo |
+|---|---|
+| 1. BFS frente a DFS · 2. Ruta corta frente a económica · 5. Beam Search | [casos-1-2-5-busqueda.md](casos-minimos/casos-1-2-5-busqueda.md) |
+| 3. Obstáculo y heurística · 4. Comparación de heurísticas | [casos-3-4-obstaculo-y-heuristicas.md](casos-minimos/casos-3-4-obstaculo-y-heuristicas.md) |
+| 6. Estado compuesto · 7. Decisión adversarial · 8. Minimax frente a alfa-beta · 9. Orden de acciones · 10. Profundidad | [casos-6-10-adversariales.md](casos-minimos/casos-6-10-adversariales.md) |
+
+### Otros recursos
+
+- [Enunciado del proyecto](enunciado/primer-proyecto.pdf).
+- [Imágenes](imagenes/): captura de la interfaz y evidencia del rediseño visual (`redisenio-visual/`).
+- [AGENTS.md](../AGENTS.md): reglas y convenciones del proyecto, incluida la documentación de métodos.
+- [DESIGN.md](../DESIGN.md): diseño editorial de los entregables en Word.
+
+## Arquitectura
+
+```text
+JSON ──► escenario ──► juego ──► algoritmos ──► resultado
+                         ▲            ▲
+                         └── modos ───┘  ◄── consola / interfaz Pygame
+```
+
+| Capa | Responsabilidad |
+|---|---|
+| `escenario/` | Carga, valida y representa el JSON. |
+| `juego/` | Estado, reglas, acciones, recurso, tácticas y el contrato `Problema`. |
+| `algoritmos/` | Búsquedas, heurísticas, utilidad, Minimax, alfa-beta, métricas y verificador. |
+| `modos/` | Modos de prueba y registro reproducible. |
+| `interfaz/` | Visualización con Pygame. |
+| `servidor/` | Punto ASGI aislado (`python -m uvicorn tacticalgrid.servidor.asgi:aplicacion`). |
+
+Los algoritmos no importan Pygame ni leen archivos, y toman todos los costos del escenario cargado. El detalle está
+en [arquitectura y modelo](docs/tecnico/01-arquitectura-y-modelo.md).
+
+```text
+tactical-grid/
+├── main.py              # punto de entrada: interfaz gráfica o consola
+├── src/tacticalgrid/    # código fuente, una carpeta por capa
+├── tests/               # pruebas automatizadas
+├── escenarios/          # escenarios JSON propios
+├── scripts/             # experimento comparativo de heurísticas
+└── docs/                # entregables, detalle técnico, casos mínimos, enunciado e imágenes
+```
+
+## Tecnologías
+
+Python, Pygame para la interfaz, pytest para las pruebas, Uvicorn para el punto ASGI y JSON como formato de
+escenarios.
+
+## Equipo
+
+- Juan Diego Henao Quintero ([@diego-juan3112](https://github.com/diego-juan3112))
+- Ana Suárez ([@Aisc07](https://github.com/Aisc07))
+- Santiago Silva ([@SilvaG35083](https://github.com/SilvaG35083))
+
+## Uso de IA
+
+El equipo usó IA generativa (Codex y Claude) como apoyo y lo declara en la documentación de cada método y en la
+sección 17 del documento técnico, como exige el enunciado. Cada integrante responde por todo el código entregado.

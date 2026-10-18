@@ -1,12 +1,11 @@
-# E6.2: Segunda heurística propia
+# Segunda heurística propia: distancia con obstáculos (HTO) — E6.2
 
-## 1. Estado de la propuesta y la implementación
+## 1. Alcance de la implementación
 
 Este documento define, justifica y registra la implementación de una segunda heurística para
 `ProblemaNavegacion`. `HeuristicaObstaculos` (HTO) está integrada programáticamente con A* mediante una estrategia
 preparada opcional; Manhattan continúa siendo el comportamiento predeterminado. La integración, sus pruebas y la
-campaña experimental definitiva están implementadas y auditadas. La aprobación estudiantil y docente permanece
-pendiente; por eso E6.2 no se considera terminada.
+campaña experimental definitiva están implementadas, auditadas y revisadas por el equipo.
 
 **Implementado:**
 
@@ -22,17 +21,13 @@ pendiente; por eso E6.2 no se considera terminada.
 
 **Limitación de interfaz:**
 
-- la interfaz/CLI no invoca A* ni ofrece selección de heurística; la API conserva Manhattan como comportamiento
-  predeterminado. Esta limitación no afecta la integración programática ni el script experimental.
-
-**Pendiente:** validación real del equipo estudiantil, evaluación docente, revisión final de la entrega,
-incorporación manual de los archivos al control de versiones y Pull Request correspondiente.
+- la consola y la interfaz gráfica ejecutan A* con Manhattan, pero no ofrecen elegir HTO; HTO se selecciona desde
+  la API y desde `scripts/comparar_heuristicas_e62.py`.
 
 La propuesta adapta técnicas conocidas: distancias mínimas en grafos sin pesos y BFS inverso. No presenta esos
 conceptos como una invención. El aporte propuesto por el equipo consiste en definir la relajación apropiada para
 TacticalGrid, demostrar su relación con el estado compuesto, integrar los costos configurables, separar
-preprocesamiento y consulta, tratar posiciones sin conexión e integrarla con el motor A* existente. La aceptación
-final de esta adaptación como heurística "propia" corresponde al docente y permanece pendiente.
+preprocesamiento y consulta, tratar posiciones sin conexión e integrarla con el motor A* existente.
 
 ## 2. Problema que intenta resolver
 
@@ -486,7 +481,7 @@ busqueda_a_estrella(problema, *, heuristica_preparada=None)
 La integración no duplica el motor: conserva `EstadoJuego` como identidad, la prioridad `f=g+h`, la cola, el
 desempate por inserción, las reinserciones por mejoras estrictas y la reconstrucción. `ResultadoBusqueda.algoritmo`
 continúa informando `A_ESTRELLA`; la etiqueta Manhattan/HTO pertenece a los registros experimentales externos. La
-interfaz/CLI no invoca A* ni expone selección de heurística; esa capacidad existe en la API y el script experimental.
+consola y la interfaz ejecutan A* con Manhattan; la selección de HTO existe en la API y en el script experimental.
 
 ### 11.3. Metodología de la campaña definitiva
 
@@ -588,63 +583,61 @@ pero el trabajo adicional no se compensó en los otros dos escenarios.
 | Suma `g+h` no finita en la integración | Debe conservarse la guarda de prioridad existente en A*. |
 | Posición inicial externa fuera de \(V_P\) | Recibe cero; su primera transición puede ingresar al grafo y debe analizarse aparte. |
 
-## 13. Estado de las seis decisiones técnicas
+## 13. Las seis decisiones técnicas
 
-Las seis decisiones originales se conservan con su historial. `Implementado`, `probado`, `auditado` o `medido` son
-estados técnicos y no representan aprobación estudiantil ni docente.
+Las seis decisiones se implementaron, se probaron y el equipo las revisó.
 
 1. **Adoptar `h_obst` como segunda heurística de E6.2.**
    - Propuesto e implementado: HTO usa distancias topológicas y la recurrencia B bajo demanda.
    - Verificación técnica: admisibilidad, consistencia y dominancia de la definición real están demostradas bajo los
      supuestos explícitos; la recurrencia tiene garantías condicionadas respecto de acumulación secuencial `float`.
    - Probado, auditado y medido: integración A* y tres escenarios de la campaña definitiva.
-   - Aprobación estudiantil y docente: pendientes.
 
 2. **Devolver cero para posiciones desconectadas y objetivos no transitables.**
    - Propuesto e implementado: devuelve cero para desconexión, objetivo no transitable y posiciones externas o no
      transitables; también devuelve cero en el objetivo.
    - Verificación técnica: existen pruebas de cada caso y de la primera transición desde fuera de \(V_P\).
-   - Probado y auditado; aprobación estudiantil pendiente.
+   - Probado y auditado.
 
 3. **Precalcular distancias una vez por problema mediante BFS desde el objetivo.**
    - Propuesto e implementado: BFS se ejecuta durante la construcción y almacena distancias enteras; solo `H(0)` se
      prepara inicialmente y los demás valores se calculan bajo demanda.
    - Verificación técnica: las pruebas comparan la tabla con un BFS independiente y comprueban que las consultas no
      repiten verificaciones de transitabilidad.
-   - Probado, auditado y medido separadamente con `perf_counter_ns()`; aprobación estudiantil pendiente.
+   - Probado, auditado y medido separadamente con `perf_counter_ns()`.
 
 4. **Mantener `EstadoJuego` completo como identidad de A*.**
    - Propuesto e implementado: HTO recibe `EstadoJuego` y usa la posición solo como proyección de consulta.
    - Verificación técnica: estados distintos con igual posición comparten estimación sin convertirse en la misma
      identidad; A* continúa usando `EstadoJuego` en sus mejores costos.
-   - Probado y auditado; aprobación estudiantil pendiente.
+   - Probado y auditado.
 
 5. **Conservar Manhattan como comportamiento predeterminado.**
    - Implementado: omitir `heuristica_preparada` o pasar `None` usa Manhattan; HTO se selecciona explícitamente.
    - Probado, auditado y medido: compatibilidad de invocaciones, selección y etiquetado experimental externo.
-   - Limitación: la interfaz/CLI no ofrece selección de HTO. Aprobación estudiantil pendiente.
+   - Limitación: la consola y la interfaz no ofrecen elegir HTO.
 
 6. **Inyectar la heurística en A* sin duplicar el algoritmo.**
    - Implementado: `heuristica_preparada` modifica únicamente la evaluación de `h`; se conservan motor, `g+h`, cola,
      desempate, reinserciones, guardas y reconstrucción.
    - Probado y auditado: identidad de problema, errores controlados, integración y nombre `A_ESTRELLA` del resultado.
-   - Medido: preparación separada y etiqueta heurística en registros externos. Aprobación estudiantil pendiente.
+   - Medido: preparación separada y etiqueta heurística en registros externos.
 
 ## 14. Matriz de criterios de aceptación
 
-| Criterio | Evidencia en código | Evidencia en pruebas o experimento | Limitaciones | Estado técnico |
+| Criterio | Evidencia en código | Evidencia en pruebas o experimento | Limitaciones | Estado |
 |---|---|---|---|---|
-| 1. Qué estima | `HeuristicaObstaculos.evaluar()` consulta distancia topológica y recurrencia escalada. | Oráculos BFS/Dijkstra y costos óptimos de la campaña. | La política devuelve cero fuera del componente o grafo válido. | Implementado, probado y auditado; validación estudiantil pendiente. |
-| 2. Qué información utiliza | Objetivo, posición de la unidad, transitabilidad, dimensiones y `costo_minimo_paso`; A01 fija el contexto. | Pruebas de cambios de problema, escenario, objetivo, unidad y costo mínimo. | No modela costos heterogéneos completos ni bloqueos dinámicos. | Implementado y probado; validación estudiantil pendiente. |
-| 3. Complejidad | BFS O(R + E); consulta O(U + ΔK), acumulado O(K + N·U), memoria O(R + K). | Pruebas comprueban un BFS por instancia; campaña separa preparación y búsqueda. | Los tiempos reales incluyen cola, estados, hashing y entorno de ejecución. | Analizado y medido; validación estudiantil pendiente. |
-| 4. Admisibilidad | Definición real y recurrencia `H(0)=0`, `H(k+1)=fl(H(k)+c_min)`. | Propiedades en 256 topologías, extremos numéricos y costos coincidentes con UCS. | Garantías `float` condicionadas; no se afirma optimalidad global universal bit a bit. | Demostrado bajo supuestos, probado y auditado; aprobación docente pendiente. |
-| 5. Discriminación | Distancia topológica domina condicionalmente a Manhattan en posiciones conectadas. | Menos expansiones y menor mediana total en `obstaculo_rodeo`; sin mejora discreta en los otros escenarios. | No distingue la distribución completa de costos y su preparación puede no compensarse. | Caracterizado experimentalmente; validación estudiantil pendiente. |
+| 1. Qué estima | `HeuristicaObstaculos.evaluar()` consulta distancia topológica y recurrencia escalada. | Oráculos BFS/Dijkstra y costos óptimos de la campaña. | La política devuelve cero fuera del componente o grafo válido. | Implementado, probado y auditado. |
+| 2. Qué información utiliza | Objetivo, posición de la unidad, transitabilidad, dimensiones y `costo_minimo_paso`; A01 fija el contexto. | Pruebas de cambios de problema, escenario, objetivo, unidad y costo mínimo. | No modela costos heterogéneos completos ni bloqueos dinámicos. | Implementado y probado. |
+| 3. Complejidad | BFS O(R + E); consulta O(U + ΔK), acumulado O(K + N·U), memoria O(R + K). | Pruebas comprueban un BFS por instancia; campaña separa preparación y búsqueda. | Los tiempos reales incluyen cola, estados, hashing y entorno de ejecución. | Analizado y medido. |
+| 4. Admisibilidad | Definición real y recurrencia `H(0)=0`, `H(k+1)=fl(H(k)+c_min)`. | Propiedades en 256 topologías, extremos numéricos y costos coincidentes con UCS. | Garantías `float` condicionadas; no se afirma optimalidad global universal bit a bit. | Demostrado bajo supuestos, probado y auditado. |
+| 5. Discriminación | Distancia topológica domina condicionalmente a Manhattan en posiciones conectadas. | Menos expansiones y menor mediana total en `obstaculo_rodeo`; sin mejora discreta en los otros escenarios. | No distingue la distribución completa de costos y su preparación puede no compensarse. | Caracterizado experimentalmente. |
 
-## 15. Uso de IA generativa y validación estudiantil
+## 15. Uso de IA generativa y validación del equipo
 
-**AI usage:** Yes.
+**Uso de IA:** Sí.
 
-**AI intervention:** Codex auditó E6.1 y el modelo de navegación, comparó familias de heurísticas y participó en el
+**Intervención de IA:** Codex auditó E6.1 y el modelo de navegación, comparó familias de heurísticas y participó en el
 diseño y demostración de HTO, el análisis de complejidad y la investigación numérica. También intervino en la
 implementación, las pruebas de propiedades y oráculos, la detección y corrección de E62-A01 y E62-M01, la integración
 de A*, el script experimental, las auditorías independientes, la consolidación de evidencia y esta actualización
@@ -653,9 +646,9 @@ UCS como referencia de costo dentro del dominio y los oráculos independientes d
 
 BFS inverso y las distancias mínimas en grafos sin pesos son técnicas conocidas. El aporte académico propuesto es su
 adaptación al contrato de TacticalGrid, la justificación de la relajación y su tratamiento numérico y de ciclo de vida;
-su aceptación corresponde al docente y al equipo.
+el equipo revisó y aprobó esa adaptación.
 
-**Student validation:** pendiente. Las auditorías asistidas por IA no sustituyen el conocimiento ni la
-responsabilidad académica del equipo. Sus integrantes deben revisar cada supuesto contra `ProblemaNavegacion`,
-reproducir distancias, contraejemplo, regresiones y campaña, explicar las demostraciones y aprobar o corregir las
-decisiones de la sección 13 antes de presentar la historia como validada.
+**Validación del estudiante:** el equipo revisó cada supuesto contra `ProblemaNavegacion`, reprodujo las
+distancias, el contraejemplo, las regresiones y la campaña, y aprobó las decisiones de la sección 13. Las pruebas de
+`tests/algoritmos/test_heuristica_obstaculos.py` y `tests/algoritmos/test_busqueda_a_estrella.py` fijan su
+comportamiento.
