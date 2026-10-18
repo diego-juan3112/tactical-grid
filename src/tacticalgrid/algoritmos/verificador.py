@@ -83,18 +83,18 @@ def _texto(posicion: Posicion) -> str:
 def errores_de_estado(escenario: Escenario, estado: EstadoJuego, exigir_celdas_libres: bool = True) -> tuple[str, ...]:
     """Devuelve los motivos por los que ``estado`` no es un estado valido del juego (tupla vacia si es valido).
 
-    Purpose: detectar estados invalidos generados por cualquier algoritmo, con las mismas invariantes que el validador
+    Proposito: detectar estados invalidos generados por cualquier algoritmo, con las mismas invariantes que el validador
     de escenarios (E2.2) aplica al estado inicial, mas las de la dinamica del juego.
-    Preconditions: ``escenario`` fue validado. ``exigir_celdas_libres`` es falso para estados de navegacion, donde
+    Precondiciones: ``escenario`` fue validado. ``exigir_celdas_libres`` es falso para estados de navegacion, donde
     E1.2 decidio que las demas unidades no bloquean y dos unidades pueden compartir celda.
-    Postconditions: comprueba ids unicos, bandos y turno validos, unidades dentro del mapa y sobre terreno transitable,
+    Postcondiciones: comprueba ids unicos, bandos y turno validos, unidades dentro del mapa y sobre terreno transitable,
     celdas no compartidas (si se exige), coherencia entre ``portador_recurso`` y ``posicion_recurso``, que el recurso
     libre este dentro del mapa, que ``estado_partida`` sea un valor conocido y que una victoria registrada coincida
     con el portador en su base. No modifica nada.
-    Complexity: O(U) temporal y espacial, donde U es la cantidad de unidades.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) definio las invariantes y las implemento en E10.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Complejidad: O(U) temporal y espacial, donde U es la cantidad de unidades.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) definio las invariantes y las implemento en E10.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_verificador.py construyen un estado invalido por cada invariante.
     """
     errores: list[str] = []
@@ -143,20 +143,20 @@ def _manhattan(a: Posicion, b: Posicion) -> int:
 def verificar_busqueda(problema: ProblemaNavegacion, resultado: ResultadoBusqueda) -> ReporteVerificacion:
     """Verifica la respuesta de un algoritmo de busqueda reproduciendo cada accion con las reglas del problema.
 
-    Purpose: comprobar que la solucion reportada por BFS, DFS, UCS, A* o Beam Search es realmente una solucion: no
+    Proposito: comprobar que la solucion reportada por BFS, DFS, UCS, A* o Beam Search es realmente una solucion: no
     basta con que el algoritmo haya terminado sin error.
-    Preconditions: ``resultado`` fue producido para ``problema``.
-    Postconditions: devuelve un reporte con las comprobaciones ``movimientos_validos``, ``sin_obstaculos``,
+    Precondiciones: ``resultado`` fue producido para ``problema``.
+    Postcondiciones: devuelve un reporte con las comprobaciones ``movimientos_validos``, ``sin_obstaculos``,
     ``camino_coherente``, ``costo_coincide``, ``estado_final_objetivo``, ``estados_validos`` y
     ``metricas_coherentes``. Si el resultado es un fracaso, comprueba ``fracaso_coherente`` (camino y acciones vacios,
     costo nulo) y las metricas; no afirma que no exista ruta, porque Beam Search puede fracasar aunque exista. Si una
     accion no se puede reproducir, se detiene la reproduccion y las comprobaciones dependientes fallan con el motivo.
     No modifica nada.
-    Complexity: O(L * (U + T)) temporal y O(L) espacial, donde L es la longitud del camino, U las unidades y T el costo
+    Complejidad: O(L * (U + T)) temporal y O(L) espacial, donde L es la longitud del camino, U las unidades y T el costo
     de una transicion.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) diseno las comprobaciones y las implemento en E10.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) diseno las comprobaciones y las implemento en E10.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_verificador.py verifican las respuestas reales de los cinco algoritmos y detectan resultados
     alterados a proposito (movimiento invalido, muro, costo falso, objetivo no alcanzado).
     """
@@ -250,6 +250,19 @@ class _Arbol:
     """Recorrido independiente del arbol de juego con el que se contrastan las decisiones adversariales."""
 
     def __init__(self, escenario: Escenario, evaluador: EvaluadorUtilidad, profundidad_maxima: int, orden: str) -> None:
+        """Prepara un recorrido completo del arbol de juego con contadores y listas de errores vacios.
+
+        Proposito: disponer de una referencia independiente de Minimax y alfa-beta para verificar sus decisiones y
+        metricas (E10.2).
+        Precondiciones: ``evaluador.bando_max`` es el bando MAX de la decision a verificar; ``profundidad_maxima`` y
+        ``orden`` son los mismos con los que se tomo esa decision.
+        Postcondiciones: el recorrido queda con nodos, hojas, profundidad alcanzada y acciones revisadas en 0 y sin
+        errores registrados (acciones ilegales, tipos tacticos incorrectos ni estados invalidos).
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) lo implemento en E10.2 y redacto esta documentacion en E11.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_verificador.py.
+        """
         self.escenario = escenario
         self.evaluador = evaluador
         self.profundidad_maxima = profundidad_maxima
@@ -263,7 +276,21 @@ class _Arbol:
         self.invalidos: list[str] = []
 
     def acciones(self, estado: EstadoJuego):
-        """Acciones que el algoritmo considera en ``estado``, comprobando cada una contra las reglas."""
+        """Devuelve las acciones que el algoritmo considera en ``estado`` y comprueba cada una contra las reglas.
+
+        Proposito: verificar el requisito del enunciado de que toda accion considerada por Minimax sea legal, y que
+        su tipo tactico sea el que asigna E8.1.
+        Precondiciones: ``estado`` ya paso por ``preparar_turno`` y es coherente con el escenario.
+        Postcondiciones: devuelve una tupla vacia si el estado es terminal; si no, las ``acciones_tacticas`` en el
+        orden del recorrido. Por cada accion suma 1 a ``acciones_revisadas`` y registra en ``ilegales`` la que no
+        sea valida y en ``tacticas`` la que tenga un tipo tactico distinto del de ``clasificar_accion``. No modifica
+        ``estado``.
+        Complejidad: O(A * U) temporal y O(A) espacial, con A acciones y U unidades.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) lo implemento en E10.2 y redacto esta documentacion en E11.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_verificador.py,
+        que comprueba decisiones reales y detecta acciones ilegales e intercepciones inventadas.
+        """
         if es_terminal(self.escenario, estado):
             return ()
         acciones = ordenar_acciones(acciones_tacticas(self.escenario, estado), self.orden)
@@ -282,7 +309,20 @@ class _Arbol:
         return sucesor
 
     def valor(self, estado: EstadoJuego, profundidad: int) -> float:
-        """Valor Minimax exacto, con las mismas reglas de hoja, pase de turno y orden que E8.3."""
+        """Calcula el valor Minimax exacto de ``estado`` recorriendo todo el subarbol, sin poda.
+
+        Proposito: obtener la referencia con la que se comprueba que la decision, el valor y las metricas reportadas
+        por Minimax o alfa-beta corresponden al arbol real.
+        Precondiciones: ``0 <= profundidad <= profundidad_maxima``; ``estado`` es coherente con el escenario.
+        Postcondiciones: devuelve el valor Minimax con las mismas reglas que E8.3: aplica ``preparar_turno``, evalua
+        las hojas (profundidad maxima, estado terminal o sin acciones) y toma el maximo o el minimo segun quien
+        mueve. Cuenta hojas, nodos generados y profundidad alcanzada, y revisa cada accion y cada sucesor generado.
+        Complejidad: O(b^(d-p)) nodos, igual que Minimax, porque no poda; espacio O(d) por la recursion.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) lo implemento en E10.2 y redacto esta documentacion en E11.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_verificador.py,
+        que comprueba que Minimax reporta exactamente el arbol regenerado y detecta valores y metricas falsos.
+        """
         self.profundidad_alcanzada = max(self.profundidad_alcanzada, profundidad)
         estado = preparar_turno(self.escenario, estado)
         if profundidad == self.profundidad_maxima:
@@ -305,20 +345,20 @@ def verificar_decision(
 ) -> ReporteVerificacion:
     """Verifica una decision de Minimax o alfa-beta regenerando el arbol de juego que debio explorar.
 
-    Purpose: comprobar que las acciones consideradas por Minimax son legales en todo el arbol, no solo en la raiz, y
+    Proposito: comprobar que las acciones consideradas por Minimax son legales en todo el arbol, no solo en la raiz, y
     que la decision y las metricas reportadas corresponden a ese arbol.
-    Preconditions: ``resultado`` fue producido por ``minimax`` o ``alfa_beta`` para ``estado`` y ``escenario``; si se
+    Precondiciones: ``resultado`` fue producido por ``minimax`` o ``alfa_beta`` para ``estado`` y ``escenario``; si se
     paso un evaluador al algoritmo, debe pasarse el mismo aqui (si no, se usan los pesos del JSON, como el algoritmo).
-    Postconditions: devuelve un reporte con ``acciones_consideradas_legales``, ``tacticas_coherentes``,
+    Postcondiciones: devuelve un reporte con ``acciones_consideradas_legales``, ``tacticas_coherentes``,
     ``estados_validos``, ``accion_seleccionada_legal``, ``valores_raiz_legales``, ``valor_correcto``,
     ``decision_optima`` y ``metricas_coherentes``. El arbol se regenera con la misma profundidad, orden de acciones y
     utilidad; para Minimax los nodos generados, evaluados y la profundidad alcanzada deben coincidir exactamente, y
     para alfa-beta no pueden superar a los del arbol completo. No modifica nada.
-    Complexity: la de Minimax completo, O(b^d) nodos con O(U^2) por nodo, porque recorre todo el arbol.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso contrastar con un recorrido independiente del arbol y lo implemento en
+    Complejidad: la de Minimax completo, O(b^d) nodos con O(U^2) por nodo, porque recorre todo el arbol.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso contrastar con un recorrido independiente del arbol y lo implemento en
     E10.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_verificador.py verifican decisiones reales de Minimax y alfa-beta con los tres ordenes y
     detectan decisiones alteradas a proposito (accion ilegal, valor falso, accion no optima, metricas falsas).
     """
@@ -395,17 +435,17 @@ def verificar_decision(
 def verificar_partida(escenario: Escenario, partida, verificar_arboles: bool = True) -> ReporteVerificacion:
     """Verifica una partida del modo ``partida`` jugada con Minimax o alfa-beta.
 
-    Purpose: comprobar que cada jugada es legal y produce el estado siguiente, que no se genera ningun estado invalido
+    Proposito: comprobar que cada jugada es legal y produce el estado siguiente, que no se genera ningun estado invalido
     y que el resultado declarado corresponde al estado final.
-    Preconditions: ``partida`` es un ``ResultadoPartida`` de ``jugar_partida`` para ``escenario``.
-    Postconditions: devuelve un reporte con ``jugadas_legales``, ``estados_encadenados``, ``estados_validos``,
+    Precondiciones: ``partida`` es un ``ResultadoPartida`` de ``jugar_partida`` para ``escenario``.
+    Postcondiciones: devuelve un reporte con ``jugadas_legales``, ``estados_encadenados``, ``estados_validos``,
     ``resultado_coherente`` y, si ``verificar_arboles``, ``decisiones_verificadas`` (aplica :func:`verificar_decision`
     a cada jugada, lo que cuesta tanto como volver a jugar la partida). No modifica nada.
-    Complexity: O(T * U) sin verificar arboles; con ellos, la de T busquedas adversariales completas, donde T es la
+    Complejidad: O(T * U) sin verificar arboles; con ellos, la de T busquedas adversariales completas, donde T es la
     cantidad de jugadas.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) diseno las comprobaciones y las implemento en E10.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) diseno las comprobaciones y las implemento en E10.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_verificador.py verifican partidas reales y detectan una partida alterada a proposito.
     """
     jugadas: list[str] = []

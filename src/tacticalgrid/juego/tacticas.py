@@ -74,18 +74,19 @@ def _dentro_del_rectangulo(posicion: Posicion, esquina_a: Posicion, esquina_b: P
 def clasificar_accion(escenario: Escenario, estado: EstadoJuego, accion: Accion) -> str:
     """Asigna a una accion legal su tipo tactico segun la situacion del recurso y de las unidades.
 
-    Purpose: dar significado tactico (avanzar, proteger zona, bloquear posicion, aproximarse al recurso,
+    Proposito: dar significado tactico (avanzar, proteger zona, bloquear posicion, aproximarse al recurso,
     perseguir o interceptar al portador) a las acciones que consumira Minimax, sin crear mecanicas nuevas.
-    Preconditions: ``accion`` pertenece a ``acciones_validas(escenario, estado)``; las bases vienen del escenario.
-    Postconditions: devuelve exactamente uno de ``TIPOS_TACTICOS`` aplicando las reglas del modulo en orden de
+    Precondiciones: ``accion`` pertenece a ``acciones_validas(escenario, estado)``; las bases vienen del escenario.
+    Postcondiciones: devuelve exactamente uno de ``TIPOS_TACTICOS`` aplicando las reglas del modulo en orden de
     prioridad; el resultado depende solo de ``escenario``, ``estado`` y ``accion`` (es determinista) y no modifica
     nada. Es simetrico para A y B: solo usa "propio" y "rival", nunca un bando concreto.
-    Complexity: O(U) temporal para localizar la unidad y al portador, y O(1) espacial.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso el conjunto de tipos, sus reglas geometricas y la implementacion
+    Complejidad: O(U) temporal para localizar la unidad y al portador, y O(1) espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso el conjunto de tipos, sus reglas geometricas y la implementacion
     en E8.1.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/juego/test_tacticas.py
-    cubren cada tipo tactico, la simetria entre bandos y la legalidad de todas las acciones clasificadas.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    tests/juego/test_tacticas.py cubren cada tipo tactico, la simetria entre bandos y la legalidad de todas las
+    acciones clasificadas.
     """
     if accion.tipo == INTERCEPTAR:
         return INTERCEPTAR_PORTADOR
@@ -109,18 +110,18 @@ def clasificar_accion(escenario: Escenario, estado: EstadoJuego, accion: Accion)
 def acciones_tacticas(escenario: Escenario, estado: EstadoJuego) -> tuple[AccionTactica, ...]:
     """Devuelve las acciones legales del bando en turno, cada una con su tipo tactico.
 
-    Purpose: ofrecer a Minimax y alfa-beta (E8.3, E8.4) un espacio de acciones legal y acotado con significado
+    Proposito: ofrecer a Minimax y alfa-beta (E8.3, E8.4) un espacio de acciones legal y acotado con significado
     tactico, util para explicar decisiones y para experimentar con el orden de las acciones.
-    Preconditions: ``estado`` es coherente con ``escenario``.
-    Postconditions: devuelve, en el mismo orden que ``acciones_validas``, una ``AccionTactica`` por cada accion
+    Precondiciones: ``estado`` es coherente con ``escenario``.
+    Postcondiciones: devuelve, en el mismo orden que ``acciones_validas``, una ``AccionTactica`` por cada accion
     legal; la tupla esta vacia si la partida termino o el bando esta bloqueado. Toda accion devuelta es legal y a
     lo sumo hay cinco por unidad del bando en turno. No modifica el estado.
-    Complexity: O(A * U) temporal y O(A) espacial, donde A es el numero de acciones legales y U el de unidades.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso e implemento esta consulta en E8.1.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/juego/test_tacticas.py
-    exploran partidas sobre los escenarios del repositorio y comprueban que toda accion tactica es legal y se
-    puede aplicar.
+    Complejidad: O(A * U) temporal y O(A) espacial, donde A es el numero de acciones legales y U el de unidades.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso e implemento esta consulta en E8.1.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    tests/juego/test_tacticas.py exploran partidas sobre los escenarios del repositorio y comprueban que toda accion
+    tactica es legal y se puede aplicar.
     """
     return tuple(
         AccionTactica(accion, clasificar_accion(escenario, estado, accion))

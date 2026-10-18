@@ -35,7 +35,7 @@ def validar_contenido_escenario(contenido: object) -> None:
     y corrigio los ``TypeError`` que producian valores no hashables en ``bando``, ``turno`` y
     ``portador_recurso``; Codex agrego en E6.1 el rechazo de costos no finitos y de enteros que desbordan la
     conversion numerica requerida para comprobarlos.
-    Validacion del estudiante: pendiente de revision humana del cambio de E6.1; existen pruebas automatizadas en
+    Validacion del estudiante: el equipo reviso el cambio de E6.1; existen pruebas automatizadas en
     tests/escenario/test_validador.py para las reglas del contrato y la atomicidad de la carga.
     """
     raiz = _exigir_diccionario(contenido, "El escenario debe ser un objeto JSON.")
@@ -75,6 +75,22 @@ def validar_contenido_escenario(contenido: object) -> None:
 
 
 def _validar_catalogo(valor: object) -> Mapping[str, Mapping[str, object]]:
+    """Valida el catalogo ``tipos_terreno``, del que salen todos los costos y la transitabilidad del juego.
+
+    Proposito: garantizar que los costos que usaran UCS, A*, la utilidad y las reglas vienen del JSON y son
+    utilizables (numericos, positivos y finitos), de modo que ningun algoritmo necesite volver a comprobarlos.
+    Precondiciones: ``valor`` es el contenido de ``tipos_terreno`` decodificado desde JSON, de cualquier tipo.
+    Postcondiciones: devuelve el catalogo si es un objeto no vacio en el que cada terreno es un objeto con
+    ``transitable`` booleano y, si es transitable, un ``costo`` numerico (no booleano), finito y mayor que 0. Si
+    no, lanza ``ErrorValidacionEscenario`` nombrando el terreno y el valor recibido. No modifica ``valor``.
+    Complejidad: O(T) temporal y O(1) espacial adicional, donde T es la cantidad de tipos de terreno.
+    Uso de IA: Si.
+    Intervencion de IA: Codex propuso la validacion inicial; Claude (Opus 5.5) la separo en esta funcion y
+    reescribio sus mensajes en E2.2; Codex agrego en E6.1 el rechazo de costos no finitos y de enteros que
+    desbordan ``math.isfinite``. Claude (Opus 5.5) redacto esta documentacion en E11.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/escenario/test_validador.py,
+    que comprueba catalogo vacio, ``transitable`` no booleano y costos nulos, negativos, no numericos y no finitos.
+    """
     catalogo = _exigir_diccionario(valor, "El campo 'tipos_terreno' debe ser un objeto.")
     if not catalogo:
         raise ErrorValidacionEscenario("El catalogo 'tipos_terreno' no puede estar vacio.")
@@ -100,6 +116,22 @@ def _validar_catalogo(valor: object) -> Mapping[str, Mapping[str, object]]:
 def _validar_matriz(
     valor: object, filas: int, columnas: int, catalogo: Mapping[str, object]
 ) -> list[list[str]]:
+    """Valida que la matriz ``terreno`` coincida con las dimensiones declaradas y use terrenos del catalogo.
+
+    Proposito: asegurar que cada celda del mapa tiene un terreno conocido, para que las consultas de costo y
+    transitabilidad del ``Escenario`` nunca fallen durante una busqueda.
+    Precondiciones: ``filas`` y ``columnas`` son enteros positivos ya validados y ``catalogo`` es el resultado de
+    ``_validar_catalogo``; ``valor`` puede ser de cualquier tipo.
+    Postcondiciones: devuelve la matriz si es una lista de ``filas`` listas de ``columnas`` nombres de terreno
+    presentes en ``catalogo``. Si no, lanza ``ErrorValidacionEscenario`` indicando la fila o la celda y el valor
+    que falla. No modifica ``valor``.
+    Complejidad: O(F*C) temporal y O(1) espacial adicional, donde F y C son las dimensiones del mapa.
+    Uso de IA: Si.
+    Intervencion de IA: Codex propuso la validacion inicial; Claude (Opus 5.5) la separo en esta funcion y
+    reescribio sus mensajes para indicar la celda en E2.2, y redacto esta documentacion en E11.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/escenario/test_validador.py,
+    que comprueba filas y columnas inconsistentes y terrenos no declarados.
+    """
     if not isinstance(valor, list) or len(valor) != filas:
         cantidad = len(valor) if isinstance(valor, list) else "ninguna"
         raise ErrorValidacionEscenario(
@@ -123,6 +155,24 @@ def _validar_matriz(
 def _validar_unidades(
     valor: object, filas: int, columnas: int, matriz: list[list[str]], catalogo: Mapping[str, Mapping[str, object]]
 ) -> set[str]:
+    """Valida la lista de unidades y devuelve el conjunto de sus identificadores.
+
+    Proposito: aplicar las reglas del enunciado sobre unidades (identificadores unicos, bando ``A`` o ``B``,
+    posicion dentro del mapa y sobre una celda transitable) antes de construir el estado del juego.
+    Precondiciones: ``filas``, ``columnas``, ``matriz`` y ``catalogo`` ya fueron validados; ``valor`` puede ser de
+    cualquier tipo.
+    Postcondiciones: devuelve los identificadores si ``valor`` es una lista de objetos con ``id`` de texto no vacio
+    y unico, ``bando`` ``A`` o ``B``, ``tipo`` de texto no vacio y ``fila``/``columna`` enteras dentro del mapa
+    sobre un terreno transitable. Si no, lanza ``ErrorValidacionEscenario`` nombrando la unidad y el valor que
+    falla. No modifica ``valor``.
+    Complejidad: O(U) temporal y espacial, donde U es la cantidad de unidades (cada comprobacion es O(1)).
+    Uso de IA: Si.
+    Intervencion de IA: Codex propuso la validacion inicial; Claude (Opus 5.5) la separo en esta funcion,
+    reescribio sus mensajes y corrigio el ``TypeError`` de un ``bando`` no hashable en E2.2, y redacto esta
+    documentacion en E11.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/escenario/test_validador.py,
+    que comprueba ids repetidos o vacios, bandos invalidos, unidades fuera del mapa y sobre muros.
+    """
     if not isinstance(valor, list):
         raise ErrorValidacionEscenario("El campo 'unidades' debe ser una lista.")
     identificadores: set[str] = set()
@@ -171,6 +221,20 @@ def _exigir_entero_positivo(datos: Mapping[str, object], campo: str) -> int:
 
 
 def _validar_posicion(valor: object, filas: int, columnas: int, nombre: str) -> None:
+    """Valida que ``valor`` sea una posicion ``{fila, columna}`` entera dentro del mapa.
+
+    Proposito: comprobar con la misma regla y los mismos mensajes las posiciones de bases, recurso y unidades.
+    Precondiciones: ``filas`` y ``columnas`` son enteros positivos; ``nombre`` describe el elemento para el mensaje.
+    Postcondiciones: retorna sin efectos si ``fila`` y ``columna`` son enteros (no booleanos) dentro de
+    ``0..filas-1`` y ``0..columnas-1``; si no, lanza ``ErrorValidacionEscenario`` con la posicion recibida y los
+    limites del mapa. No modifica ``valor``.
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Codex propuso la validacion inicial; Claude (Opus 5.5) reescribio sus mensajes con los
+    limites del mapa en E2.2 y redacto esta documentacion en E11.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/escenario/test_validador.py,
+    que comprueba bases, recurso y unidades fuera del mapa y coordenadas no enteras.
+    """
     datos = _exigir_diccionario(valor, f"{nombre} debe ser un objeto con 'fila' y 'columna'.")
     fila, columna = datos.get("fila"), datos.get("columna")
     if isinstance(fila, bool) or not isinstance(fila, int) or isinstance(columna, bool) or not isinstance(columna, int):

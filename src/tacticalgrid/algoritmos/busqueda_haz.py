@@ -51,15 +51,15 @@ class NivelHaz:
 def validar_ancho_haz(k: object) -> int:
     """Comprueba que ``k`` sea un ancho de haz valido y lo devuelve.
 
-    Purpose: rechazar con un mensaje claro cualquier ancho que no permita ejecutar Beam Search, tanto si llega
+    Proposito: rechazar con un mensaje claro cualquier ancho que no permita ejecutar Beam Search, tanto si llega
     como argumento como si se lee del escenario.
-    Preconditions: ninguna; ``k`` puede tener cualquier tipo.
-    Postconditions: devuelve ``k`` si es un entero (no booleano) mayor o igual que 1; en otro caso lanza
+    Precondiciones: ninguna; ``k`` puede tener cualquier tipo.
+    Postcondiciones: devuelve ``k`` si es un entero (no booleano) mayor o igual que 1; en otro caso lanza
     ``ValueError`` indicando el valor recibido.
-    Complexity: O(1) temporal y espacial.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso la implementacion y su documentacion en E7.1.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion en E7.1.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_busqueda_haz.py comprueban que se rechazan 0, negativos, booleanos, decimales y textos.
     """
     if isinstance(k, bool) or not isinstance(k, int) or k < 1:
@@ -70,16 +70,16 @@ def validar_ancho_haz(k: object) -> int:
 def ancho_haz_desde_prueba(configuracion_prueba: Mapping[str, object] | None) -> int | None:
     """Lee el ancho ``k`` opcional del campo ``prueba`` de un escenario ya cargado.
 
-    Purpose: permitir cambiar ``k`` editando el JSON del escenario (``"prueba": {"k": 4, ...}``), sin modificar
+    Proposito: permitir cambiar ``k`` editando el JSON del escenario (``"prueba": {"k": 4, ...}``), sin modificar
     codigo. La capa de algoritmos no abre archivos: recibe la configuracion ya cargada por la capa de escenario.
-    Preconditions: ``configuracion_prueba`` es ``Escenario.configuracion_prueba`` (un mapeo o ``None``).
-    Postconditions: devuelve ``None`` si no hay configuracion o si no declara ``k``; devuelve ``k`` si es valido;
+    Precondiciones: ``configuracion_prueba`` es ``Escenario.configuracion_prueba`` (un mapeo o ``None``).
+    Postcondiciones: devuelve ``None`` si no hay configuracion o si no declara ``k``; devuelve ``k`` si es valido;
     lanza ``ValueError`` (ver :func:`validar_ancho_haz`) si ``k`` esta declarado con un valor invalido.
-    Complexity: O(1) temporal y espacial.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso la implementacion, el nombre del campo propio ``k`` y su
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion, el nombre del campo propio ``k`` y su
     documentacion en E7.1.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_busqueda_haz.py cargan escenarios con y sin ``k`` y comprueban que cambiar ``k`` en el
     JSON cambia la exploracion.
     """
@@ -91,16 +91,16 @@ def ancho_haz_desde_prueba(configuracion_prueba: Mapping[str, object] | None) ->
 def _evaluar(problema: ProblemaNavegacion, nodo: Nodo, heuristica: Heuristica) -> int | float:
     """Calcula ``f(n) = g(n) + h(n)`` para ordenar candidatos y rechaza resultados no finitos.
 
-    Purpose: dar a todos los candidatos de un nivel un criterio de comparacion que combina el costo ya pagado
+    Proposito: dar a todos los candidatos de un nivel un criterio de comparacion que combina el costo ya pagado
     (leido del JSON a traves de ``expandir``) y la estimacion del costo restante.
-    Preconditions: ``nodo.costo_acumulado`` es finito y ``heuristica`` devuelve un numero para ``nodo.estado``.
-    Postconditions: devuelve la evaluacion finita del nodo o lanza ``ValueError`` si la heuristica o la suma no
+    Precondiciones: ``nodo.costo_acumulado`` es finito y ``heuristica`` devuelve un numero para ``nodo.estado``.
+    Postcondiciones: devuelve la evaluacion finita del nodo o lanza ``ValueError`` si la heuristica o la suma no
     son finitas; no modifica el nodo ni el problema.
-    Complexity: O(H) temporal, donde H es el costo de la heuristica (O(U) para Manhattan), y O(1) espacial.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) la implemento en E7.1 siguiendo las guardas de finitud que Codex introdujo
+    Complejidad: O(H) temporal, donde H es el costo de la heuristica (O(U) para Manhattan), y O(1) espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) la implemento en E7.1 siguiendo las guardas de finitud que Codex introdujo
     en A* (E6.1).
-    Student validation: el estudiante reviso y valido el codigo; ademas, lo cubren las pruebas de
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, lo cubren las pruebas de
     tests/algoritmos/test_busqueda_haz.py, incluida la que usa una heuristica que devuelve infinito.
     """
     estimacion = heuristica(problema, nodo.estado)
@@ -124,12 +124,12 @@ def busqueda_haz(
 ) -> ResultadoBusqueda:
     """Busca una solucion conservando en cada nivel solo los ``k`` candidatos de menor ``g + h``.
 
-    Purpose: implementar Beam Search con memoria limitada para estudiar como el ancho ``k`` cambia la exploracion
+    Proposito: implementar Beam Search con memoria limitada para estudiar como el ancho ``k`` cambia la exploracion
     y la solucion, reportando las metricas comunes de E4.1.
-    Preconditions: ``k`` es un entero mayor o igual que 1 (si no, ``ValueError``); ``problema`` cumple las
+    Precondiciones: ``k`` es un entero mayor o igual que 1 (si no, ``ValueError``); ``problema`` cumple las
     precondiciones de ``heuristica`` (por defecto, las de :func:`heuristica_manhattan`); sus estados son hashables
     y sus costos de transicion son positivos y finitos.
-    Postconditions: devuelve el primer nodo objetivo que entra en un haz (el de menor ``f`` si hay varios) o un
+    Postcondiciones: devuelve el primer nodo objetivo que entra en un haz (el de menor ``f`` si hay varios) o un
     resultado de fracaso si el haz queda vacio. El algoritmo del resultado es ``BEAM_SEARCH_K<k>``. Cada haz tiene
     a lo sumo ``k`` nodos, ningun estado entra dos veces en un haz y el maximo de frontera es menor o igual que
     ``k``. No garantiza costo minimo ni encontrar solucion cuando existe; si ``k`` supera el tamano de todos los
@@ -137,15 +137,15 @@ def busqueda_haz(
     ``observador``, se le entrega un :class:`NivelHaz` por el haz inicial y por cada nivel formado, en orden, sin
     alterar el resultado ni las metricas. ``observador_expansiones`` recibe cada nodo del haz cuyos sucesores se
     analizan y es independiente del observador de niveles.
-    Complexity: con profundidad de exploracion d, factor de ramificacion b y U unidades por estado, cada nivel
+    Complejidad: con profundidad de exploracion d, factor de ramificacion b y U unidades por estado, cada nivel
     expande a lo sumo k nodos y evalua a lo sumo k * b candidatos: O(d * k * b * (T + U + log(k * b))) temporal,
     donde T es el costo de una transicion, y O(k * b + V_h + d) espacial, donde V_h son los estados que entraron
     en algun haz (conjunto de visitados) y d la longitud del camino; la traza agrega O(X_t) para sus eventos.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso el diseno por niveles, el criterio f = g + h, la convencion de
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso el diseno por niveles, el criterio f = g + h, la convencion de
     metricas para el haz, la implementacion y esta documentacion en E7.1, y agrego en E7.2 el ``observador``
     opcional que permite analizar niveles; Codex agrego el observador comun de expansiones para E9.3.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_busqueda_haz.py ejecutan k = 1, 2, 4 y 8 sobre los escenarios del repositorio y
     verifican la legalidad y el costo de cada solucion, el limite del haz, el caso sin solucion y la coincidencia
     con la longitud de BFS cuando k es suficientemente grande.

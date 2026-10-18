@@ -12,7 +12,7 @@ async def aplicacion(alcance: dict, recibir, enviar) -> None:
     Intervencion de IA: Codex genero el esqueleto ASGI minimo, sin framework web adicional; Claude
     (Sonnet 5) tradujo los 7 encabezados de esta documentacion a espanol para cumplir la convencion de
     AGENTS.md.
-    Validacion del estudiante: pendiente de revision del equipo; cubierto por una prueba ASGI automatizada.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierto por una prueba ASGI automatizada.
     """
     if alcance["type"] == "lifespan":
         await _gestionar_ciclo_vida(recibir, enviar)

@@ -92,15 +92,17 @@ def generar_movimientos(
 def generar_intercepcion(estado: EstadoJuego, unidad: Unidad) -> Accion | None:
     """Devuelve la accion de interceptar al portador rival si ``unidad`` puede hacerlo, o ``None``.
 
-    Purpose: definir la condicion espacial que faltaba para usar la intercepcion de E1.3: estar junto al portador.
-    Preconditions: ``unidad`` pertenece a ``estado``; la partida no es terminal (lo comprueba quien la llama).
-    Postconditions: devuelve ``Accion(unidad, unidad.posicion, posicion_del_portador, INTERCEPTAR)`` solo si hay
-    portador, es de otro bando y esta a distancia Manhattan 1 de ``unidad``; en otro caso ``None``. No modifica nada.
-    Complexity: O(U) temporal para localizar al portador y O(1) espacial.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso la regla de adyacencia y la implemento en E8.1.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/juego/test_tacticas.py
-    cubren portador adyacente, no adyacente, aliado, en diagonal y ausencia de portador.
+    Proposito: definir la condicion espacial que faltaba para usar la intercepcion de E1.3: estar junto al portador.
+    Precondiciones: ``unidad`` pertenece a ``estado``; la partida no es terminal (lo comprueba quien la llama).
+    Postcondiciones: devuelve ``Accion(unidad.identificador, unidad.posicion, portador.posicion, INTERCEPTAR)`` solo
+    si hay portador, es de otro bando y esta a distancia Manhattan 1 de ``unidad``; en otro caso ``None``. No modifica
+    nada.
+    Complejidad: O(U) temporal para localizar al portador y O(1) espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso la regla de adyacencia y la implemento en E8.1.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    tests/juego/test_tacticas.py cubren portador adyacente, no adyacente, aliado, en diagonal y ausencia de
+    portador.
     """
     if estado.portador_recurso is None:
         return None

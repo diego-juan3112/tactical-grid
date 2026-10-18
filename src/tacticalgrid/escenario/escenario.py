@@ -43,7 +43,24 @@ class Escenario:
     configuracion_prueba: Mapping[str, object] | None
 
     def __post_init__(self) -> None:
-        """Protege los mapas internos contra modificaciones externas posteriores."""
+        """Protege los mapas internos del escenario contra modificaciones posteriores a la carga.
+
+        Proposito: que ninguna capa (reglas, algoritmos o interfaz) pueda alterar costos, bases o configuracion de un
+        escenario ya validado, de modo que todas lean los mismos datos.
+        Precondiciones: los campos fueron construidos por ``cargar_escenario`` a partir de un JSON validado.
+        Postcondiciones: ``tipos_terreno``, ``bases``, ``configuracion_juego`` y, si existe, ``configuracion_prueba``
+        quedan como copias de solo lectura (``MappingProxyType``): asignar una clave lanza ``TypeError``, y los
+        campos del dataclass congelado no se pueden reasignar. La proteccion es superficial: los objetos anidados de
+        ``configuracion_juego`` y ``configuracion_prueba`` (por ejemplo ``pesos_utilidad`` u ``objetivo``) siguen
+        siendo diccionarios comunes.
+        Complejidad: O(T + P) temporal y espacial, donde T son los tipos de terreno y P las claves de configuracion.
+        Uso de IA: Si.
+        Intervencion de IA: Codex propuso la implementacion inicial en E0.3; Claude (Opus 5.5) redacto esta
+        documentacion en E11.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
+        tests/escenario/test_cargador.py, que comprueba que los mapas no aceptan claves nuevas y que los campos no se
+        pueden reasignar.
+        """
         object.__setattr__(self, "tipos_terreno", MappingProxyType(dict(self.tipos_terreno)))
         object.__setattr__(self, "bases", MappingProxyType(dict(self.bases)))
         object.__setattr__(self, "configuracion_juego", MappingProxyType(dict(self.configuracion_juego)))
@@ -63,7 +80,7 @@ class Escenario:
         Complejidad: O(1) temporal y O(1) espacial.
         Uso de IA: Si.
         Intervencion de IA: Codex propuso la implementacion inicial de esta consulta de limites.
-        Validacion del estudiante: pendiente de revision del equipo; cubierta por pruebas automatizadas.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas.
         """
         return 0 <= posicion.fila < self.filas and 0 <= posicion.columna < self.columnas
 
@@ -76,7 +93,7 @@ class Escenario:
         Complejidad: O(1) temporal y O(1) espacial.
         Uso de IA: Si.
         Intervencion de IA: Codex propuso la implementacion inicial y su documentacion.
-        Validacion del estudiante: pendiente de revision del equipo; cubierta indirectamente por pytest.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta indirectamente por pytest.
         """
         if not self.contiene_posicion(posicion):
             raise ValueError("La posicion esta fuera de los limites del escenario.")
@@ -91,7 +108,7 @@ class Escenario:
         Complejidad: O(1) temporal y O(1) espacial.
         Uso de IA: Si.
         Intervencion de IA: Codex propuso la implementacion inicial y su documentacion.
-        Validacion del estudiante: pendiente de revision del equipo; cubierta por pruebas automatizadas.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas.
         """
         return self.obtener_tipo_terreno(posicion).transitable
 
@@ -104,7 +121,7 @@ class Escenario:
         Complejidad: O(1) temporal y O(1) espacial.
         Uso de IA: Si.
         Intervencion de IA: Codex propuso la implementacion inicial y su documentacion.
-        Validacion del estudiante: pendiente de revision del equipo; cubierta por pruebas automatizadas.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas.
         """
         tipo_terreno = self.obtener_tipo_terreno(posicion)
         if not tipo_terreno.transitable or tipo_terreno.costo is None:

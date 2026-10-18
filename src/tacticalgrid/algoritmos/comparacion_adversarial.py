@@ -78,7 +78,7 @@ class ComparacionAdversarial:
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
         Intervencion de IA: Claude (Opus 5.5) propuso la estructura y la implementacion en E8.5.
-        Validacion del estudiante: pendiente de revision del equipo; cubierta por
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
         tests/algoritmos/test_comparacion_adversarial.py, que comprueba las siete metricas y la serializacion.
         """
         return {

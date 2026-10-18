@@ -72,19 +72,20 @@ ESCENARIO_INICIAL = RAIZ / "escenarios" / "campo_20x20.json"
 def construir_problema(escenario, unidad=None, destino=None, configuracion=None):
     """Construye un problema de navegación con los datos del escenario.
 
-    Purpose: resolver la unidad y el objetivo indicados por consola o por la configuración de prueba y crear
+    Proposito: resolver la unidad y el objetivo indicados por consola o por la configuración de prueba y crear
     el ``ProblemaNavegacion`` que consumen los algoritmos.
-    Preconditions: ``escenario`` fue cargado y validado; ``destino``, si se proporciona, contiene dos enteros.
-    Postconditions: devuelve el problema, el identificador de unidad y la posición objetivo; lanza
+    Precondiciones: ``escenario`` fue cargado y validado; ``destino``, si se proporciona, contiene dos enteros.
+    Postcondiciones: devuelve el problema, el identificador de unidad y la posición objetivo; lanza
     ``ValueError`` cuando faltan datos o no cumplen el contrato de navegación.
-    Complexity: O(U log U + T) temporal y O(U) espacial por construir y normalizar el estado inicial con U
+    Complejidad: O(U log U + T) temporal y O(U) espacial por construir y normalizar el estado inicial con U
     unidades y recorrer los T tipos de terreno para obtener el costo mínimo de paso.
-    AI usage: Yes.
-    AI intervention: Codex completo esta documentación académica durante el cierre de auditoría de E5.1 y
+    Uso de IA: Si.
+    Intervencion de IA: Codex completo esta documentación académica durante el cierre de auditoría de E5.1 y
     corrigió su complejidad temporal en E6.1 para incluir el recorrido del catálogo de terrenos. Claude (Opus 5.5)
     hizo en E10.1 que la unidad y el objetivo del JSON se tomen de ``configuracion`` (``leer_configuracion_prueba``),
     que ya los valida, en lugar de releer ``prueba``.
-    Student validation: pendiente de revisión humana del cambio de E6.1.
+    Validacion del estudiante: el equipo reviso el cambio de E6.1; cubierta por tests/modos/test_consola_modos.py,
+    que ejecuta la consola con la unidad y el objetivo del JSON y sin ellos.
     """
 
     if unidad is None and configuracion is not None:
@@ -123,7 +124,7 @@ def resolver_orden(orden_consola, escenario):
     Complejidad: O(1) temporal y espacial.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) implemento esta funcion y la opcion ``--orden`` en E8.6.
-    Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por las pruebas de consola de
     tests/algoritmos/test_casos_minimos_adversariales.py.
     """
     if orden_consola is not None:
@@ -134,14 +135,14 @@ def resolver_orden(orden_consola, escenario):
 def resolver_profundidad(profundidad_consola, escenario):
     """Determina la profundidad maxima de Minimax sin modificar codigo.
 
-    Purpose: tomar la profundidad de ``--profundidad`` o, si no se indico, de ``juego.profundidad_maxima_minimax``.
-    Preconditions: ``profundidad_consola`` es ``None`` o el entero leido por argparse; ``escenario`` fue validado.
-    Postconditions: devuelve la profundidad de consola si se indico (tiene prioridad) o la del JSON; lanza
+    Proposito: tomar la profundidad de ``--profundidad`` o, si no se indico, de ``juego.profundidad_maxima_minimax``.
+    Precondiciones: ``profundidad_consola`` es ``None`` o el entero leido por argparse; ``escenario`` fue validado.
+    Postcondiciones: devuelve la profundidad de consola si se indico (tiene prioridad) o la del JSON; lanza
     ``ValueError`` si ninguna esta definida o si el valor no es un entero mayor o igual que 1.
-    Complexity: O(1) temporal y espacial.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) implemento esta funcion y la opcion ``minimax`` del ejecutor en E8.3.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta funcion y la opcion ``minimax`` del ejecutor en E8.3.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
     tests/algoritmos/test_minimax.py ejecutan ``main.py`` con ``--profundidad``, con el valor del JSON y sin ninguno.
     """
     if profundidad_consola is not None:
@@ -175,7 +176,7 @@ def mostrar_comparacion_adversarial(comparacion):
     Complejidad: O(1) temporal y espacial (siete filas).
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) implemento esta presentacion en E8.5.
-    Validacion del estudiante: pendiente de revision del equipo; cubierta por la prueba de consola de
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por la prueba de consola de
     tests/algoritmos/test_comparacion_adversarial.py.
     """
 
@@ -206,15 +207,15 @@ def mostrar_comparacion_adversarial(comparacion):
 def mostrar_resultado_minimax(resultado):
     """Muestra la decision de Minimax o alfa-beta, sus metricas y el valor de cada accion de la raiz.
 
-    Purpose: presentar en consola las metricas adversariales del enunciado y permitir explicar la decision.
-    Preconditions: ``resultado`` es un ``ResultadoMinimax``.
-    Postconditions: imprime bando MAX, profundidad, accion seleccionada con su tipo tactico, valor, metricas y una
+    Proposito: presentar en consola las metricas adversariales del enunciado y permitir explicar la decision.
+    Precondiciones: ``resultado`` es un ``ResultadoMinimax``.
+    Postcondiciones: imprime bando MAX, profundidad, accion seleccionada con su tipo tactico, valor, metricas y una
     fila por accion de la raiz marcando la elegida; con alfa-beta, los valores que son solo cotas por la poda se
     muestran como ``<= v``. No modifica el resultado.
-    Complexity: O(A) temporal y O(1) espacial adicional, donde A es la cantidad de acciones de la raiz.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) implemento esta presentacion en E8.3 y en E8.4 agrego la marca de cotas.
-    Student validation: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
+    Complejidad: O(A) temporal y O(1) espacial adicional, donde A es la cantidad de acciones de la raiz.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta presentacion en E8.3 y en E8.4 agrego la marca de cotas.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
     tests/algoritmos/test_minimax.py comprueba la salida.
     """
     describir = describir_accion_tactica
@@ -257,16 +258,16 @@ def _mostrar_valores_raiz(resultado, describir):
 def resolver_anchos_haz(anchos_consola, escenario):
     """Determina los anchos k con los que se ejecutara Beam Search.
 
-    Purpose: permitir cambiar k sin modificar codigo, desde la consola (``--k``) o desde el JSON (``prueba.k``).
-    Preconditions: ``anchos_consola`` es ``None`` o una lista de valores leidos por argparse; ``escenario`` fue
+    Proposito: permitir cambiar k sin modificar codigo, desde la consola (``--k``) o desde el JSON (``prueba.k``).
+    Precondiciones: ``anchos_consola`` es ``None`` o una lista de valores leidos por argparse; ``escenario`` fue
     cargado y validado.
-    Postconditions: devuelve los anchos de consola si se indicaron (tienen prioridad) o, si no, una tupla con
+    Postcondiciones: devuelve los anchos de consola si se indicaron (tienen prioridad) o, si no, una tupla con
     ``prueba.k``; lanza ``ValueError`` si ningun origen define k o si algun valor no es un entero mayor o igual
     que 1. No modifica el escenario.
-    Complexity: O(K) temporal y espacial, donde K es la cantidad de anchos indicados.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) implemento esta funcion y la opcion ``beam`` del ejecutor en E7.1.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
+    Complejidad: O(K) temporal y espacial, donde K es la cantidad de anchos indicados.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta funcion y la opcion ``beam`` del ejecutor en E7.1.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
     tests/algoritmos/test_busqueda_haz.py ejecutan ``main.py`` con ``--k``, con ``prueba.k`` y sin ninguno.
     """
     if anchos_consola:
@@ -280,13 +281,15 @@ def resolver_anchos_haz(anchos_consola, escenario):
 def mostrar_resultado(nombre, resultado):
     """Muestra el camino y las métricas de búsqueda.
 
-    Purpose: presentar en consola un ``ResultadoBusqueda`` sin recalcular ni alterar sus métricas.
-    Preconditions: ``resultado`` cumple el contrato común de resultados de E4.1.
-    Postconditions: imprime éxito, camino, movimientos, costo y métricas; no modifica el resultado.
-    Complexity: O(L) temporal y espacial por construir el texto de un camino de L posiciones.
-    AI usage: Yes.
-    AI intervention: Codex completo esta documentación académica durante el cierre de auditoría de E5.1.
-    Student validation: pendiente de revisión del equipo.
+    Proposito: presentar en consola un ``ResultadoBusqueda`` sin recalcular ni alterar sus métricas.
+    Precondiciones: ``resultado`` cumple el contrato común de resultados de E4.1.
+    Postcondiciones: imprime éxito, camino, movimientos, costo y métricas; no modifica el resultado.
+    Complejidad: O(L) temporal y espacial por construir el texto de un camino de L posiciones.
+    Uso de IA: Si.
+    Intervencion de IA: Codex completo esta documentación académica durante el cierre de auditoría de E5.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por las pruebas de consola de
+    tests/modos/test_consola_modos.py, tests/algoritmos/test_caso_minimo_1.py y
+    tests/algoritmos/test_caso_minimo_5.py.
     """
 
     print(f"\n{'=' * 45}")
@@ -315,14 +318,15 @@ def mostrar_resultado(nombre, resultado):
 def mostrar_comparacion(resultados):
     """Compara en consola los resultados reales de BFS y UCS.
 
-    Purpose: resumir movimientos, costo, éxito, menor costo e igualdad de caminos cuando se ejecutan ambos
+    Proposito: resumir movimientos, costo, éxito, menor costo e igualdad de caminos cuando se ejecutan ambos
     algoritmos sobre el mismo problema.
-    Preconditions: ``resultados`` contiene las claves ``bfs`` y ``ucs`` con resultados de E4.1.
-    Postconditions: imprime la comparación sin modificar los resultados ni ejecutar nuevas búsquedas.
-    Complexity: O(L) temporal por comparar caminos de hasta L posiciones y O(1) espacial adicional.
-    AI usage: Yes.
-    AI intervention: Codex implementó la comparación solicitada por la auditoría final de E5.1.
-    Student validation: pendiente de revisión del equipo.
+    Precondiciones: ``resultados`` contiene las claves ``bfs`` y ``ucs`` con resultados de E4.1.
+    Postcondiciones: imprime la comparación sin modificar los resultados ni ejecutar nuevas búsquedas.
+    Complejidad: O(L) temporal por comparar caminos de hasta L posiciones y O(1) espacial adicional.
+    Uso de IA: Si.
+    Intervencion de IA: Codex implementó la comparación solicitada por la auditoría final de E5.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/modos/test_registro.py y
+    tests/algoritmos/test_verificador.py, que ejecutan la comparacion ``ambos`` desde la consola.
     """
     bfs = resultados["bfs"]
     ucs = resultados["ucs"]
@@ -355,15 +359,15 @@ def mostrar_comparacion(resultados):
 def mostrar_comparacion_haz(resultados):
     """Resume en una tabla los resultados de Beam Search con distintos anchos k.
 
-    Purpose: facilitar el caso minimo 5 (E7.2), comparando en una sola vista como cambian la solucion y la
+    Proposito: facilitar el caso minimo 5 (E7.2), comparando en una sola vista como cambian la solucion y la
     exploracion al variar k sobre el mismo problema.
-    Preconditions: ``resultados`` es un diccionario no vacio ``{k: ResultadoBusqueda}`` con resultados de E4.1.
-    Postconditions: imprime una fila por k, en orden creciente, con solucion, movimientos, costo, estados
+    Precondiciones: ``resultados`` es un diccionario no vacio ``{k: ResultadoBusqueda}`` con resultados de E4.1.
+    Postcondiciones: imprime una fila por k, en orden creciente, con solucion, movimientos, costo, estados
     generados y expandidos, maximo de frontera y tiempo; no modifica los resultados ni ejecuta busquedas.
-    Complexity: O(K log K) temporal por ordenar los K anchos y O(1) espacial adicional por fila.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso e implemento esta tabla en E7.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
+    Complejidad: O(K log K) temporal por ordenar los K anchos y O(1) espacial adicional por fila.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso e implemento esta tabla en E7.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
     tests/algoritmos/test_caso_minimo_5.py comprueba que la tabla aparece con los valores del experimento.
     """
     print(f"\n{'=' * 78}")
@@ -382,16 +386,16 @@ def mostrar_comparacion_haz(resultados):
 def mostrar_comparacion_bfs_dfs(resultados):
     """Compara en consola como BFS y DFS recorren el mismo problema.
 
-    Purpose: apoyar el caso minimo 1 (E4.4) mostrando lado a lado solucion, movimientos, costo y metricas de
+    Proposito: apoyar el caso minimo 1 (E4.4) mostrando lado a lado solucion, movimientos, costo y metricas de
     exploracion de BFS y DFS sobre el mismo escenario, estado inicial, unidad y objetivo.
-    Preconditions: ``resultados`` contiene las claves ``bfs`` y ``dfs`` con resultados de E4.1.
-    Postconditions: imprime una fila por metrica (solucion, movimientos, costo, estados generados y expandidos,
+    Precondiciones: ``resultados`` contiene las claves ``bfs`` y ``dfs`` con resultados de E4.1.
+    Postcondiciones: imprime una fila por metrica (solucion, movimientos, costo, estados generados y expandidos,
     maximo de frontera) y si los caminos son iguales o diferentes; no modifica los resultados ni ejecuta nuevas
     busquedas.
-    Complexity: O(L) temporal por comparar caminos de hasta L posiciones y O(1) espacial adicional.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso e implemento esta comparacion en E4.4.
-    Student validation: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
+    Complejidad: O(L) temporal por comparar caminos de hasta L posiciones y O(1) espacial adicional.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso e implemento esta comparacion en E4.4.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, la prueba de consola de
     tests/algoritmos/test_caso_minimo_1.py comprueba la tabla con los valores del experimento.
     """
     bfs = resultados["bfs"]
@@ -422,14 +426,14 @@ def mostrar_comparacion_bfs_dfs(resultados):
 def mostrar_verificacion(reporte):
     """Imprime un reporte del verificador (E10.2) y devuelve ``True`` si todas las comprobaciones se cumplen.
 
-    Purpose: mostrar en consola, comprobacion por comprobacion, si la respuesta de un algoritmo es correcta.
-    Preconditions: ``reporte`` es un ``ReporteVerificacion``.
-    Postconditions: imprime una linea por comprobacion con su marca (correcta o fallida) y su detalle, y el veredicto
+    Proposito: mostrar en consola, comprobacion por comprobacion, si la respuesta de un algoritmo es correcta.
+    Precondiciones: ``reporte`` es un ``ReporteVerificacion``.
+    Postcondiciones: imprime una linea por comprobacion con su marca (correcta o fallida) y su detalle, y el veredicto
     final; devuelve ``reporte.es_valido``. No modifica el reporte.
-    Complexity: O(C) temporal y O(1) espacial adicional, donde C es la cantidad de comprobaciones.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) implemento esta presentacion en E10.2.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
+    Complejidad: O(C) temporal y O(1) espacial adicional, donde C es la cantidad de comprobaciones.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta presentacion en E10.2.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de consola de
     tests/algoritmos/test_verificador.py comprueban el reporte en los tres modos.
     """
     print(f"\nVERIFICACIÓN: {reporte.sujeto}")
@@ -465,9 +469,9 @@ def ejecutar_adversarial(
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` y agrego la opcion ``minimax_alfa_beta`` en
     E8.5, en E8.6 el orden de acciones configurable, en E10.2 la verificacion opcional y en E10.3 el registro.
-    Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de
-    tests/algoritmos/test_verificador.py, tests/algoritmos/test_minimax.py, test_alfa_beta.py, test_comparacion_adversarial.py y
-    test_casos_minimos_adversariales.py.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por las pruebas de consola de
+    tests/algoritmos/test_verificador.py, tests/algoritmos/test_minimax.py, test_alfa_beta.py,
+    test_comparacion_adversarial.py y test_casos_minimos_adversariales.py.
     """
     profundidad = resolver_profundidad(profundidad_consola, escenario)
     orden = resolver_orden(orden_consola, escenario)
@@ -525,7 +529,7 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion, registro=
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) extrajo este flujo de ``main`` en E10.1 sin cambiar su comportamiento y
     agrego la verificacion opcional en E10.2 y el registro en E10.3.
-    Validacion del estudiante: pendiente de revision del equipo; cubierta por las pruebas de consola de busqueda y por
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por las pruebas de consola de busqueda y por
     tests/modos/test_consola_modos.py.
     """
     problema, unidad, objetivo = construir_problema(escenario, args.unidad, args.objetivo, configuracion)
@@ -593,7 +597,7 @@ def ejecutar_partida(algoritmo, args, escenario, ruta, configuracion, registro=N
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) implemento este flujo en E10.1, la verificacion opcional en E10.2 y el
     registro en E10.3.
-    Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/modos/test_consola_modos.py.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/modos/test_consola_modos.py.
     """
     profundidad = resolver_profundidad(args.profundidad, escenario)
     orden = resolver_orden(args.orden, escenario)
@@ -664,7 +668,7 @@ def ejecutar_modo(args, escenario, ruta, registro=None):
     Complejidad: la del modo ejecutado.
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) implemento el despacho por modo en E10.1 y paso el registro en E10.3.
-    Validacion del estudiante: pendiente de revision del equipo; cubierta por tests/modos/test_consola_modos.py.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/modos/test_consola_modos.py.
     """
     configuracion = leer_configuracion_prueba(escenario)
     modo = resolver_modo(args.modo, args.algoritmo, configuracion)
@@ -686,17 +690,17 @@ def ejecutar_modo(args, escenario, ruta, registro=None):
 def crear_registro(ruta, escenario, verificar=False):
     """Crea el registro reproducible (E10.3) de una ejecucion sobre el escenario leido de ``ruta``.
 
-    Purpose: identificar sin ambiguedad el escenario usado, con una huella de su contenido, para que el experimento se
+    Proposito: identificar sin ambiguedad el escenario usado, con una huella de su contenido, para que el experimento se
     pueda repetir y para detectar si el mapa cambio entre dos ejecuciones.
-    Preconditions: ``ruta`` es el archivo del que se cargo ``escenario``.
-    Postconditions: devuelve un ``RegistroExperimento`` con el archivo (relativo a la raiz del repositorio si esta
+    Precondiciones: ``ruta`` es el archivo del que se cargo ``escenario``.
+    Postcondiciones: devuelve un ``RegistroExperimento`` con el archivo (relativo a la raiz del repositorio si esta
     dentro de el, para que el comando de reproduccion sea portable) y la huella SHA-256 de sus bytes. No modifica el
     archivo.
-    Complexity: O(N) temporal por calcular la huella de un archivo de N bytes y O(1) espacial adicional.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) implemento esta funcion en E10.3.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/modos/test_registro.py
-    comprueban la huella y que cambia al modificar el escenario.
+    Complejidad: O(N) temporal por calcular la huella de un archivo de N bytes y O(1) espacial adicional.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento esta funcion en E10.3.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    tests/modos/test_registro.py comprueban la huella y que cambia al modificar el escenario.
     """
     try:
         archivo = ruta.resolve().relative_to(RAIZ.resolve()).as_posix()
@@ -709,18 +713,18 @@ def crear_registro(ruta, escenario, verificar=False):
 def ejecutar_consola(argumentos=None):
     """Carga el escenario y ejecuta los algoritmos seleccionados en modo textual.
 
-    Purpose: conservar el ejecutor historico para BFS, DFS, UCS, A*, Beam Search (con uno o varios anchos k), las
+    Proposito: conservar el ejecutor historico para BFS, DFS, UCS, A*, Beam Search (con uno o varios anchos k), las
     comparaciones BFS/UCS y BFS/DFS sobre una navegación elegida, o Minimax sobre el estado inicial del escenario.
-    Preconditions: los argumentos de consola respetan el formato declarado y la ruta apunta a un escenario
+    Precondiciones: los argumentos de consola respetan el formato declarado y la ruta apunta a un escenario
     legible; los datos del escenario se validan en ``cargar_escenario``.
-    Postconditions: devuelve 0 tras mostrar los resultados y, para ``ambos``, su comparación; devuelve 1 y
+    Postcondiciones: devuelve 0 tras mostrar los resultados y, para ``ambos``, su comparación; devuelve 1 y
     muestra un error si el escenario o los parámetros de navegación no son válidos, o si ``--verificar`` detecta que
     alguna respuesta no es correcta. Con ``--json`` imprime solo el registro reproducible (E10.3) y con
     ``--exportar`` lo guarda en un archivo ademas de mostrar el texto.
-    Complexity: corresponde a la carga del escenario y a las búsquedas seleccionadas; la presentación agrega
+    Complejidad: corresponde a la carga del escenario y a las búsquedas seleccionadas; la presentación agrega
     O(L) temporal y espacial para un camino de L posiciones.
-    AI usage: Yes.
-    AI intervention: Codex documentó el flujo, agregó la comparación E5.1 y lo extrajo intacto de ``main.py``;
+    Uso de IA: Si.
+    Intervencion de IA: Codex documentó el flujo, agregó la comparación E5.1 y lo extrajo intacto de ``main.py``;
     en E6.1 incorporó A* sin
     alterar la semántica de la opción ``ambos``. Claude (Opus 5.5) agregó en E7.1 la opción ``beam`` y ``--k``, y en
     E7.2 la tabla comparativa cuando se indican varios anchos; en E4.3 agregó la opción ``dfs`` y en E4.4 la
@@ -729,7 +733,8 @@ def ejecutar_consola(argumentos=None):
     ``--orden``; en E10.1 agregó ``--modo`` y ``--turnos``, quitó el valor fijo de ``--algoritmo`` (el modo y el
     algoritmo se resuelven en ``ejecutar_modo``) y movió la busqueda a ``ejecutar_busqueda``; en E10.2 agregó
     ``--verificar`` y en E10.3 ``--json`` y ``--exportar``.
-    Student validation: pendiente de revisión del equipo.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/test_despachador.py y las
+    pruebas de consola de tests/modos/test_consola_modos.py.
     """
 
     parser = argparse.ArgumentParser(

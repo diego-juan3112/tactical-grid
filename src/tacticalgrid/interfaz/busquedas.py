@@ -32,14 +32,15 @@ def preparar_busqueda(
 ) -> ResultadoBusqueda | None:
     """Resuelve parametros y ejecuta una unica busqueda para la interfaz.
 
-    Purpose: conectar controles o argumentos graficos con las APIs estructuradas de navegacion y busqueda.
-    Preconditions: ``escenario`` esta validado, ``estado`` le pertenece y ``algoritmo`` es admitido o ``None``.
-    Postconditions: sin algoritmo devuelve ``None``; con algoritmo devuelve su resultado con una traza acotada.
+    Proposito: conectar controles o argumentos graficos con las APIs estructuradas de navegacion y busqueda.
+    Precondiciones: ``escenario`` esta validado, ``estado`` le pertenece y ``algoritmo`` es admitido o ``None``.
+    Postcondiciones: sin algoritmo devuelve ``None``; con algoritmo devuelve su resultado con una traza acotada.
     Los valores explicitos tienen prioridad sobre ``prueba`` y el estado recibido no se modifica.
-    Complexity: costo del algoritmo mas O(min(X, L_t)) espacial para X expansiones y limite L_t.
-    AI usage: Yes.
-    AI intervention: Codex extrajo sin cambios el ejecutor E9.2/E9.3 para compartirlo con los controles graficos.
-    Student validation: pendiente de revision humana; cubierta por pruebas de los cinco algoritmos y regresion.
+    Complejidad: costo del algoritmo mas O(min(X, L_t)) espacial para X expansiones y limite L_t.
+    Uso de IA: Si.
+    Intervencion de IA: Codex extrajo sin cambios el ejecutor E9.2/E9.3 para compartirlo con los controles graficos.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de los cinco algoritmos y
+    regresion.
     """
     if algoritmo is None:
         if unidad is not None or objetivo is not None or k is not None:

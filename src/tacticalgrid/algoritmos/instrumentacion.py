@@ -92,13 +92,14 @@ class TrazaExpansiones:
     def posiciones_unicas(self) -> tuple[Posicion, ...]:
         """Proyecta los eventos guardados a posiciones unicas conservando el primer orden observado.
 
-        Purpose: ofrecer al renderizador una vista espacial sin afirmar que posicion y estado son equivalentes.
-        Preconditions: los eventos conservan el orden asignado por el observador.
-        Postconditions: devuelve cada posicion una vez; no modifica ni descarta los eventos originales.
-        Complexity: O(X_t) temporal y espacial para X_t eventos almacenados.
-        AI usage: Yes.
-        AI intervention: Codex implemento la proyeccion estable para E9.3.
-        Student validation: pendiente de revision humana; cubierta por pruebas de estados distintos en una celda.
+        Proposito: ofrecer al renderizador una vista espacial sin afirmar que posicion y estado son equivalentes.
+        Precondiciones: los eventos conservan el orden asignado por el observador.
+        Postcondiciones: devuelve cada posicion una vez; no modifica ni descarta los eventos originales.
+        Complejidad: O(X_t) temporal y espacial para X_t eventos almacenados.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento la proyeccion estable para E9.3.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de estados distintos en
+        una celda.
         """
         return tuple(dict.fromkeys(evento.posicion for evento in self.eventos))
 
@@ -109,13 +110,14 @@ class ObservadorExpansiones:
     def __init__(self, limite: int = 10_000) -> None:
         """Configura el maximo de eventos conservados.
 
-        Purpose: limitar la memoria dedicada a visualizacion sin alterar el total real de expansiones.
-        Preconditions: ``limite`` es un entero mayor o igual que cero.
-        Postconditions: el observador queda vacio; un limite cero registra solo total y truncamiento.
-        Complexity: O(1) temporal y espacial.
-        AI usage: Yes.
-        AI intervention: Codex diseño e implemento la captura acotada para E9.3.
-        Student validation: pendiente de revision humana; cubierta por pruebas automatizadas de limite y orden.
+        Proposito: limitar la memoria dedicada a visualizacion sin alterar el total real de expansiones.
+        Precondiciones: ``limite`` es un entero mayor o igual que cero.
+        Postcondiciones: el observador queda vacio; un limite cero registra solo total y truncamiento.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño e implemento la captura acotada para E9.3.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas de limite y
+        orden.
         """
         if type(limite) is not int or limite < 0:
             raise ValueError("El limite de la traza debe ser un entero mayor o igual que cero.")
@@ -126,13 +128,14 @@ class ObservadorExpansiones:
     def observar(self, estado: EstadoJuego, posicion: Posicion) -> None:
         """Registra una expansion sin modificar el estado observado.
 
-        Purpose: conservar identidad compuesta, posicion y orden de cada expansion hasta el limite configurado.
-        Preconditions: ``estado`` es el nodo entregado a ``expandir`` y ``posicion`` es su proyeccion del problema.
-        Postconditions: el total aumenta siempre; el evento se almacena solo si queda capacidad.
-        Complexity: O(1) temporal y O(1) espacial por evento almacenado.
-        AI usage: Yes.
-        AI intervention: Codex implemento el registro exacto en el punto comun de expansion para E9.3.
-        Student validation: pendiente de revision humana; cubierta por pruebas de identidad, orden y truncamiento.
+        Proposito: conservar identidad compuesta, posicion y orden de cada expansion hasta el limite configurado.
+        Precondiciones: ``estado`` es el nodo entregado a ``expandir`` y ``posicion`` es su proyeccion del problema.
+        Postcondiciones: el total aumenta siempre; el evento se almacena solo si queda capacidad.
+        Complejidad: O(1) temporal y O(1) espacial por evento almacenado.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento el registro exacto en el punto comun de expansion para E9.3.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de identidad, orden y
+        truncamiento.
         """
         orden = self._total
         self._total += 1
@@ -142,13 +145,13 @@ class ObservadorExpansiones:
     def finalizar(self) -> TrazaExpansiones:
         """Construye la instantanea inmutable consumida por el resultado.
 
-        Purpose: separar la captura mutable de la traza publica y señalar si el limite omitio eventos.
-        Preconditions: las observaciones previas fueron registradas por ``observar``.
-        Postconditions: conserva orden, total y limite; ``truncada`` es verdadera solo si faltan eventos.
-        Complexity: O(X_t) temporal y espacial para copiar X_t eventos almacenados.
-        AI usage: Yes.
-        AI intervention: Codex implemento el cierre de la traza para E9.3.
-        Student validation: pendiente de revision humana; cubierta por pruebas de trazas vacias y limitadas.
+        Proposito: separar la captura mutable de la traza publica y señalar si el limite omitio eventos.
+        Precondiciones: las observaciones previas fueron registradas por ``observar``.
+        Postcondiciones: conserva orden, total y limite; ``truncada`` es verdadera solo si faltan eventos.
+        Complejidad: O(X_t) temporal y espacial para copiar X_t eventos almacenados.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento el cierre de la traza para E9.3.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de trazas vacias y limitadas.
         """
         return TrazaExpansiones(
             eventos=tuple(self._eventos),
@@ -161,14 +164,16 @@ class ObservadorExpansiones:
 def es_valor_finito(valor: object) -> bool:
     """Indica si un valor puede utilizarse con seguridad en la aritmetica de costos.
 
-    Purpose: centralizar la comprobacion numerica que impide propagar infinitos o NaN en las busquedas.
-    Preconditions: ``valor`` es el resultado o un operando de una operacion de costo.
-    Postconditions: devuelve ``True`` solo para enteros o flotantes no booleanos que ``math.isfinite`` puede
+    Proposito: centralizar la comprobacion numerica que impide propagar infinitos o NaN en las busquedas.
+    Precondiciones: ``valor`` es el resultado o un operando de una operacion de costo.
+    Postcondiciones: devuelve ``True`` solo para enteros o flotantes no booleanos que ``math.isfinite`` puede
     confirmar como finitos; cualquier tipo o magnitud no soportada devuelve ``False`` sin filtrar excepciones.
-    Complexity: O(1) temporal y espacial.
-    AI usage: Yes.
-    AI intervention: Codex implemento la guarda comun durante el cierre del riesgo numerico de E6.1.
-    Student validation: pendiente de revision humana del cambio de E6.1.
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento la guarda comun durante el cierre del riesgo numerico de E6.1.
+    Validacion del estudiante: el equipo reviso el cambio de E6.1; cubierta por
+    tests/algoritmos/test_busqueda_a_estrella.py y tests/algoritmos/test_busqueda_haz.py, que comprueban el rechazo
+    de costos, heuristicas y prioridades no finitos.
     """
     if isinstance(valor, bool) or not isinstance(valor, (int, float)):
         return False
@@ -194,7 +199,7 @@ def expandir(problema: Problema, nodo: Nodo, medidor: "MedidorBusqueda") -> tupl
     Uso de IA: Si.
     Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion en E4.1; Codex agrego en
     E6.1 el rechazo controlado de acumulaciones no finitas.
-    Validacion del estudiante: pendiente de revision humana del cambio numerico de E6.1; las pruebas existentes
+    Validacion del estudiante: el equipo reviso el cambio numerico de E6.1; las pruebas existentes
     comprueban orden de hijos, costo acumulado desde el JSON y conteo de expansiones.
     """
     medidor.registrar_expandido(nodo.estado, problema.posicion(nodo.estado))
@@ -229,7 +234,21 @@ class MedidorBusqueda:
         reloj: Callable[[], float] = time.perf_counter,
         observador_expansiones: ObservadorExpansiones | None = None,
     ) -> None:
-        """Inicia el cronometro y los contadores en cero; ``reloj`` permite fijar el tiempo en las pruebas."""
+        """Prepara la medicion de una busqueda: cronometro en marcha y contadores en cero.
+
+        Proposito: que todos los algoritmos de busqueda midan generados, expandidos, maximo de frontera y tiempo con
+        la misma convencion de E4.1.
+        Precondiciones: ``algoritmo`` es el nombre con el que se reportara el resultado; ``reloj`` devuelve segundos
+        crecientes (por defecto ``time.perf_counter``; las pruebas pueden fijarlo).
+        Postcondiciones: el medidor queda con los tres contadores en 0, el instante de inicio tomado de ``reloj`` y,
+        si se recibe, el observador de expansiones de E9.3, que no altera las metricas.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) lo implemento en E4.1; Codex agrego el observador de expansiones en
+        E9.3; Claude (Opus 5.5) redacto esta documentacion en E11.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
+        tests/algoritmos/test_instrumentacion.py, que construye medidores con un reloj fijo y con observador.
+        """
         self.algoritmo = algoritmo
         self._reloj = reloj
         self._inicio = reloj()

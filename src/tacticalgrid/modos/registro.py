@@ -101,17 +101,17 @@ class RegistroExperimento:
     def a_diccionario(self) -> dict[str, object]:
         """Construye el documento reproducible del experimento.
 
-        Purpose: hacer accesible el resultado de cualquier prueba en una estructura equivalente a la del enunciado,
+        Proposito: hacer accesible el resultado de cualquier prueba en una estructura equivalente a la del enunciado,
         con lo necesario para repetirla y compararla.
-        Preconditions: ``definir`` ya se llamo con el modo y los parametros resueltos.
-        Postconditions: devuelve un diccionario serializable con ``json.dumps`` con las claves ``formato``,
+        Precondiciones: ``definir`` ya se llamo con el modo y los parametros resueltos.
+        Postcondiciones: devuelve un diccionario serializable con ``json.dumps`` con las claves ``formato``,
         ``escenario`` (archivo, version, dimensiones y huella SHA-256), ``modo``, ``parametros``, ``comando``,
         ``nota``, ``resultados`` (cada uno con las claves del enunciado para su tipo) y, si se verifico,
         ``verificacion``. No modifica el registro.
-        Complexity: O(R) temporal y espacial, donde R es el tamano total de los resultados registrados.
-        AI usage: Yes.
-        AI intervention: Claude (Opus 5.5) diseno la estructura del registro y la implemento en E10.3.
-        Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+        Complejidad: O(R) temporal y espacial, donde R es el tamano total de los resultados registrados.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) diseno la estructura del registro y la implemento en E10.3.
+        Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
         tests/modos/test_registro.py comprueban las claves del enunciado en los tres modos, que el comando reproduce
         el mismo resultado y que dos ejecuciones coinciden salvo el tiempo.
         """
@@ -167,17 +167,18 @@ def _formatear(valor: object, nivel: int) -> str:
 def serializar(documento: dict[str, object]) -> str:
     """Convierte el registro en texto JSON legible: indentado, pero con las listas de valores en una sola linea.
 
-    Purpose: que el registro se lea como el ejemplo del enunciado, con ``camino`` en la forma ``[[3, 2], [3, 3]]`` en
+    Proposito: que el registro se lea como el ejemplo del enunciado, con ``camino`` en la forma ``[[3, 2], [3, 3]]`` en
     lugar de una coordenada por linea.
-    Preconditions: ``documento`` es serializable con ``json.dumps``.
-    Postconditions: devuelve texto JSON valido; ``json.loads`` lo convierte de nuevo exactamente en ``documento``.
+    Precondiciones: ``documento`` es serializable con ``json.dumps``.
+    Postcondiciones: devuelve texto JSON valido; ``json.loads`` lo convierte de nuevo exactamente en ``documento``.
     Recorre la estructura (no modifica el texto con expresiones regulares), asi que el contenido de las cadenas nunca
     se altera.
-    Complexity: O(N) temporal y espacial, donde N es el tamano del documento.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) implemento este formateador recursivo en E10.3.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/modos/test_registro.py
-    comprueban que el texto vuelve a producir el mismo documento, incluidas cadenas con comas y corchetes.
+    Complejidad: O(N) temporal y espacial, donde N es el tamano del documento.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento este formateador recursivo en E10.3.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    tests/modos/test_registro.py comprueban que el texto vuelve a producir el mismo documento, incluidas cadenas con
+    comas y corchetes.
     """
     return _formatear(documento, 0)
 

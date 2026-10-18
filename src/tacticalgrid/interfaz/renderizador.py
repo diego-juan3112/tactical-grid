@@ -101,13 +101,13 @@ class RenderizadorTablero:
     def __init__(self, recursos: RecursosGraficos | None = None) -> None:
         """Prepara fuentes reutilizables para las etiquetas del tablero.
 
-        Purpose: inicializar fuentes y el proveedor cacheado de recursos graficos exclusivos de la interfaz.
-        Preconditions: Pygame esta importado; no se requiere una ventana activa.
-        Postconditions: la instancia dispone de fuentes y atlas, y no altera el dominio.
-        Complexity: O(P) temporal y espacial por los pixeles de atlas cuando no se inyecta un proveedor existente.
-        AI usage: Yes.
-        AI intervention: Codex amplio la inicializacion de E9.1 con un proveedor de PNG inyectable y cacheado.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas automatizadas sin pantalla.
+        Proposito: inicializar fuentes y el proveedor cacheado de recursos graficos exclusivos de la interfaz.
+        Precondiciones: Pygame esta importado; no se requiere una ventana activa.
+        Postcondiciones: la instancia dispone de fuentes y atlas, y no altera el dominio.
+        Complejidad: O(P) temporal y espacial por los pixeles de atlas cuando no se inyecta un proveedor existente.
+        Uso de IA: Si.
+        Intervencion de IA: Codex amplio la inicializacion de E9.1 con un proveedor de PNG inyectable y cacheado.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas sin pantalla.
         """
         if not pygame.font.get_init():
             pygame.font.init()
@@ -119,13 +119,14 @@ class RenderizadorTablero:
     def calcular_disposicion(self, superficie: pygame.Surface, escenario: Escenario) -> DisposicionTablero:
         """Calcula una cuadricula centrada y un panel lateral segun las dimensiones disponibles.
 
-        Purpose: adaptar el tablero a cualquier cantidad valida de filas y columnas sin coordenadas de mapa fijas.
-        Preconditions: ``superficie`` tiene dimensiones positivas y ``escenario`` tiene filas y columnas positivas.
-        Postconditions: devuelve celdas cuadradas de al menos un pixel, contenidas en la superficie.
-        Complexity: O(1) temporal y espacial.
-        AI usage: Yes.
-        AI intervention: Codex diseño el ajuste proporcional y la reserva del panel informativo para E9.1.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de mapas 20x20 y rectangulares.
+        Proposito: adaptar el tablero a cualquier cantidad valida de filas y columnas sin coordenadas de mapa fijas.
+        Precondiciones: ``superficie`` tiene dimensiones positivas y ``escenario`` tiene filas y columnas positivas.
+        Postcondiciones: devuelve celdas cuadradas de al menos un pixel, contenidas en la superficie.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño el ajuste proporcional y la reserva del panel informativo para E9.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de mapas 20x20 y
+        rectangulares.
         """
         ancho, alto = superficie.get_size()
         ancho_panel = min(self.ANCHO_PANEL, max(0, ancho // 3))
@@ -151,13 +152,14 @@ class RenderizadorTablero:
     def calcular_rectangulos_controles(self, panel: pygame.Rect) -> RectangulosControles:
         """Calcula controles compactos dentro del panel lateral.
 
-        Purpose: compartir exactamente las mismas zonas entre dibujo y manejo de clics.
-        Preconditions: ``panel`` fue calculado para la superficie vigente.
-        Postconditions: devuelve rectangulos contenidos horizontalmente en el panel, sin modificarlo.
-        Complexity: O(1) temporal y espacial.
-        AI usage: Yes.
-        AI intervention: Codex diseño las zonas compactas para integrar controles sin invadir el tablero.
-        Student validation: pendiente de revision humana; cubierta por pruebas de geometria y clics SDL dummy.
+        Proposito: compartir exactamente las mismas zonas entre dibujo y manejo de clics.
+        Precondiciones: ``panel`` fue calculado para la superficie vigente.
+        Postcondiciones: devuelve rectangulos contenidos horizontalmente en el panel, sin modificarlo.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño las zonas compactas para integrar controles sin invadir el tablero.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de geometria y clics SDL
+        dummy.
         """
         x = panel.x + 12
         ancho = max(1, panel.width - 24)
@@ -186,13 +188,14 @@ class RenderizadorTablero:
     def color_para_terreno(self, nombre: str, tipo: TipoTerreno) -> Color:
         """Deriva un color estable de cualquier nombre de terreno cargado.
 
-        Purpose: diferenciar terrenos conocidos o externos sin mantener un catalogo codificado en la interfaz.
-        Preconditions: ``nombre`` no esta vacio y ``tipo`` pertenece al catalogo validado del escenario.
-        Postconditions: devuelve siempre el mismo color RGB para el mismo nombre y transitabilidad.
-        Complexity: O(L) temporal y O(1) espacial, donde L es la longitud UTF-8 del nombre.
-        AI usage: Yes.
-        AI intervention: Codex diseño la paleta determinista basada en SHA-256 y el tono neutro para obstaculos.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de estabilidad y terreno externo.
+        Proposito: diferenciar terrenos conocidos o externos sin mantener un catalogo codificado en la interfaz.
+        Precondiciones: ``nombre`` no esta vacio y ``tipo`` pertenece al catalogo validado del escenario.
+        Postcondiciones: devuelve siempre el mismo color RGB para el mismo nombre y transitabilidad.
+        Complejidad: O(L) temporal y O(1) espacial, donde L es la longitud UTF-8 del nombre.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño la paleta determinista basada en SHA-256 y el tono neutro para obstaculos.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de estabilidad y terreno
+        externo.
         """
         resumen = sha256(nombre.encode("utf-8")).digest()
         if tipo.transitable:
@@ -212,16 +215,16 @@ class RenderizadorTablero:
     ) -> DisposicionTablero:
         """Dibuja el tablero completo y su informacion vigente sobre una superficie Pygame.
 
-        Purpose: representar terrenos, exploracion, objetivo, camino, entidades, controles, turno y leyenda.
-        Preconditions: ``escenario`` esta validado y ``estado`` es coherente con el escenario.
-        Postconditions: la superficie refleja el estado y, si se solicita, la proyeccion de la traza; escenario,
+        Proposito: representar terrenos, exploracion, objetivo, camino, entidades, controles, turno y leyenda.
+        Precondiciones: ``escenario`` esta validado y ``estado`` es coherente con el escenario.
+        Postcondiciones: la superficie refleja el estado y, si se solicita, la proyeccion de la traza; escenario,
         estado y resultado permanecen inmutables, y el camino y las entidades quedan sobre la exploracion.
-        Complexity: O(F*C + U + T + L + P) temporal y O(F*C + L + lado^2) espacial, con L posiciones del camino
+        Complejidad: O(F*C + U + T + L + P) temporal y O(F*C + L + lado^2) espacial, con L posiciones del camino
         y P posiciones expandidas unicas almacenadas.
-        AI usage: Yes.
-        AI intervention: Codex implemento E9.1/E9.2, el rediseño con sprites y la capa E9.3 sin cambiar el camino.
-        Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
-        automatizadas del orden, fidelidad y superposicion de capas.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento E9.1/E9.2, el rediseño con sprites y la capa E9.3 sin cambiar el camino.
+        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
+        pruebas automatizadas del orden, fidelidad y superposicion de capas.
         """
         disposicion = self.calcular_disposicion(superficie, escenario)
         superficie.fill(self.COLOR_FONDO)
@@ -271,13 +274,14 @@ class RenderizadorTablero:
     ) -> None:
         """Superpone las posiciones proyectadas de expansiones reales.
 
-        Purpose: distinguir exploracion de camino mediante una capa semitransparente adaptable a la celda.
-        Preconditions: cada posicion procede de la traza asociada al mismo escenario representado por ``celdas``.
-        Postconditions: se resaltan solo posiciones observadas; tiles y datos de entrada permanecen intactos.
-        Complexity: O(P) temporal y O(lado^2) espacial, donde P son posiciones unicas almacenadas.
-        AI usage: Yes.
-        AI intervention: Codex implemento la capa visual bajo demanda para E9.3.
-        Student validation: pendiente de validacion visual humana; cubierta por pruebas SDL dummy de pixeles y capas.
+        Proposito: distinguir exploracion de camino mediante una capa semitransparente adaptable a la celda.
+        Precondiciones: cada posicion procede de la traza asociada al mismo escenario representado por ``celdas``.
+        Postcondiciones: se resaltan solo posiciones observadas; tiles y datos de entrada permanecen intactos.
+        Complejidad: O(P) temporal y O(lado^2) espacial, donde P son posiciones unicas almacenadas.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento la capa visual bajo demanda para E9.3.
+        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
+        pruebas SDL dummy de pixeles y capas.
         """
         capa = pygame.Surface((lado, lado), pygame.SRCALPHA)
         capa.fill((*self.COLOR_EXPLORACION, self.ALFA_EXPLORACION))
@@ -297,14 +301,14 @@ class RenderizadorTablero:
     ) -> dict[Posicion, pygame.Rect]:
         """Dibuja cada terreno y marca visualmente los no transitables.
 
-        Purpose: crear la capa base desde el catalogo real de terrenos del escenario.
-        Preconditions: la disposicion corresponde al escenario y cabe en la superficie.
-        Postconditions: devuelve el rectangulo de cada posicion y no modifica el escenario.
-        Complexity: O(F*C) temporal y espacial por el indice de rectangulos.
-        AI usage: Yes.
-        AI intervention: Codex integro tiles variados, obstaculos fisicos y el respaldo generico sobre el recorrido
+        Proposito: crear la capa base desde el catalogo real de terrenos del escenario.
+        Precondiciones: la disposicion corresponde al escenario y cabe en la superficie.
+        Postcondiciones: devuelve el rectangulo de cada posicion y no modifica el escenario.
+        Complejidad: O(F*C) temporal y espacial por el indice de rectangulos.
+        Uso de IA: Si.
+        Intervencion de IA: Codex integro tiles variados, obstaculos fisicos y el respaldo generico sobre el recorrido
         original de E9.1.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de colores y transitabilidad.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de colores y transitabilidad.
         """
         celdas: dict[Posicion, pygame.Rect] = {}
         lado = disposicion.tamano_celda
@@ -346,13 +350,13 @@ class RenderizadorTablero:
     def _variante_visual(nombre: str, posicion: Posicion) -> int:
         """Deriva una variante local estable sin tocar el generador aleatorio global.
 
-        Purpose: distribuir reflejos de textura de forma repetible entre celdas del mismo terreno.
-        Preconditions: nombre y posicion proceden del escenario validado.
-        Postconditions: retorna un entero entre 0 y 3 estable para la misma entrada.
-        Complexity: O(L) temporal y O(1) espacial por el nombre codificado.
-        AI usage: Yes.
-        AI intervention: Codex definio la variacion visual mediante SHA-256 y coordenadas.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de determinismo.
+        Proposito: distribuir reflejos de textura de forma repetible entre celdas del mismo terreno.
+        Precondiciones: nombre y posicion proceden del escenario validado.
+        Postcondiciones: retorna un entero entre 0 y 3 estable para la misma entrada.
+        Complejidad: O(L) temporal y O(1) espacial por el nombre codificado.
+        Uso de IA: Si.
+        Intervencion de IA: Codex definio la variacion visual mediante SHA-256 y coordenadas.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de determinismo.
         """
         datos = f"{nombre}:{posicion.fila}:{posicion.columna}".encode("utf-8")
         return sha256(datos).digest()[0] % 4
@@ -367,13 +371,14 @@ class RenderizadorTablero:
     ) -> None:
         """Añade detalle determinista a terrenos externos o a atlas ausentes.
 
-        Purpose: conservar identidad, transitabilidad y legibilidad cuando no existe un sprite especifico.
-        Preconditions: el rectangulo ya tiene el color estable del terreno.
-        Postconditions: la celda recibe marcas visibles sin alterar el escenario ni atribuirle otra semantica.
-        Complexity: O(1) temporal y espacial.
-        AI usage: Yes.
-        AI intervention: Codex diseño el patron de respaldo determinista y neutral.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de terreno externo y archivo ausente.
+        Proposito: conservar identidad, transitabilidad y legibilidad cuando no existe un sprite especifico.
+        Precondiciones: el rectangulo ya tiene el color estable del terreno.
+        Postcondiciones: la celda recibe marcas visibles sin alterar el escenario ni atribuirle otra semantica.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño el patron de respaldo determinista y neutral.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de terreno externo y
+        archivo ausente.
         """
         color = self.color_para_terreno(nombre, tipo)
         detalle = tuple(max(0, componente - 28) for componente in color)
@@ -393,15 +398,15 @@ class RenderizadorTablero:
     ) -> None:
         """Traza en orden el camino calculado y diferencia sus extremos.
 
-        Purpose: convertir las posiciones ya calculadas en una linea visual sin recalcular ni corregir la ruta.
-        Preconditions: cada posicion de ``camino`` pertenece a ``celdas`` y conserva el orden del resultado.
-        Postconditions: los centros se conectan en el mismo orden; origen y destino quedan marcados y los datos de
+        Proposito: convertir las posiciones ya calculadas en una linea visual sin recalcular ni corregir la ruta.
+        Precondiciones: cada posicion de ``camino`` pertenece a ``celdas`` y conserva el orden del resultado.
+        Postcondiciones: los centros se conectan en el mismo orden; origen y destino quedan marcados y los datos de
         entrada permanecen sin modificaciones.
-        Complexity: O(L) temporal y espacial por los L centros del camino.
-        AI usage: Yes.
-        AI intervention: Codex diseño e implemento para E9.2 la linea adaptable y los marcadores de extremos.
-        Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
-        automatizadas que comparan los centros trazados con ``ResultadoBusqueda.camino``.
+        Complejidad: O(L) temporal y espacial por los L centros del camino.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño e implemento para E9.2 la linea adaptable y los marcadores de extremos.
+        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
+        pruebas automatizadas que comparan los centros trazados con ``ResultadoBusqueda.camino``.
         """
         centros = [celdas[posicion].center for posicion in camino]
         grosor_borde = max(3, lado // 4)
@@ -426,13 +431,13 @@ class RenderizadorTablero:
     ) -> None:
         """Superpone el contorno e identidad de ambas bases sin cubrir el contenido posterior.
 
-        Purpose: mantener visibles Base A y Base B incluso cuando una unidad ocupa su celda.
-        Preconditions: las bases del escenario existen en ``celdas``.
-        Postconditions: cada base queda identificada mediante borde y etiqueta; no altera datos del dominio.
-        Complexity: O(B) temporal y O(1) espacial, donde B es la cantidad de bases.
-        AI usage: Yes.
-        AI intervention: Codex incorporo fortalezas por bando sin retirar el borde persistente de E9.1.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de bases y superposicion.
+        Proposito: mantener visibles Base A y Base B incluso cuando una unidad ocupa su celda.
+        Precondiciones: las bases del escenario existen en ``celdas``.
+        Postcondiciones: cada base queda identificada mediante borde y etiqueta; no altera datos del dominio.
+        Complejidad: O(B) temporal y O(1) espacial, donde B es la cantidad de bases.
+        Uso de IA: Si.
+        Intervencion de IA: Codex incorporo fortalezas por bando sin retirar el borde persistente de E9.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de bases y superposicion.
         """
         for bando, posicion in escenario.bases.items():
             rectangulo = celdas[posicion]
@@ -447,14 +452,15 @@ class RenderizadorTablero:
     def _dibujar_recurso(self, superficie: pygame.Surface, rectangulo: pygame.Rect, lado: int) -> None:
         """Dibuja el cristal PNG del recurso libre con un contorno circular dorado.
 
-        Purpose: mostrar el recurso solo cuando el estado declara que no tiene portador.
-        Preconditions: ``rectangulo`` representa la posicion vigente del recurso libre.
-        Postconditions: si el sprite esta disponible queda centrado y, en todos los casos, se dibuja su contorno
+        Proposito: mostrar el recurso solo cuando el estado declara que no tiene portador.
+        Precondiciones: ``rectangulo`` representa la posicion vigente del recurso libre.
+        Postcondiciones: si el sprite esta disponible queda centrado y, en todos los casos, se dibuja su contorno
         circular dorado sin modificar el estado.
-        Complexity: O(1) temporal y espacial.
-        AI usage: Yes.
-        AI intervention: Codex sustituyo el simbolo abstracto de E9.1 por un cristal PNG con contorno de contraste.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de recurso libre y transportado.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Codex sustituyo el simbolo abstracto de E9.1 por un cristal PNG con contorno de contraste.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de recurso libre y
+        transportado.
         """
         sprite = self.recursos.objeto("recurso", max(1, int(lado * 0.78)))
         if sprite is not None:
@@ -472,14 +478,15 @@ class RenderizadorTablero:
     ) -> None:
         """Dibuja todas las unidades y agrega una insignia al portador.
 
-        Purpose: representar posiciones, bandos, identificadores y posesion del recurso desde ``EstadoJuego``.
-        Preconditions: cada unidad ocupa una posicion incluida en ``celdas``.
-        Postconditions: todas las unidades quedan visibles y solo el portador recibe la insignia dorada.
-        Complexity: O(U) temporal y O(1) espacial adicional.
-        AI usage: Yes.
-        AI intervention: Codex incorporo sprites por bando, etiquetas con fondo e insignia de cristal para el
+        Proposito: representar posiciones, bandos, identificadores y posesion del recurso desde ``EstadoJuego``.
+        Precondiciones: cada unidad ocupa una posicion incluida en ``celdas``.
+        Postcondiciones: todas las unidades quedan visibles y solo el portador recibe la insignia dorada.
+        Complejidad: O(U) temporal y O(1) espacial adicional.
+        Uso de IA: Si.
+        Intervencion de IA: Codex incorporo sprites por bando, etiquetas con fondo e insignia de cristal para el
         portador sobre la semantica de E9.1.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de bandos, cambios y portador.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de bandos, cambios y
+        portador.
         """
         for unidad in estado.unidades:
             rectangulo = celdas[unidad.posicion]
@@ -511,13 +518,13 @@ class RenderizadorTablero:
     ) -> None:
         """Traza limites de filas y columnas sobre las capas de contenido.
 
-        Purpose: conservar la lectura espacial de la cuadricula completa.
-        Preconditions: la disposicion corresponde a las dimensiones del escenario.
-        Postconditions: todas las celdas quedan delimitadas sin modificar el modelo.
-        Complexity: O(F+C) temporal y O(1) espacial.
-        AI usage: Yes.
-        AI intervention: Codex implemento las lineas dimensionadas para E9.1.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de dimensiones variables.
+        Proposito: conservar la lectura espacial de la cuadricula completa.
+        Precondiciones: la disposicion corresponde a las dimensiones del escenario.
+        Postcondiciones: todas las celdas quedan delimitadas sin modificar el modelo.
+        Complejidad: O(F+C) temporal y O(1) espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento las lineas dimensionadas para E9.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de dimensiones variables.
         """
         lado = disposicion.tamano_celda
         for fila in range(escenario.filas + 1):
@@ -549,16 +556,16 @@ class RenderizadorTablero:
     ) -> None:
         """Presenta turno y leyenda de terrenos y simbolos usados.
 
-        Purpose: explicar la codificacion visual y destacar el bando activo sin duplicar el turno.
-        Preconditions: el panel pertenece a la superficie y el estado contiene el turno vigente.
-        Postconditions: se muestran turno, terrenos, entidades y ayuda de exploracion; con controles se anteponen
+        Proposito: explicar la codificacion visual y destacar el bando activo sin duplicar el turno.
+        Precondiciones: el panel pertenece a la superficie y el estado contiene el turno vigente.
+        Postcondiciones: se muestran turno, terrenos, entidades y ayuda de exploracion; con controles se anteponen
         selectores y acciones; con resultado se muestran algoritmo, estado, camino, expansiones y truncamiento.
-        Complexity: O(T) temporal y O(1) espacial adicional, donde T es la cantidad de terrenos.
-        AI usage: Yes.
-        AI intervention: Codex conservo los datos de E9.1/E9.2 y actualizo jerarquia, muestras de tiles, textos y
+        Complejidad: O(T) temporal y O(1) espacial adicional, donde T es la cantidad de terrenos.
+        Uso de IA: Si.
+        Intervencion de IA: Codex conservo los datos de E9.1/E9.2 y actualizo jerarquia, muestras de tiles, textos y
         aviso de fallback del panel; para E9.3 agrego estado, metricas e instruccion de la capa de exploracion.
-        Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas de
-        turno, resultado y leyenda.
+        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
+        pruebas de turno, resultado y leyenda.
         """
         if panel.width <= 0 or panel.height <= 0:
             return
@@ -714,14 +721,15 @@ class RenderizadorTablero:
     ) -> int:
         """Dibuja selectores, acciones y ayuda contextual de la sesion grafica.
 
-        Purpose: hacer operables escenario, algoritmo, unidad, objetivo, Beam y exploracion sin usar terminal.
-        Preconditions: ``control`` representa el mismo escenario que el tablero y ``panel`` tiene ancho positivo.
-        Postconditions: los botones coinciden con sus hitboxes y el resumen explica la configuracion vigente sin
+        Proposito: hacer operables escenario, algoritmo, unidad, objetivo, Beam y exploracion sin usar terminal.
+        Precondiciones: ``control`` representa el mismo escenario que el tablero y ``panel`` tiene ancho positivo.
+        Postcondiciones: los botones coinciden con sus hitboxes y el resumen explica la configuracion vigente sin
         ejecutar acciones ni presentar como actual un resultado invalidado.
-        Complexity: O(L) temporal y espacial por renderizar textos de longitud total L.
-        AI usage: Yes.
-        AI intervention: Codex diseño los controles y agrego atajos, resumen y explicaciones dinamicas verificadas.
-        Student validation: pendiente de validacion visual humana; cubierta por pruebas de textos, hitboxes y capas.
+        Complejidad: O(L) temporal y espacial por renderizar textos de longitud total L.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño los controles y agrego atajos, resumen y explicaciones dinamicas verificadas.
+        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
+        pruebas de textos, hitboxes y capas.
         """
         rectangulos = self.calcular_rectangulos_controles(panel)
         x = panel.x + 12

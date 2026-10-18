@@ -51,7 +51,27 @@ def _valor_alfa_beta(
     contadores: _Contadores,
     orden: str,
 ) -> float:
-    """Valor de ``estado`` con poda: exacto si queda dentro de (alfa, beta); si no, una cota del lado del corte."""
+    """Calcula recursivamente el valor de ``estado`` con poda alfa-beta (variante fail-soft).
+
+    Proposito: ser el nucleo de alfa-beta: recorre el mismo arbol que ``_valor_minimax`` pero deja de explorar los
+    hijos restantes de un nodo en cuanto su valor ya no puede cambiar la decision de un ancestro.
+    Precondiciones: las mismas que ``_valor_minimax``; ademas ``alfa`` es el mejor valor que MAX ya tiene asegurado en
+    el camino actual y ``beta`` el mejor que tiene MIN (en la raiz, menos y mas infinito).
+    Postcondiciones: si el valor real del nodo queda dentro de (``alfa``, ``beta``), lo devuelve exacto; si no,
+    devuelve una cota del lado del corte (fail-soft): en un nodo MIN cortado, un valor menor o igual que ``alfa``
+    que es cota superior del real; en un nodo MAX cortado, uno mayor o igual que ``beta``. En cada corte suma a
+    ``contadores.podados`` las acciones hermanas que ya no se exploran. Hojas, pase de turno, conteo de generados
+    y evaluados y profundidad alcanzada se tratan igual que en Minimax. No modifica ``estado``.
+    Complejidad: O(b^(d-p)) nodos en el peor orden de acciones, igual que Minimax, y O(b^((d-p)/2)) con el mejor
+    orden; cada nodo cuesta O(U^2). Espacio O(d) por la recursion.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) lo implemento en E8.4 (variante fail-soft y conteo de ramas podadas), le
+    agrego el parametro ``orden`` en E8.6 y redacto esta documentacion en E11.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_alfa_beta.py,
+    que compara con un arbol calculado a mano en el pasillo 1x8 y con Minimax en los escenarios del repositorio,
+    comprobando que los valores de la raiz son exactos o cotas correctas, y por
+    tests/algoritmos/test_orden_acciones.py.
+    """
     contadores.profundidad_alcanzada = max(contadores.profundidad_alcanzada, profundidad)
     estado = preparar_turno(escenario, estado)
     acciones = () if es_terminal(escenario, estado) else ordenar_acciones(acciones_tacticas(escenario, estado), orden)

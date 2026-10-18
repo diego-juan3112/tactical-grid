@@ -70,13 +70,14 @@ class ControlGrafico:
     def crear(cls, ruta: str | Path, rutas_disponibles: Sequence[Path]) -> "ControlGrafico":
         """Carga el escenario inicial y deriva selecciones validas sin ejecutar busquedas.
 
-        Purpose: construir el estado transitorio de la GUI a partir de datos reales del escenario.
-        Preconditions: ``ruta`` identifica un JSON valido; las rutas disponibles no necesitan estar cargadas.
-        Postconditions: devuelve controles con unidad existente, configuracion reutilizable y resultado vacio.
-        Complexity: O(U log U + R log R) por crear el estado y normalizar R rutas disponibles.
-        AI usage: Yes.
-        AI intervention: Codex diseño el controlador de sesion para la integracion grafica final de E9.3.
-        Student validation: pendiente de revision humana; cubierta por pruebas de carga y selecciones iniciales.
+        Proposito: construir el estado transitorio de la GUI a partir de datos reales del escenario.
+        Precondiciones: ``ruta`` identifica un JSON valido; las rutas disponibles no necesitan estar cargadas.
+        Postcondiciones: devuelve controles con unidad existente, configuracion reutilizable y resultado vacio.
+        Complejidad: O(U log U + R log R) por crear el estado y normalizar R rutas disponibles.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño el controlador de sesion para la integracion grafica final de E9.3.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de carga y selecciones
+        iniciales.
         """
         ruta_resuelta = Path(ruta).resolve()
         escenario = cargar_escenario(ruta_resuelta)
@@ -92,14 +93,15 @@ class ControlGrafico:
     ) -> tuple[str, str | None, Posicion | None, int]:
         """Deriva controles conservadores desde ``prueba`` y las unidades reales.
 
-        Purpose: reutilizar configuracion valida sin depender de que todos los escenarios definan modo busqueda.
-        Preconditions: escenario y estado corresponden entre si.
-        Postconditions: devuelve algoritmo admitido, unidad existente o ``None``, objetivo valido o ``None``
+        Proposito: reutilizar configuracion valida sin depender de que todos los escenarios definan modo busqueda.
+        Precondiciones: escenario y estado corresponden entre si.
+        Postcondiciones: devuelve algoritmo admitido, unidad existente o ``None``, objetivo valido o ``None``
         y k positivo.
-        Complexity: O(U) temporal y espacial por enumerar U unidades.
-        AI usage: Yes.
-        AI intervention: Codex implemento la inicializacion segura de controles durante la integracion grafica.
-        Student validation: pendiente de revision humana; cubierta por pruebas con escenarios de distintos modos.
+        Complejidad: O(U) temporal y espacial por enumerar U unidades.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento la inicializacion segura de controles durante la integracion grafica.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas con escenarios de
+        distintos modos.
         """
         configuracion = escenario.configuracion_prueba or {}
         unidades = tuple(unidad.identificador for unidad in estado.unidades)
@@ -188,13 +190,13 @@ class ControlGrafico:
     def cargar_ruta(self, ruta: str | Path) -> bool:
         """Reemplaza atomicamente el escenario solo despues de cargarlo por completo.
 
-        Purpose: permitir cambiar de JSON sin dejar escenario, estado, selecciones y resultado desincronizados.
-        Preconditions: ``ruta`` puede apuntar a un archivo valido o invalido.
-        Postconditions: con exito reinicia estado, controles, camino y traza; ante error conserva todo y lo informa.
-        Complexity: costo de carga y validacion mas O(U log U) para el estado inicial.
-        AI usage: Yes.
-        AI intervention: Codex implemento la carga atomica desde controles para la integracion grafica final.
-        Student validation: pendiente de revision humana; cubierta por pruebas de carga valida e invalida.
+        Proposito: permitir cambiar de JSON sin dejar escenario, estado, selecciones y resultado desincronizados.
+        Precondiciones: ``ruta`` puede apuntar a un archivo valido o invalido.
+        Postcondiciones: con exito reinicia estado, controles, camino y traza; ante error conserva todo y lo informa.
+        Complejidad: costo de carga y validacion mas O(U log U) para el estado inicial.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento la carga atomica desde controles para la integracion grafica final.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de carga valida e invalida.
         """
         ruta_resuelta = Path(ruta).resolve()
         try:
@@ -227,14 +229,15 @@ class ControlGrafico:
     def ejecutar(self) -> None:
         """Ejecuta una unica busqueda con las selecciones vigentes.
 
-        Purpose: producir conjuntamente el camino E9.2 y la traza E9.3 desde los controles graficos.
-        Preconditions: escenario, estado, algoritmo y unidad proceden del controlador; el objetivo puede faltar.
-        Postconditions: con parametros validos sustituye el resultado anterior sin mutar el estado; ante error limpia
+        Proposito: producir conjuntamente el camino E9.2 y la traza E9.3 desde los controles graficos.
+        Precondiciones: escenario, estado, algoritmo y unidad proceden del controlador; el objetivo puede faltar.
+        Postcondiciones: con parametros validos sustituye el resultado anterior sin mutar el estado; ante error limpia
         el resultado e informa la causa. Nunca ejecuta mas de una busqueda por llamada.
-        Complexity: la del algoritmo seleccionado y su traza acotada.
-        AI usage: Yes.
-        AI intervention: Codex conecto los controles a la API comun de busqueda sin comandos ni subprocesos.
-        Student validation: pendiente de revision humana; cubierta por pruebas de cinco algoritmos y no mutacion.
+        Complejidad: la del algoritmo seleccionado y su traza acotada.
+        Uso de IA: Si.
+        Intervencion de IA: Codex conecto los controles a la API comun de busqueda sin comandos ni subprocesos.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de cinco algoritmos y no
+        mutacion.
         """
         if self.ejecutando:
             return

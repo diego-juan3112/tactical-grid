@@ -53,7 +53,22 @@ class ResultadoMinimax:
     orden_acciones: str = ORDEN_GENERACION
 
     def a_diccionario(self) -> dict[str, object]:
-        """Exporta las metricas con nombres equivalentes a la tabla del enunciado, listas para ``json.dumps``."""
+        """Exporta la decision y sus metricas en una estructura serializable con ``json.dumps``.
+
+        Proposito: hacer accesibles y reproducibles las metricas adversariales del enunciado (nodos generados,
+        evaluados y podados, profundidad alcanzada, tiempo, accion seleccionada y valor) para el informe y E10.3.
+        Precondiciones: ninguna adicional a las de la construccion del resultado.
+        Postcondiciones: devuelve un diccionario con el algoritmo, el bando MAX, la profundidad maxima, el orden de
+        acciones y las siete metricas; la accion seleccionada se describe con unidad, tipo, origen, destino y tipo
+        tactico, o es ``None`` si no hubo decision. Solo contiene textos, numeros, listas y ``None``. No modifica el
+        resultado.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) lo implemento en E8.3, agrego ``orden_acciones`` en E8.6 y redacto esta
+        documentacion en E11.1.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_minimax.py y
+        tests/algoritmos/test_alfa_beta.py, que comprueban las claves del enunciado y la serializacion a JSON.
+        """
         accion = self.accion_seleccionada
         return {
             "algoritmo": self.algoritmo,
@@ -90,14 +105,14 @@ def validar_profundidad(profundidad: object) -> int:
 def profundidad_desde_configuracion(configuracion_juego: Mapping[str, object] | None) -> int | None:
     """Lee ``juego.profundidad_maxima_minimax`` del escenario cargado.
 
-    Purpose: permitir cambiar la profundidad de Minimax editando el JSON del escenario, sin modificar codigo.
-    Preconditions: ``configuracion_juego`` es ``Escenario.configuracion_juego`` o ``None``.
-    Postconditions: devuelve ``None`` si el campo no esta; devuelve la profundidad si es un entero mayor o igual que
+    Proposito: permitir cambiar la profundidad de Minimax editando el JSON del escenario, sin modificar codigo.
+    Precondiciones: ``configuracion_juego`` es ``Escenario.configuracion_juego`` o ``None``.
+    Postcondiciones: devuelve ``None`` si el campo no esta; devuelve la profundidad si es un entero mayor o igual que
     1; lanza ``ValueError`` con un mensaje claro si el valor no es valido. No modifica nada.
-    Complexity: O(1) temporal y espacial.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) implemento la lectura y validacion en E8.3.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento la lectura y validacion en E8.3.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_minimax.py leen la profundidad de escenarios del repositorio y rechazan valores invalidos.
     """
     if configuracion_juego is None or CLAVE_PROFUNDIDAD not in configuracion_juego:
@@ -147,7 +162,27 @@ def _valor_minimax(
     contadores: _Contadores,
     orden: str,
 ) -> float:
-    """Valor Minimax de ``estado`` visto a ``profundidad`` desde la raiz (recursivo, en profundidad)."""
+    """Calcula recursivamente el valor Minimax de ``estado`` visto a ``profundidad`` desde la raiz.
+
+    Proposito: ser el nucleo de Minimax: en los nodos de MAX toma el maximo de sus hijos, en los de MIN el minimo, y
+    en las hojas devuelve la utilidad de E8.2.
+    Precondiciones: ``estado`` es coherente con ``escenario``; ``0 <= profundidad <= profundidad_maxima``;
+    ``evaluador.bando_max`` es el bando MAX de la busqueda; ``orden`` es uno de ``ORDENES`` (ya validado).
+    Postcondiciones: aplica primero ``preparar_turno`` (el pase por bloqueo no consume profundidad); si el estado es
+    terminal, no tiene acciones o ``profundidad`` es la maxima, suma 1 a ``contadores.evaluados`` y devuelve
+    ``evaluador.evaluar(estado)``; si no, genera cada sucesor en el orden indicado (sumando 1 a
+    ``contadores.generados`` por cada uno) y devuelve el maximo o el minimo de sus valores segun quien mueve.
+    Actualiza ``contadores.profundidad_alcanzada``. No modifica ``estado``.
+    Complejidad: O(b^(d-p)) nodos, con b acciones por nodo y d-p niveles restantes; cada nodo cuesta O(U^2) por
+    generar acciones y, en las hojas, evaluar la utilidad. Espacio O(d) por la recursion (mas las acciones de cada
+    nivel abierto).
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) lo implemento en E8.3, le agrego el parametro ``orden`` en E8.6 y redacto
+    esta documentacion en E11.1.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_minimax.py, que
+    compara con un arbol calculado a mano en el corredor 1x4 (profundidades 1 a 3), y por
+    tests/algoritmos/test_casos_minimos_adversariales.py.
+    """
     contadores.profundidad_alcanzada = max(contadores.profundidad_alcanzada, profundidad)
     estado = preparar_turno(escenario, estado)
     acciones = () if es_terminal(escenario, estado) else ordenar_acciones(acciones_tacticas(escenario, estado), orden)
@@ -174,26 +209,27 @@ def minimax(
 ) -> ResultadoMinimax:
     """Elige la mejor accion para el bando en turno explorando el arbol de juego hasta ``profundidad_maxima``.
 
-    Purpose: implementar Minimax con profundidad limitada y reportar las metricas adversariales del enunciado.
-    Preconditions: ``estado`` es coherente con ``escenario``; ``profundidad_maxima`` es un entero mayor o igual que 1
+    Proposito: implementar Minimax con profundidad limitada y reportar las metricas adversariales del enunciado.
+    Precondiciones: ``estado`` es coherente con ``escenario``; ``profundidad_maxima`` es un entero mayor o igual que 1
     (si no, ``ValueError``); si se pasa ``evaluador``, su ``bando_max`` debe ser el bando en turno de ``estado``.
-    Postconditions: devuelve un ``ResultadoMinimax`` con la accion de la raiz de mayor valor Minimax (la primera en el
+    Postcondiciones: devuelve un ``ResultadoMinimax`` con la accion de la raiz de mayor valor Minimax (la primera en el
     orden de ``acciones_tacticas`` si hay empate), su valor, el valor de cada accion de la raiz, nodos generados
     (incluida la raiz), nodos evaluados (hojas), 0 nodos podados, profundidad alcanzada y tiempo. Si la raiz es
     terminal o el bando en turno no puede actuar, ``accion_seleccionada`` es ``None`` y el valor es el de la raiz
     (tras el posible pase de turno). Sin evaluador, usa los pesos de ``juego.pesos_utilidad`` del escenario. Toda
     accion considerada es legal y ``estado`` no se modifica.
-    Complexity: O(b^d) nodos en el peor caso, con b acciones por nodo (a lo sumo 5 por unidad del bando en turno) y
+    Complejidad: O(b^d) nodos en el peor caso, con b acciones por nodo (a lo sumo 5 por unidad del bando en turno) y
     d = ``profundidad_maxima``; cada nodo cuesta O(U^2) por generar acciones, aplicar una y, en las hojas, evaluar la
     utilidad. Espacio O(d * b) por la recursion y las acciones de cada nivel.
-    AI usage: Yes.
-    AI intervention: Claude (Opus 5.5) propuso el diseno (MAX como bando en turno, pase de turno sin consumir
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) propuso el diseno (MAX como bando en turno, pase de turno sin consumir
     profundidad, desempate por la primera accion), la implementacion y esta documentacion en E8.3; en E8.4 movio la
     construccion del evaluador a ``preparar_evaluador`` para compartirla con alfa-beta, sin cambiar el resultado; en
     E8.6 agrego el parametro ``orden`` (por defecto ``generacion``, el comportamiento anterior) para el caso minimo 9.
-    Student validation: el estudiante reviso y valido el codigo; ademas, las pruebas de tests/algoritmos/test_minimax.py
-    comparan el resultado con un arbol pequeno calculado a mano, verifican la legalidad de la accion elegida, la
-    simetria entre bandos, las metricas por profundidad y la lectura de la profundidad desde el JSON.
+    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
+    tests/algoritmos/test_minimax.py comparan el resultado con un arbol pequeno calculado a mano, verifican la
+    legalidad de la accion elegida, la simetria entre bandos, las metricas por profundidad y la lectura de la
+    profundidad desde el JSON.
     """
     profundidad_maxima = validar_profundidad(profundidad_maxima)
     orden = validar_orden(orden)

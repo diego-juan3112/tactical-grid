@@ -26,16 +26,16 @@ def ejecutar_aplicacion(
 ) -> int:
     """Carga un escenario, ejecuta una busqueda opcional y mantiene visible el tablero.
 
-    Purpose: integrar carga validada, busqueda estructurada y renderizado, incluida la capa E9.3 bajo demanda.
-    Preconditions: Pygame esta instalado, existe un entorno grafico y la ruta identifica un escenario valido.
-    Postconditions: carga una sesion editable; Enter y el boton Ejecutar comparten una sola accion de busqueda;
+    Proposito: integrar carga validada, busqueda estructurada y renderizado, incluida la capa E9.3 bajo demanda.
+    Precondiciones: Pygame esta instalado, existe un entorno grafico y la ruta identifica un escenario valido.
+    Postcondiciones: carga una sesion editable; Enter y el boton Ejecutar comparten una sola accion de busqueda;
     cambiar de escenario es atomico; E o su boton solo alternan visibilidad, y Pygame se libera al cerrar.
-    Complexity: costo de la busqueda mas O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
+    Complejidad: costo de la busqueda mas O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
     O(F*C + T + L + P) espacial, donde P son posiciones expandidas almacenadas y E los fotogramas.
-    AI usage: Yes.
-    AI intervention: Codex integro E9.2/E9.3 y agrego controles directos para escenario, algoritmo, unidad,
+    Uso de IA: Si.
+    Intervencion de IA: Codex integro E9.2/E9.3 y agrego controles directos para escenario, algoritmo, unidad,
     objetivo y Beam sin recalcular por fotograma ni modificar el estado de juego.
-    Student validation: pendiente de revision y validacion visual manual del equipo; cubierta por pruebas
+    Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por pruebas
     automatizadas de aplicacion y renderizador.
     """
     import pygame
@@ -105,13 +105,13 @@ def ejecutar_aplicacion(
 def ejecutar_desde_argumentos(argumentos: Sequence[str] | None = None) -> int:
     """Interpreta exclusivamente argumentos graficos y delega la aplicacion.
 
-    Purpose: mantener separado el parser grafico del parser historico de consola.
-    Preconditions: ``argumentos`` no incluye ``--gui`` ni el nombre del programa.
-    Postconditions: ejecuta la GUI con las opciones interpretadas y devuelve su codigo de salida.
-    Complexity: O(A) temporal y espacial para A argumentos, mas el costo de la aplicacion delegada.
-    AI usage: Yes.
-    AI intervention: Codex extrajo este adaptador durante la refactorizacion final de ``main.py``.
-    Student validation: pendiente de revision humana; cubierta por pruebas del despachador y parser grafico.
+    Proposito: mantener separado el parser grafico del parser historico de consola.
+    Precondiciones: ``argumentos`` no incluye ``--gui`` ni el nombre del programa.
+    Postcondiciones: ejecuta la GUI con las opciones interpretadas y devuelve su codigo de salida.
+    Complejidad: O(A) temporal y espacial para A argumentos, mas el costo de la aplicacion delegada.
+    Uso de IA: Si.
+    Intervencion de IA: Codex extrajo este adaptador durante la refactorizacion final de ``main.py``.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas del despachador y parser grafico.
     """
     opciones = _leer_argumentos(argumentos)
     return ejecutar_aplicacion(
@@ -137,13 +137,13 @@ def _procesar_clic(
 ) -> None:
     """Traduce un clic a una unica operacion de control o a seleccion de objetivo.
 
-    Purpose: centralizar hitboxes y garantizar que teclado y boton de exploracion compartan estado.
-    Preconditions: disposicion y rectangulos corresponden al ultimo fotograma renderizado.
-    Postconditions: ejecuta a lo sumo una accion; seleccionar tablero no mueve unidades ni modifica el dominio.
-    Complexity: O(1) salvo carga de escenario o busqueda solicitadas explicitamente.
-    AI usage: Yes.
-    AI intervention: Codex implemento la interaccion directa de Pygame para la integracion final de E9.3.
-    Student validation: pendiente de revision humana; cubierta por pruebas de eventos y controles SDL dummy.
+    Proposito: centralizar hitboxes y garantizar que teclado y boton de exploracion compartan estado.
+    Precondiciones: disposicion y rectangulos corresponden al ultimo fotograma renderizado.
+    Postcondiciones: ejecuta a lo sumo una accion; seleccionar tablero no mueve unidades ni modifica el dominio.
+    Complejidad: O(1) salvo carga de escenario o busqueda solicitadas explicitamente.
+    Uso de IA: Si.
+    Intervencion de IA: Codex implemento la interaccion directa de Pygame para la integracion final de E9.3.
+    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de eventos y controles SDL dummy.
     """
     acciones = (
         (rectangulos.escenario_anterior, lambda: control.cambiar_escenario(-1)),

@@ -27,14 +27,15 @@ class RecursosGraficos:
     def __init__(self, ruta_recursos: Path | None = None) -> None:
         """Carga los atlas una vez y prepara una cache de escalado.
 
-        Purpose: resolver recursos desde el paquete, sin depender del directorio de ejecucion, y tolerar archivos
+        Proposito: resolver recursos desde el paquete, sin depender del directorio de ejecucion, y tolerar archivos
         ausentes mediante valores nulos que el renderizador convierte en fallbacks visibles.
-        Preconditions: Pygame puede decodificar PNG; ``ruta_recursos`` apunta al directorio raiz si se proporciona.
-        Postconditions: cada atlas disponible queda cargado una vez y ``errores`` identifica los faltantes.
-        Complexity: O(P) temporal y espacial por los pixeles de ambos atlas.
-        AI usage: Yes.
-        AI intervention: Codex diseño la carga empaquetable, los recortes y la cache de superficies escaladas.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de carga, escalado y fallback.
+        Precondiciones: Pygame puede decodificar PNG; ``ruta_recursos`` apunta al directorio raiz si se proporciona.
+        Postcondiciones: cada atlas disponible queda cargado una vez y ``errores`` identifica los faltantes.
+        Complejidad: O(P) temporal y espacial por los pixeles de ambos atlas.
+        Uso de IA: Si.
+        Intervencion de IA: Codex diseño la carga empaquetable, los recortes y la cache de superficies escaladas.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de carga, escalado y
+        fallback.
         """
         raiz = ruta_recursos or Path(__file__).with_name("recursos")
         self._atlas_terrenos = self._cargar(raiz / "terrenos" / "atlas_terrenos.png")
@@ -53,17 +54,17 @@ class RecursosGraficos:
     def _cargar(ruta: Path) -> pygame.Surface | None:
         """Carga una imagen PNG y convierte los fallos admitidos en ausencia de recurso.
 
-        Purpose: centralizar la decodificacion de un atlas y permitir que el renderizador active su fallback.
-        Preconditions: ``ruta`` es un ``Path`` que identifica el archivo candidato y ``pygame.image.load`` esta
+        Proposito: centralizar la decodificacion de un atlas y permitir que el renderizador active su fallback.
+        Precondiciones: ``ruta`` es un ``Path`` que identifica el archivo candidato y ``pygame.image.load`` esta
         disponible.
-        Postconditions: devuelve la superficie decodificada; devuelve ``None`` ante ``FileNotFoundError`` o
+        Postcondiciones: devuelve la superficie decodificada; devuelve ``None`` ante ``FileNotFoundError`` o
         ``pygame.error``; cualquier otra excepcion se propaga.
-        Complexity: O(L + P) temporal y espacial al cargar correctamente, donde L es la longitud de la ruta y P la
+        Complejidad: O(L + P) temporal y espacial al cargar correctamente, donde L es la longitud de la ruta y P la
         cantidad de pixeles decodificados; O(L) temporal y espacial cuando ocurre uno de los fallos admitidos.
-        AI usage: Yes.
-        AI intervention: Codex documento la carga existente y su politica de fallback sin modificarla.
-        Student validation: pendiente de revision del equipo; el comportamiento esta cubierto por pruebas automatizadas
-        de carga de atlas y archivos ausentes.
+        Uso de IA: Si.
+        Intervencion de IA: Codex documento la carga existente y su politica de fallback sin modificarla.
+        Validacion del estudiante: revisado y aprobado por el equipo; el comportamiento esta cubierto por pruebas
+        automatizadas de carga de atlas y archivos ausentes.
         """
         try:
             return pygame.image.load(ruta.as_posix())
@@ -73,13 +74,13 @@ class RecursosGraficos:
     def terreno(self, nombre: str, lado: int, variante: int) -> pygame.Surface | None:
         """Obtiene un tile conocido con una variacion geometrica determinista.
 
-        Purpose: reutilizar el atlas de terrenos y evitar que celdas iguales repitan exactamente la orientacion.
-        Preconditions: ``lado`` es positivo y ``variante`` esta normalizada por el consumidor.
-        Postconditions: devuelve una superficie cuadrada cacheada, o ``None`` para un nombre/atlas no disponible.
-        Complexity: O(lado^2) en el primer acceso a una combinacion y O(1) en accesos posteriores.
-        AI usage: Yes.
-        AI intervention: Codex implemento recorte, reflejos y escalado cacheado sin aleatoriedad global.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de determinismo y cache.
+        Proposito: reutilizar el atlas de terrenos y evitar que celdas iguales repitan exactamente la orientacion.
+        Precondiciones: ``lado`` es positivo y ``variante`` esta normalizada por el consumidor.
+        Postcondiciones: devuelve una superficie cuadrada cacheada, o ``None`` para un nombre/atlas no disponible.
+        Complejidad: O(lado^2) en el primer acceso a una combinacion y O(1) en accesos posteriores.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento recorte, reflejos y escalado cacheado sin aleatoriedad global.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de determinismo y cache.
         """
         clave_nombre = nombre.casefold()
         coordenada = self.TERRENOS.get(clave_nombre)
@@ -102,13 +103,13 @@ class RecursosGraficos:
     def objeto(self, nombre: str, lado: int) -> pygame.Surface | None:
         """Obtiene un objeto transparente escalado y cacheado.
 
-        Purpose: servir obstaculos, bases, unidades y recurso sin cargar ni escalar PNG en cada fotograma.
-        Preconditions: ``nombre`` pertenece al inventario y ``lado`` es positivo.
-        Postconditions: devuelve una superficie cuadrada cacheada, o ``None`` si falta el atlas o el nombre.
-        Complexity: O(lado^2) en el primer acceso y O(1) despues.
-        AI usage: Yes.
-        AI intervention: Codex implemento el recorte uniforme del atlas y su cache por tamaño.
-        Student validation: pendiente de revision del equipo; cubierta por pruebas de sprites y escalado.
+        Proposito: servir obstaculos, bases, unidades y recurso sin cargar ni escalar PNG en cada fotograma.
+        Precondiciones: ``nombre`` pertenece al inventario y ``lado`` es positivo.
+        Postcondiciones: devuelve una superficie cuadrada cacheada, o ``None`` si falta el atlas o el nombre.
+        Complejidad: O(lado^2) en el primer acceso y O(1) despues.
+        Uso de IA: Si.
+        Intervencion de IA: Codex implemento el recorte uniforme del atlas y su cache por tamaño.
+        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de sprites y escalado.
         """
         coordenada = self.OBJETOS.get(nombre)
         if self._atlas_objetos is None or coordenada is None:
