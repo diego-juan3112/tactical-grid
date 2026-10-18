@@ -1,7 +1,7 @@
 """Caso minimo 5 (E7.2): efecto de k en Beam Search sobre un mismo escenario.
 
-Cada prueba fija una afirmacion de la discusion escrita en el README (seccion E7.2), de modo que el analisis sea
-reproducible y deje de ser valido si cambian el algoritmo, las reglas o el escenario.
+Cada prueba fija una afirmacion del caso 5 de docs/casos-minimos/casos-1-2-5-busqueda.md, de modo que el analisis
+sea reproducible y deje de ser valido si cambian el algoritmo, las reglas o el escenario.
 """
 
 import os

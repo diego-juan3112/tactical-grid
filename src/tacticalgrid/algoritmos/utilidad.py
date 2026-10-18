@@ -38,7 +38,10 @@ CLAVE_PESOS = "pesos_utilidad"
 
 @dataclass(frozen=True)
 class PesosUtilidad:
-    """Pesos de cada criterio de la utilidad. Los valores por defecto estan justificados en el README (E8.2)."""
+    """Pesos de cada criterio de la utilidad.
+
+    Los valores por defecto estan justificados en docs/tecnico/04-decision-adversarial.md (E8.2).
+    """
 
     victoria: float = 10_000
     posesion: float = 100

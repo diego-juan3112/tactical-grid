@@ -1,8 +1,8 @@
 """Casos minimos 6 a 10 (E8.6): estado compuesto, decision adversarial, Minimax vs. alfa-beta, orden y profundidad.
 
-Cada prueba fija una afirmacion de docs/casos-minimos-adversariales.md con datos deterministas (conteos, acciones y
-valores; nunca tiempos), para que el analisis deje de ser valido si cambian los algoritmos, las reglas, la utilidad
-o los escenarios.
+Cada prueba fija una afirmacion de docs/casos-minimos/casos-6-10-adversariales.md con datos deterministas (conteos,
+acciones y valores; nunca tiempos), para que el analisis deje de ser valido si cambian los algoritmos, las reglas,
+la utilidad o los escenarios.
 """
 
 import json
