@@ -64,7 +64,7 @@ docs/
 ```
 
 `README.md` es la portada del proyecto: presentacion, ejecucion, uso rapido y enlaces. El detalle de cada historia vive
-en `docs/tecnico/` y `docs/casos-minimos/`; el indice esta en `docs/README.md`.
+en `docs/tecnico/` y `docs/casos-minimos/`; el indice esta en la seccion Documentacion del README.
 
 `escenario` carga, valida y provee datos estaticos, costos y transitabilidad. `juego` representa el estado
 dinamico, reglas, acciones y sucesores. `algoritmos` consume contratos del dominio: no lee JSON, no conoce
@@ -314,7 +314,8 @@ responsabilidad de quien cambia el método.
 - Entregables en Word: [documento técnico](./docs/entregables/documento-tecnico.docx) y
   [manual de usuario](./docs/entregables/manual-de-usuario.docx). Se editan directamente en Word. Si un cambio altera
   una regla, un algoritmo, una cifra o un comando que reportan, se actualizan en el mismo cambio.
-- Índice de la documentación técnica y de los casos mínimos: [`docs/README.md`](./docs/README.md).
+- Índice de la documentación técnica y de los casos mínimos: sección
+  [Documentación](./README.md#documentación) del README.
 - Diseño editorial de los documentos (documento técnico y manual de usuario): [`DESIGN.md`](./DESIGN.md). Léelo antes
   de redactar o maquetar un documento entregable.
 - Backlog de historias de usuario: Tablero de Proyectos en GitHub.

@@ -149,10 +149,10 @@ documentación de métodos. Las cifras de los diez casos mínimos están fijadas
 
 | Documento | Contenido |
 |---|---|
-| [Documento técnico](entregables/documento-tecnico.docx) | Modelado del problema, representación de estados, reglas, costos, heurísticas, función de utilidad, metodología experimental, resultados, complejidad, limitaciones y uso de IA. |
-| [Manual de usuario](entregables/manual-de-usuario.docx) | Instalación en Windows y Linux, interfaz gráfica, modos de consola, escenarios externos, verificación y exportación de resultados, con capturas de cada paso. |
+| [Documento técnico](docs/entregables/documento-tecnico.docx) | Modelado del problema, representación de estados, reglas, costos, heurísticas, función de utilidad, metodología experimental, resultados, complejidad, limitaciones y uso de IA. |
+| [Manual de usuario](docs/entregables/manual-de-usuario.docx) | Instalación en Windows y Linux, interfaz gráfica, modos de consola, escenarios externos, verificación y exportación de resultados, con capturas de cada paso. |
 
-Ambos se editan directamente en Word y siguen el diseño editorial de [DESIGN.md](../DESIGN.md).
+Ambos se editan directamente en Word y siguen el diseño editorial de [DESIGN.md](DESIGN.md).
 
 ### Detalle técnico
 
@@ -161,12 +161,12 @@ verificados.
 
 | Archivo | Historias | Contenido |
 |---|---|---|
-| [01 · Arquitectura y modelo](tecnico/01-arquitectura-y-modelo.md) | E0.3, E1.1–E1.3, E2.2, E2.3, E3.1, E3.2 | Capas, estado del juego, acciones y costo, reglas de borde, validación, escenarios propios, turnos y recurso. |
-| [02 · Búsqueda](tecnico/02-busqueda.md) | E4.1–E7.1 | Instrumentación común, BFS, DFS, UCS, A* con Manhattan y Beam Search. |
-| [03 · Heurística HTO](tecnico/03-heuristica-hto.md) | E6.2 | Segunda heurística: definición, admisibilidad, consistencia, costo y campaña experimental. |
-| [04 · Decisión adversarial](tecnico/04-decision-adversarial.md) | E8.1–E8.6 | Acciones tácticas, función de utilidad, Minimax, poda alfa-beta, métricas y orden de acciones. |
-| [05 · Modos, verificación y registro](tecnico/05-modos-verificacion-y-registro.md) | E10.1–E10.3 | Modos `busqueda`, `partida` y `adversarial`, verificador de soluciones y registro reproducible. |
-| [06 · Interfaz](tecnico/06-interfaz.md) | E9.1–E9.3 | Tablero, camino, capa de exploración y presentación gráfica. |
+| [01 · Arquitectura y modelo](docs/tecnico/01-arquitectura-y-modelo.md) | E0.3, E1.1–E1.3, E2.2, E2.3, E3.1, E3.2 | Capas, estado del juego, acciones y costo, reglas de borde, validación, escenarios propios, turnos y recurso. |
+| [02 · Búsqueda](docs/tecnico/02-busqueda.md) | E4.1–E7.1 | Instrumentación común, BFS, DFS, UCS, A* con Manhattan y Beam Search. |
+| [03 · Heurística HTO](docs/tecnico/03-heuristica-hto.md) | E6.2 | Segunda heurística: definición, admisibilidad, consistencia, costo y campaña experimental. |
+| [04 · Decisión adversarial](docs/tecnico/04-decision-adversarial.md) | E8.1–E8.6 | Acciones tácticas, función de utilidad, Minimax, poda alfa-beta, métricas y orden de acciones. |
+| [05 · Modos, verificación y registro](docs/tecnico/05-modos-verificacion-y-registro.md) | E10.1–E10.3 | Modos `busqueda`, `partida` y `adversarial`, verificador de soluciones y registro reproducible. |
+| [06 · Interfaz](docs/tecnico/06-interfaz.md) | E9.1–E9.3 | Tablero, camino, capa de exploración y presentación gráfica. |
 
 ### Casos mínimos
 
@@ -175,16 +175,16 @@ fijadas en pruebas automatizadas.
 
 | Casos | Archivo |
 |---|---|
-| 1. BFS frente a DFS · 2. Ruta corta frente a económica · 5. Beam Search | [casos-1-2-5-busqueda.md](casos-minimos/casos-1-2-5-busqueda.md) |
-| 3. Obstáculo y heurística · 4. Comparación de heurísticas | [casos-3-4-obstaculo-y-heuristicas.md](casos-minimos/casos-3-4-obstaculo-y-heuristicas.md) |
-| 6. Estado compuesto · 7. Decisión adversarial · 8. Minimax frente a alfa-beta · 9. Orden de acciones · 10. Profundidad | [casos-6-10-adversariales.md](casos-minimos/casos-6-10-adversariales.md) |
+| 1. BFS frente a DFS · 2. Ruta corta frente a económica · 5. Beam Search | [casos-1-2-5-busqueda.md](docs/casos-minimos/casos-1-2-5-busqueda.md) |
+| 3. Obstáculo y heurística · 4. Comparación de heurísticas | [casos-3-4-obstaculo-y-heuristicas.md](docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md) |
+| 6. Estado compuesto · 7. Decisión adversarial · 8. Minimax frente a alfa-beta · 9. Orden de acciones · 10. Profundidad | [casos-6-10-adversariales.md](docs/casos-minimos/casos-6-10-adversariales.md) |
 
 ### Otros recursos
 
-- [Enunciado del proyecto](enunciado/primer-proyecto.pdf).
-- [Imágenes](imagenes/): captura de la interfaz y evidencia del rediseño visual (`redisenio-visual/`).
-- [AGENTS.md](../AGENTS.md): reglas y convenciones del proyecto, incluida la documentación de métodos.
-- [DESIGN.md](../DESIGN.md): diseño editorial de los entregables en Word.
+- [Enunciado del proyecto](docs/enunciado/primer-proyecto.pdf).
+- [Imágenes](docs/imagenes/): captura de la interfaz y evidencia del rediseño visual (`redisenio-visual/`).
+- [AGENTS.md](AGENTS.md): reglas y convenciones del proyecto, incluida la documentación de métodos.
+- [DESIGN.md](DESIGN.md): diseño editorial de los entregables en Word.
 
 ## Arquitectura
 

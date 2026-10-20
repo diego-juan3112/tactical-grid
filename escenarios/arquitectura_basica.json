@@ -1,5 +1,6 @@
 {
   "version": "1.0",
+  "descripcion": "Mapa abierto de 20x20, todo camino, con tres unidades por bando junto a cada base. Comprueba la carga y la exploracion en el tamano minimo del enunciado; no declara prueba, asi que la unidad y el objetivo se indican con --unidad y --objetivo.",
   "mapa": {"filas": 20, "columnas": 20},
   "tipos_terreno": {
     "camino": {"costo": 1, "transitable": true},
@@ -32,7 +33,11 @@
   "recurso": {"fila": 10, "columna": 10},
   "unidades": [
     {"id": "A1", "bando": "A", "tipo": "estandar", "fila": 0, "columna": 1},
-    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 19, "columna": 18}
+    {"id": "A2", "bando": "A", "tipo": "estandar", "fila": 1, "columna": 0},
+    {"id": "A3", "bando": "A", "tipo": "estandar", "fila": 1, "columna": 1},
+    {"id": "B1", "bando": "B", "tipo": "estandar", "fila": 19, "columna": 18},
+    {"id": "B2", "bando": "B", "tipo": "estandar", "fila": 18, "columna": 19},
+    {"id": "B3", "bando": "B", "tipo": "estandar", "fila": 18, "columna": 18}
   ],
   "turno": "A",
   "juego": {"portador_recurso": null, "profundidad_maxima_minimax": 4}

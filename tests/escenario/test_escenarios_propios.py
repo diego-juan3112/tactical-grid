@@ -13,6 +13,9 @@ from tacticalgrid.juego.problema import ProblemaNavegacion
 CARPETA_ESCENARIOS = Path(__file__).resolve().parents[2] / "escenarios"
 ESCENARIOS = sorted(CARPETA_ESCENARIOS.glob("*.json"))
 PROPIOS_E2_3 = ("campo_20x20.json", "ruta_corta_vs_economica.json", "obstaculo_rodeo.json", "recurso_en_transporte.json")
+# El enunciado exige al menos tres unidades por bando; solo se exceptua su propio ejemplo literal, que trae dos.
+EJEMPLO_LITERAL = "ejemplo_enunciado.json"
+PROPIOS = tuple(ruta.name for ruta in ESCENARIOS if ruta.name != EJEMPLO_LITERAL)
 
 
 def _problema_de_prueba(escenario: Escenario) -> ProblemaNavegacion:
@@ -66,7 +69,7 @@ def test_existe_al_menos_un_escenario_de_20x20_o_mayor() -> None:
     assert escenario.filas >= 20 and escenario.columnas >= 20
 
 
-@pytest.mark.parametrize("nombre", PROPIOS_E2_3)
+@pytest.mark.parametrize("nombre", PROPIOS)
 def test_cada_bando_controla_al_menos_tres_unidades(nombre) -> None:
     escenario = cargar_escenario(CARPETA_ESCENARIOS / nombre)
 
