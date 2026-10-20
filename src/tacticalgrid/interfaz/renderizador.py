@@ -75,6 +75,7 @@ class RectangulosControles:
     k_mayor: pygame.Rect
     ejecutar: pygame.Rect
     exploracion: pygame.Rect
+    abrir: pygame.Rect
 
 
 class RenderizadorTablero:
@@ -157,13 +158,15 @@ class RenderizadorTablero:
         Postcondiciones: devuelve rectangulos contenidos horizontalmente en el panel, sin modificarlo.
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño las zonas compactas para integrar controles sin invadir el tablero.
+        Intervencion de IA: Codex diseño las zonas compactas para integrar controles sin invadir el tablero. Claude
+        (Opus 5.5) agrego en E9.4 el boton para abrir un escenario JSON, en la fila del titulo.
         Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de geometria y clics SDL
-        dummy.
+        dummy, incluida la del boton de apertura.
         """
         x = panel.x + 12
         ancho = max(1, panel.width - 24)
         lado = 24
+        ancho_abrir = min(104, ancho)
 
         def flechas(y: int) -> tuple[pygame.Rect, pygame.Rect]:
             return pygame.Rect(x, y, lado, 22), pygame.Rect(x + ancho - lado, y, lado, 22)
@@ -183,6 +186,7 @@ class RenderizadorTablero:
             k_mayor,
             pygame.Rect(x, panel.y + 164, ancho, 26),
             pygame.Rect(x, panel.y + 196, ancho, 24),
+            pygame.Rect(x + ancho - ancho_abrir, panel.y + 8, ancho_abrir, 22),
         )
 
     def color_para_terreno(self, nombre: str, tipo: TipoTerreno) -> Color:
@@ -728,12 +732,14 @@ class RenderizadorTablero:
         Complejidad: O(L) temporal y espacial por renderizar textos de longitud total L.
         Uso de IA: Si.
         Intervencion de IA: Codex diseño los controles y agrego atajos, resumen y explicaciones dinamicas verificadas.
+        Claude (Opus 5.5) agrego en E9.4 el boton "O — Abrir JSON" junto al titulo.
         Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
         pruebas de textos, hitboxes y capas.
         """
         rectangulos = self.calcular_rectangulos_controles(panel)
         x = panel.x + 12
         self._dibujar_texto(superficie, "TACTICALGRID", self.COLOR_TEXTO, (x, panel.y + 10), self._fuente)
+        self._dibujar_boton(superficie, rectangulos.abrir, "O — Abrir JSON")
         etiqueta_algoritmo = {"astar": "A*", "beam": "BEAM SEARCH"}.get(
             control.algoritmo, control.algoritmo.upper()
         )

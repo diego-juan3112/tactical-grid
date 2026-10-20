@@ -76,6 +76,9 @@ En el panel se elige el escenario, el algoritmo (`bfs`, `dfs`, `ucs`, `astar` o 
 Beam Search. Un clic en el tablero elige el objetivo. `Enter` ejecuta la búsqueda y `E` muestra u oculta las celdas
 exploradas.
 
+Para abrir un escenario propio, como el del profesor, usa el botón **O — Abrir JSON** (o la tecla `O`), o arrastra el
+archivo `.json` sobre la ventana. Si el archivo tiene errores, el panel los explica y el escenario actual no cambia.
+
 ### Consola
 
 La consola ejecuta el modo que declara el campo `prueba` del escenario, o el que se indique con `--modo` y

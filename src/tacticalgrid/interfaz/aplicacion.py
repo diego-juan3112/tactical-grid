@@ -9,6 +9,7 @@ from tacticalgrid.escenario import ErrorValidacionEscenario, Posicion
 
 from .busquedas import ALGORITMOS, preparar_busqueda
 from .control import ControlGrafico
+from .dialogo import pedir_ruta_escenario
 from .renderizador import EstadoPanelControl, RectangulosControles, RenderizadorTablero
 
 
@@ -29,14 +30,17 @@ def ejecutar_aplicacion(
     Proposito: integrar carga validada, busqueda estructurada y renderizado, incluida la capa E9.3 bajo demanda.
     Precondiciones: Pygame esta instalado, existe un entorno grafico y la ruta identifica un escenario valido.
     Postcondiciones: carga una sesion editable; Enter y el boton Ejecutar comparten una sola accion de busqueda;
-    cambiar de escenario es atomico; E o su boton solo alternan visibilidad, y Pygame se libera al cerrar.
+    cambiar de escenario es atomico; E o su boton solo alternan visibilidad; O o su boton abren un escenario JSON con
+    el selector de archivos, y soltar un JSON sobre la ventana lo abre, ambos con carga atomica; Pygame se libera al
+    cerrar.
     Complejidad: costo de la busqueda mas O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
     O(F*C + T + L + P) espacial, donde P son posiciones expandidas almacenadas y E los fotogramas.
     Uso de IA: Si.
     Intervencion de IA: Codex integro E9.2/E9.3 y agrego controles directos para escenario, algoritmo, unidad,
-    objetivo y Beam sin recalcular por fotograma ni modificar el estado de juego.
+    objetivo y Beam sin recalcular por fotograma ni modificar el estado de juego. Claude (Opus 5.5) agrego en E9.4
+    la apertura de escenarios JSON con la tecla O, su boton y arrastrar y soltar.
     Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por pruebas
-    automatizadas de aplicacion y renderizador.
+    automatizadas de aplicacion y renderizador, incluidas las de apertura de escenarios.
     """
     import pygame
 
@@ -78,14 +82,7 @@ def ejecutar_aplicacion(
         en_ejecucion = True
         while en_ejecucion:
             for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    en_ejecucion = False
-                elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_e:
-                    control.alternar_exploracion()
-                elif evento.type == pygame.KEYDOWN and evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-                    control.ejecutar()
-                elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                    _procesar_clic(control, evento.pos, disposicion, rectangulos)
+                en_ejecucion = _procesar_evento(control, evento, disposicion, rectangulos) and en_ejecucion
             panel = EstadoPanelControl.desde_control(control)
             disposicion = renderizador.renderizar(
                 ventana,
@@ -129,6 +126,25 @@ def _rutas_escenarios(ruta_actual: str | Path) -> tuple[Path, ...]:
     return tuple(sorted({ruta.resolve() for ruta in incluidas} | {Path(ruta_actual).resolve()}))
 
 
+def _procesar_evento(control: ControlGrafico, evento, disposicion, rectangulos: RectangulosControles) -> bool:
+    """Atiende un evento de Pygame y devuelve ``False`` solo si el usuario cerro la ventana."""
+    import pygame
+
+    if evento.type == pygame.QUIT:
+        return False
+    if evento.type == pygame.KEYDOWN and evento.key == pygame.K_e:
+        control.alternar_exploracion()
+    elif evento.type == pygame.KEYDOWN and evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+        control.ejecutar()
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_o:
+        control.abrir_con_dialogo(pedir_ruta_escenario)
+    elif evento.type == pygame.DROPFILE:
+        control.abrir_escenario(evento.file)
+    elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+        _procesar_clic(control, evento.pos, disposicion, rectangulos)
+    return True
+
+
 def _procesar_clic(
     control: ControlGrafico,
     punto: tuple[int, int],
@@ -142,7 +158,8 @@ def _procesar_clic(
     Postcondiciones: ejecuta a lo sumo una accion; seleccionar tablero no mueve unidades ni modifica el dominio.
     Complejidad: O(1) salvo carga de escenario o busqueda solicitadas explicitamente.
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento la interaccion directa de Pygame para la integracion final de E9.3.
+    Intervencion de IA: Codex implemento la interaccion directa de Pygame para la integracion final de E9.3. Claude
+    (Opus 5.5) agrego en E9.4 el boton para abrir un escenario JSON.
     Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de eventos y controles SDL dummy.
     """
     acciones = (
@@ -156,6 +173,7 @@ def _procesar_clic(
         (rectangulos.k_mayor, lambda: control.cambiar_k(1)),
         (rectangulos.ejecutar, control.ejecutar),
         (rectangulos.exploracion, control.alternar_exploracion),
+        (rectangulos.abrir, lambda: control.abrir_con_dialogo(pedir_ruta_escenario)),
     )
     for rectangulo, accion in acciones:
         if rectangulo.collidepoint(punto):

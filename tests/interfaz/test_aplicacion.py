@@ -392,3 +392,71 @@ def test_enter_y_enter_numerico_invocan_la_misma_accion_una_vez(monkeypatch, tec
 
     assert ejecutar_aplicacion(RUTA_COMPARACION) == 0
     assert llamadas == 1
+
+
+def _copia_externa(tmp_path):
+    externo = tmp_path / "escenario_profesor.json"
+    externo.write_text((RAIZ / "escenarios" / "obstaculo_rodeo.json").read_text(encoding="utf-8"), encoding="utf-8")
+    return externo
+
+
+def _registrar_dimensiones(monkeypatch):
+    dimensiones = []
+    renderizar_original = aplicacion.RenderizadorTablero.renderizar
+
+    def registrar(self, superficie, escenario, *argumentos, **opciones):
+        dimensiones.append((escenario.filas, escenario.columnas))
+        return renderizar_original(self, superficie, escenario, *argumentos, **opciones)
+
+    monkeypatch.setattr(aplicacion.RenderizadorTablero, "renderizar", registrar)
+    return dimensiones
+
+
+def _tandas(monkeypatch, *eventos):
+    tandas = iter([[evento] for evento in eventos] + [[pygame.event.Event(pygame.QUIT)]])
+    monkeypatch.setattr(pygame.event, "get", lambda: next(tandas))
+
+
+def test_tecla_o_abre_un_escenario_con_el_selector_de_archivos(monkeypatch, tmp_path):
+    externo = _copia_externa(tmp_path)
+    carpetas = []
+    monkeypatch.setattr(aplicacion, "pedir_ruta_escenario", lambda carpeta: carpetas.append(carpeta) or externo)
+    dimensiones = _registrar_dimensiones(monkeypatch)
+    _tandas(monkeypatch, pygame.event.Event(pygame.KEYDOWN, key=pygame.K_o))
+
+    assert ejecutar_aplicacion(RUTA_COMPARACION) == 0
+    assert carpetas == [RUTA_COMPARACION.resolve().parent]
+    assert dimensiones == [(8, 7), (8, 7)]
+
+
+def test_boton_abrir_json_abre_un_escenario_con_el_selector(monkeypatch, tmp_path):
+    externo = _copia_externa(tmp_path)
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    renderizador = aplicacion.RenderizadorTablero()
+    disposicion = renderizador.calcular_disposicion(pygame.Surface((800, 600)), escenario)
+    boton = renderizador.calcular_rectangulos_controles(disposicion.panel).abrir.center
+    monkeypatch.setattr(aplicacion, "pedir_ruta_escenario", lambda carpeta: externo)
+    dimensiones = _registrar_dimensiones(monkeypatch)
+    _tandas(monkeypatch, pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=boton))
+
+    assert ejecutar_aplicacion(RUTA_COMPARACION) == 0
+    assert dimensiones == [(8, 7), (8, 7)]
+
+
+def test_soltar_un_json_sobre_la_ventana_lo_abre(monkeypatch, tmp_path):
+    externo = _copia_externa(tmp_path)
+    dimensiones = _registrar_dimensiones(monkeypatch)
+    _tandas(monkeypatch, pygame.event.Event(pygame.DROPFILE, file=str(externo)))
+
+    assert ejecutar_aplicacion(RUTA_COMPARACION) == 0
+    assert dimensiones == [(8, 7), (8, 7)]
+
+
+def test_soltar_un_json_invalido_conserva_el_escenario(monkeypatch, tmp_path):
+    invalido = tmp_path / "con_error.json"
+    invalido.write_text("{}", encoding="utf-8")
+    dimensiones = _registrar_dimensiones(monkeypatch)
+    _tandas(monkeypatch, pygame.event.Event(pygame.DROPFILE, file=str(invalido)))
+
+    assert ejecutar_aplicacion(RUTA_COMPARACION) == 0
+    assert dimensiones == [(5, 9), (5, 9)]

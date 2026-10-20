@@ -33,6 +33,25 @@ de exploración muestra posiciones analizadas antes del resultado; una posición
 al camino. Los estados expandidos pueden superar las posiciones únicas porque estados distintos pueden proyectarse
 sobre la misma celda. La leyenda indica el costo de cada terreno transitable; UCS y A* usan esos costos al decidir.
 
+## Abrir un escenario JSON desde la ventana — E9.4
+
+El botón **O — Abrir JSON**, a la derecha del título del panel, y la tecla `O` abren el selector de archivos del
+sistema (`interfaz/dialogo.py`, con `tkinter`). El selector empieza en la carpeta del escenario actual y filtra los
+archivos `.json`. Soltar un archivo sobre la ventana (evento `DROPFILE` de Pygame) hace lo mismo sin selector.
+
+- **Carga atómica:** ambos caminos usan `ControlGrafico.abrir_escenario`, que reutiliza `cargar_ruta`. Si el archivo
+  es inválido, el panel muestra el error y el escenario, las selecciones y el resultado anteriores no cambian.
+- **Selectores:** un escenario abierto con éxito se agrega una sola vez a la lista de `<` y `>`, así que se puede volver a
+  él después de cambiar de mapa.
+- **Selecciones iniciales:** si el escenario declara una prueba de búsqueda, la unidad y el objetivo se toman de ella.
+- **Sin selector:** si `tkinter` no está instalado o no hay pantalla, como pasa a menudo en Linux, el panel sugiere
+  arrastrar el archivo. En Ubuntu, `tkinter` se instala con `sudo apt install python3-tk`.
+- **Cancelar:** cerrar el selector sin elegir deja todo igual.
+
+Las pruebas de `tests/interfaz/test_dialogo.py`, `tests/interfaz/test_control.py`, `tests/interfaz/test_renderizador.py`
+y `tests/interfaz/test_aplicacion.py` cubren el selector, la carga externa, la ruta repetida, el archivo inválido, el
+botón, la tecla `O` y soltar un archivo.
+
 ## Visualización del tablero, caminos y exploración — E9.1/E9.2/E9.3
 
 La interfaz gráfica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`. Si no se

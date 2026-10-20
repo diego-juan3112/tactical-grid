@@ -10,6 +10,7 @@ from tacticalgrid.escenario.escenario import Escenario
 from tacticalgrid.juego import EstadoJuego, crear_estado_inicial
 
 from .busquedas import ALGORITMOS, preparar_busqueda, resolver_objetivo
+from .dialogo import DialogoNoDisponible
 
 
 @dataclass(frozen=True)
@@ -225,6 +226,54 @@ class ControlGrafico:
     def cambiar_escenario(self, paso: int) -> None:
         indice = (self.rutas_escenarios.index(self.ruta_escenario) + paso) % len(self.rutas_escenarios)
         self.cargar_ruta(self.rutas_escenarios[indice])
+
+    def abrir_escenario(self, ruta: str | Path) -> bool:
+        """Carga un escenario JSON elegido por el usuario y lo suma a los selectores de escenario.
+
+        Proposito: abrir mapas externos, como los del profesor, desde la ventana: con el selector de archivos o
+        arrastrando el JSON sobre ella.
+        Precondiciones: ``ruta`` puede apuntar a cualquier archivo, valido o no.
+        Postcondiciones: si la carga atomica de ``cargar_ruta`` tiene exito, el escenario queda vigente y su ruta
+        figura una sola vez en ``rutas_escenarios``, ordenada con las demas; si falla, la sesion y los selectores
+        no cambian y el mensaje explica el error. Devuelve si se cargo.
+        Complejidad: la de ``cargar_ruta`` mas O(R log R) por reordenar las R rutas disponibles.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) propuso este metodo y su documentacion en E9.4.
+        Validacion del estudiante: el equipo lo reviso y probo en la ventana; tests/interfaz/test_control.py cubre
+        la carga externa, la ruta repetida y el archivo invalido.
+        """
+        if not self.cargar_ruta(ruta):
+            return False
+        if self.ruta_escenario not in self.rutas_escenarios:
+            self.rutas_escenarios = tuple(sorted((*self.rutas_escenarios, self.ruta_escenario)))
+        return True
+
+    def abrir_con_dialogo(self, seleccionar) -> bool:
+        """Pide un escenario con el selector de archivos y lo abre.
+
+        Proposito: conectar el boton y la tecla de apertura con la carga atomica, sin acoplar el controlador a tkinter.
+        Precondiciones: ``seleccionar`` recibe la carpeta inicial y devuelve una ruta, ``None`` si el usuario cancela,
+        o lanza ``DialogoNoDisponible``.
+        Postcondiciones: con una ruta, se comporta como ``abrir_escenario``; si el usuario cancela, nada cambia y el
+        mensaje lo indica; si no hay selector, nada cambia y el mensaje sugiere arrastrar el archivo a la ventana.
+        Devuelve si se cargo un escenario.
+        Complejidad: la de ``abrir_escenario``, mas el tiempo que el usuario tarde en elegir.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) propuso este metodo y su documentacion en E9.4.
+        Validacion del estudiante: el equipo lo reviso y probo en la ventana; tests/interfaz/test_control.py cubre
+        la eleccion, la cancelacion y la falta de selector.
+        """
+        try:
+            ruta = seleccionar(self.ruta_escenario.parent)
+        except DialogoNoDisponible:
+            self.mensaje = "No hay selector de archivos: arrastra el JSON a la ventana para abrirlo."
+            self.error = True
+            return False
+        if ruta is None:
+            self.mensaje = "Apertura cancelada; el escenario no cambio."
+            self.error = False
+            return False
+        return self.abrir_escenario(ruta)
 
     def ejecutar(self) -> None:
         """Ejecuta una unica busqueda con las selecciones vigentes.
