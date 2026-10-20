@@ -198,3 +198,78 @@ def test_bloqueo_reentrante_evitar_ejecuciones_simultaneas(monkeypatch):
     control.ejecutar()
 
     assert llamadas == 0
+
+
+def _copia_externa(tmp_path, nombre="escenario_profesor.json"):
+    externo = tmp_path / nombre
+    externo.write_text((RAIZ / "escenarios" / "obstaculo_rodeo.json").read_text(encoding="utf-8"), encoding="utf-8")
+    return externo
+
+
+def test_abrir_escenario_externo_lo_carga_y_lo_agrega_a_los_selectores(tmp_path):
+    control = _control()
+    externo = _copia_externa(tmp_path)
+
+    assert control.abrir_escenario(externo)
+    assert control.ruta_escenario == externo.resolve()
+    assert externo.resolve() in control.rutas_escenarios
+    assert not control.error
+    assert control.resultado is None
+    for _ in control.rutas_escenarios:
+        control.cambiar_escenario(1)
+    assert control.ruta_escenario == externo.resolve()
+
+
+def test_abrir_escenario_ya_listado_no_lo_duplica():
+    control = _control()
+
+    assert control.abrir_escenario(OTRA_RUTA)
+    assert control.rutas_escenarios.count(OTRA_RUTA.resolve()) == 1
+
+
+def test_abrir_escenario_invalido_conserva_la_sesion_y_explica_el_error(tmp_path):
+    control = _control()
+    rutas = control.rutas_escenarios
+    invalido = tmp_path / "con_error.json"
+    invalido.write_text('{"version": "1.0"}', encoding="utf-8")
+
+    assert not control.abrir_escenario(invalido)
+    assert control.ruta_escenario == RUTA.resolve()
+    assert control.rutas_escenarios == rutas
+    assert control.error
+    assert "No se pudo cargar" in control.mensaje
+
+
+def test_abrir_con_dialogo_carga_el_archivo_elegido(tmp_path):
+    control = _control()
+    externo = _copia_externa(tmp_path)
+    directorios = []
+
+    def seleccionar(directorio):
+        directorios.append(directorio)
+        return externo
+
+    assert control.abrir_con_dialogo(seleccionar)
+    assert control.ruta_escenario == externo.resolve()
+    assert directorios == [RUTA.resolve().parent]
+
+
+def test_abrir_con_dialogo_cancelado_no_cambia_nada():
+    control = _control()
+
+    assert not control.abrir_con_dialogo(lambda directorio: None)
+    assert control.ruta_escenario == RUTA.resolve()
+    assert not control.error
+    assert "cancelada" in control.mensaje
+
+
+def test_abrir_con_dialogo_no_disponible_sugiere_arrastrar_el_archivo():
+    control = _control()
+
+    def sin_dialogo(directorio):
+        raise modulo_control.DialogoNoDisponible("sin tkinter")
+
+    assert not control.abrir_con_dialogo(sin_dialogo)
+    assert control.ruta_escenario == RUTA.resolve()
+    assert control.error
+    assert "arrastra" in control.mensaje.lower()

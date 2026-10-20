@@ -606,3 +606,32 @@ def test_parametro_k_solo_aparece_con_beam(monkeypatch):
     )
     renderizador.renderizar(superficie, escenario, estado, control=control_beam)
     assert "Beam k: 4" in centrados
+
+
+def test_boton_abrir_json_esta_en_la_fila_del_titulo_sin_tapar_otros_controles(monkeypatch):
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    estado = crear_estado_inicial(escenario)
+    renderizador = RenderizadorTablero()
+    superficie = pygame.Surface((800, 600))
+    botones = []
+    dibujar_boton = renderizador._dibujar_boton
+
+    def registrar_boton(superficie_destino, rectangulo, texto, color_texto=None):
+        botones.append((texto, rectangulo))
+        return dibujar_boton(superficie_destino, rectangulo, texto, color_texto)
+
+    monkeypatch.setattr(renderizador, "_dibujar_boton", registrar_boton)
+    control = EstadoPanelControl("ruta.json", "bfs", "A1", Posicion(2, 0), Posicion(2, 8), 4, "configuracion lista",
+                                 ("Busca rutas con menos movimientos.",), "menor cantidad de movimientos", None,
+                                 "Lista.", False)
+    disposicion = renderizador.renderizar(superficie, escenario, estado, control=control)
+    rectangulos = renderizador.calcular_rectangulos_controles(disposicion.panel)
+    abrir = rectangulos.abrir
+    otros = [rectangulo for nombre, rectangulo in vars(rectangulos).items() if nombre != "abrir"]
+    fin_del_titulo = disposicion.panel.x + 12 + renderizador._fuente.size("TACTICALGRID")[0]
+
+    assert ("O — Abrir JSON", abrir) in botones
+    assert disposicion.panel.contains(abrir)
+    assert abrir.bottom <= rectangulos.escenario_anterior.top
+    assert abrir.left > fin_del_titulo
+    assert not any(abrir.colliderect(rectangulo) for rectangulo in otros)
