@@ -19,10 +19,11 @@ campaña experimental definitiva están implementadas, auditadas y revisadas por
 - pruebas funcionales, de regresión, integración, casos límite y propiedades con oráculos independientes;
 - script comparativo y campaña experimental definitiva con evidencia persistente verificable.
 
-**Limitación de interfaz:**
+**Integración posterior de interfaz:**
 
-- la consola y la interfaz gráfica ejecutan A* con Manhattan, pero no ofrecen elegir HTO; HTO se selecciona desde
-  la API y desde `scripts/comparar_heuristicas_e62.py`.
+- al cerrar E6.2, la consola y la interfaz todavía ejecutaban A* con Manhattan; HTO se seleccionaba desde la API y
+  `scripts/comparar_heuristicas_e62.py`. La integración posterior permite alternar Manhattan/HTO en la GUI y elegir
+  `--heuristica hto` en la consola. La campaña E6.2 y sus resultados no cambian.
 
 La propuesta adapta técnicas conocidas: distancias mínimas en grafos sin pesos y BFS inverso. No presenta esos
 conceptos como una invención. El aporte propuesto por el equipo consiste en definir la relajación apropiada para
@@ -481,7 +482,8 @@ busqueda_a_estrella(problema, *, heuristica_preparada=None)
 La integración no duplica el motor: conserva `EstadoJuego` como identidad, la prioridad `f=g+h`, la cola, el
 desempate por inserción, las reinserciones por mejoras estrictas y la reconstrucción. `ResultadoBusqueda.algoritmo`
 continúa informando `A_ESTRELLA`; la etiqueta Manhattan/HTO pertenece a los registros experimentales externos. La
-consola y la interfaz ejecutan A* con Manhattan; la selección de HTO existe en la API y en el script experimental.
+CLI y la interfaz actuales también permiten seleccionar HTO; la campaña que sigue conserva la configuración y los
+resultados originales de E6.2.
 
 ### 11.3. Metodología de la campaña definitiva
 
@@ -615,7 +617,8 @@ Las seis decisiones se implementaron, se probaron y el equipo las revisó.
 5. **Conservar Manhattan como comportamiento predeterminado.**
    - Implementado: omitir `heuristica_preparada` o pasar `None` usa Manhattan; HTO se selecciona explícitamente.
    - Probado, auditado y medido: compatibilidad de invocaciones, selección y etiquetado experimental externo.
-   - Limitación: la consola y la interfaz no ofrecen elegir HTO.
+   - Estado al cerrar E6.2: la consola y la interfaz no ofrecían elegir HTO. La CLI y la GUI actuales sí exponen esa
+     selección; véanse `src/tacticalgrid/consola.py` y `src/tacticalgrid/interfaz/control.py`.
 
 6. **Inyectar la heurística en A* sin duplicar el algoritmo.**
    - Implementado: `heuristica_preparada` modifica únicamente la evaluación de `h`; se conservan motor, `g+h`, cola,

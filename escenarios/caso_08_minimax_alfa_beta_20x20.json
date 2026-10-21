@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "descripcion": "Variante pequena para la partida: A2 ya transporta el recurso (portador_recurso no es null) y debe llevarlo a la base A (0, 0). Sirve para probar la partida por turnos y el estado compuesto: la misma posicion sin portador seria un estado distinto. Variante académica 20x20 del escenario recurso_en_transporte.json: conserva la región didáctica original y agrega muros no transitables fuera de ella para mantener idéntica topología y aislar el experimento.",
+  "descripcion": "Variante académica 20 × 20 del caso adversarial de Minimax y alfa-beta. A2 transporta el recurso; el escenario permite comparar ambos algoritmos con la misma profundidad y orden de acciones, verificar la equivalencia de sus decisiones y observar la poda. Conserva la región transitable de 6 × 8 y agrega muros no transitables fuera de ella para mantener aislada la topología del experimento.",
   "mapa": {
     "filas": 20,
     "columnas": 20

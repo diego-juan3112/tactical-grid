@@ -1,0 +1,241 @@
+{
+  "formato": "tacticalgrid.partida/1",
+  "version": 1,
+  "modo": "partida",
+  "escenario": {
+    "contenido_base64": "ewogICJ2ZXJzaW9uIjogIjEuMCIsCiAgImRlc2NyaXBjaW9uIjogIkVzY2VuYXJpbyBwZXF1ZcOxbyBwYXJhIHByb2JhciB2aXN1YWxtZW50ZSB0dXJubywgcmVjb2dpZGEsIGVudHJlZ2EsIHZpY3RvcmlhIHkgcmVnaXN0cm8gbWFudWFsIGRlc2RlIFB5Z2FtZS4iLAogICJtYXBhIjogewogICAgImZpbGFzIjogNSwKICAgICJjb2x1bW5hcyI6IDUKICB9LAogICJ0aXBvc190ZXJyZW5vIjogewogICAgImxsYW51cmEiOiB7CiAgICAgICJjb3N0byI6IDEsCiAgICAgICJ0cmFuc2l0YWJsZSI6IHRydWUKICAgIH0sCiAgICAiYm9zcXVlIjogewogICAgICAiY29zdG8iOiA3LAogICAgICAidHJhbnNpdGFibGUiOiB0cnVlCiAgICB9CiAgfSwKICAidGVycmVubyI6IFsKICAgIFsibGxhbnVyYSIsICJsbGFudXJhIiwgImxsYW51cmEiLCAibGxhbnVyYSIsICJsbGFudXJhIl0sCiAgICBbImxsYW51cmEiLCAibGxhbnVyYSIsICJsbGFudXJhIiwgImxsYW51cmEiLCAibGxhbnVyYSJdLAogICAgWyJsbGFudXJhIiwgImxsYW51cmEiLCAiYm9zcXVlIiwgImxsYW51cmEiLCAibGxhbnVyYSJdLAogICAgWyJsbGFudXJhIiwgImxsYW51cmEiLCAibGxhbnVyYSIsICJsbGFudXJhIiwgImxsYW51cmEiXSwKICAgIFsibGxhbnVyYSIsICJsbGFudXJhIiwgImxsYW51cmEiLCAibGxhbnVyYSIsICJsbGFudXJhIl0KICBdLAogICJiYXNlcyI6IHsKICAgICJBIjogeyJmaWxhIjogMCwgImNvbHVtbmEiOiAwfSwKICAgICJCIjogeyJmaWxhIjogNCwgImNvbHVtbmEiOiA0fQogIH0sCiAgInJlY3Vyc28iOiB7ImZpbGEiOiAwLCAiY29sdW1uYSI6IDJ9LAogICJ1bmlkYWRlcyI6IFsKICAgIHsiaWQiOiAicG9ydGFkb3JhIiwgImJhbmRvIjogIkEiLCAidGlwbyI6ICJleHBsb3JhZG9yYSIsICJmaWxhIjogMCwgImNvbHVtbmEiOiAxfSwKICAgIHsiaWQiOiAiYXBveW8gQS0yIiwgImJhbmRvIjogIkEiLCAidGlwbyI6ICJlc3RhbmRhciIsICJmaWxhIjogMSwgImNvbHVtbmEiOiAxfSwKICAgIHsiaWQiOiAiYXBveW8gQS0zIiwgImJhbmRvIjogIkEiLCAidGlwbyI6ICJlc3RhbmRhciIsICJmaWxhIjogMSwgImNvbHVtbmEiOiAyfSwKICAgIHsiaWQiOiAiZGVmZW5zYSBCLTEiLCAiYmFuZG8iOiAiQiIsICJ0aXBvIjogImVzdGFuZGFyIiwgImZpbGEiOiA0LCAiY29sdW1uYSI6IDB9LAogICAgeyJpZCI6ICJkZWZlbnNhIEItMiIsICJiYW5kbyI6ICJCIiwgInRpcG8iOiAiZXN0YW5kYXIiLCAiZmlsYSI6IDQsICJjb2x1bW5hIjogMX0sCiAgICB7ImlkIjogImRlZmVuc2EgQi0zIiwgImJhbmRvIjogIkIiLCAidGlwbyI6ICJlc3RhbmRhciIsICJmaWxhIjogNCwgImNvbHVtbmEiOiAyfQogIF0sCiAgInR1cm5vIjogIkEiLAogICJqdWVnbyI6IHsKICAgICJwb3J0YWRvcl9yZWN1cnNvIjogbnVsbCwKICAgICJwcm9mdW5kaWRhZF9tYXhpbWFfbWluaW1heCI6IDQKICB9LAogICJwcnVlYmEiOiB7CiAgICAibW9kbyI6ICJwYXJ0aWRhIiwKICAgICJhbGdvcml0bW8iOiAibWluaW1heCIKICB9Cn0K",
+    "huella_sha256": "c6fca236f3974065b3ce7f400eebff3af1e066c70020ae6bc509867525c2b522"
+  },
+  "estado_inicial": {
+    "datos": {
+      "unidades": [
+        {
+          "id": "apoyo A-2",
+          "bando": "A",
+          "tipo": "estandar",
+          "fila": 1,
+          "columna": 1
+        },
+        {
+          "id": "apoyo A-3",
+          "bando": "A",
+          "tipo": "estandar",
+          "fila": 1,
+          "columna": 2
+        },
+        {
+          "id": "defensa B-1",
+          "bando": "B",
+          "tipo": "estandar",
+          "fila": 4,
+          "columna": 0
+        },
+        {
+          "id": "defensa B-2",
+          "bando": "B",
+          "tipo": "estandar",
+          "fila": 4,
+          "columna": 1
+        },
+        {
+          "id": "defensa B-3",
+          "bando": "B",
+          "tipo": "estandar",
+          "fila": 4,
+          "columna": 2
+        },
+        {
+          "id": "portadora",
+          "bando": "A",
+          "tipo": "exploradora",
+          "fila": 0,
+          "columna": 1
+        }
+      ],
+      "turno": "A",
+      "recurso": {
+        "fila": 0,
+        "columna": 2
+      },
+      "portador": null,
+      "estado_partida": "en_curso"
+    },
+    "huella_sha256": "6a79d90b957396cdab61998515b9592800d3cba9b030885d0a9363b25f48d942"
+  },
+  "acciones": [
+    {
+      "numero": 1,
+      "bando": "A",
+      "hubo_pase": false,
+      "unidad": "portadora",
+      "tipo_accion": "mover",
+      "origen": {
+        "fila": 0,
+        "columna": 1
+      },
+      "destino": {
+        "fila": 0,
+        "columna": 2
+      },
+      "costo": 1,
+      "huella_previa": "6a79d90b957396cdab61998515b9592800d3cba9b030885d0a9363b25f48d942",
+      "huella_resultante": "5602e19bef7439e06250201405766206da3b17976ed6b38780e1de38fbbdcae7"
+    },
+    {
+      "numero": 2,
+      "bando": "B",
+      "hubo_pase": false,
+      "unidad": "defensa B-1",
+      "tipo_accion": "mover",
+      "origen": {
+        "fila": 4,
+        "columna": 0
+      },
+      "destino": {
+        "fila": 3,
+        "columna": 0
+      },
+      "costo": 1,
+      "huella_previa": "5602e19bef7439e06250201405766206da3b17976ed6b38780e1de38fbbdcae7",
+      "huella_resultante": "fc83ae4fb933268c4aa8b2cf69f534bade70628789d2cc502ab4a7663b6d79e5"
+    },
+    {
+      "numero": 3,
+      "bando": "A",
+      "hubo_pase": false,
+      "unidad": "portadora",
+      "tipo_accion": "mover",
+      "origen": {
+        "fila": 0,
+        "columna": 2
+      },
+      "destino": {
+        "fila": 0,
+        "columna": 1
+      },
+      "costo": 1,
+      "huella_previa": "fc83ae4fb933268c4aa8b2cf69f534bade70628789d2cc502ab4a7663b6d79e5",
+      "huella_resultante": "34be528105bc78c4ad658541ee1a8aa53f418cc60389220f81f50d383a7e0437"
+    },
+    {
+      "numero": 4,
+      "bando": "B",
+      "hubo_pase": false,
+      "unidad": "defensa B-1",
+      "tipo_accion": "mover",
+      "origen": {
+        "fila": 3,
+        "columna": 0
+      },
+      "destino": {
+        "fila": 2,
+        "columna": 0
+      },
+      "costo": 1,
+      "huella_previa": "34be528105bc78c4ad658541ee1a8aa53f418cc60389220f81f50d383a7e0437",
+      "huella_resultante": "513ff80cf078a9d73a7aeb92fee58be2856564f89f1d82764444eba3da97994e"
+    },
+    {
+      "numero": 5,
+      "bando": "A",
+      "hubo_pase": false,
+      "unidad": "portadora",
+      "tipo_accion": "mover",
+      "origen": {
+        "fila": 0,
+        "columna": 1
+      },
+      "destino": {
+        "fila": 0,
+        "columna": 0
+      },
+      "costo": 1,
+      "huella_previa": "513ff80cf078a9d73a7aeb92fee58be2856564f89f1d82764444eba3da97994e",
+      "huella_resultante": "4714aa1207d07732f147d3523e5fd04fbf8f98d7cf4fef0f4e6c447e32f92f56"
+    }
+  ],
+  "estado_final": {
+    "datos": {
+      "unidades": [
+        {
+          "id": "apoyo A-2",
+          "bando": "A",
+          "tipo": "estandar",
+          "fila": 1,
+          "columna": 1
+        },
+        {
+          "id": "apoyo A-3",
+          "bando": "A",
+          "tipo": "estandar",
+          "fila": 1,
+          "columna": 2
+        },
+        {
+          "id": "defensa B-1",
+          "bando": "B",
+          "tipo": "estandar",
+          "fila": 2,
+          "columna": 0
+        },
+        {
+          "id": "defensa B-2",
+          "bando": "B",
+          "tipo": "estandar",
+          "fila": 4,
+          "columna": 1
+        },
+        {
+          "id": "defensa B-3",
+          "bando": "B",
+          "tipo": "estandar",
+          "fila": 4,
+          "columna": 2
+        },
+        {
+          "id": "portadora",
+          "bando": "A",
+          "tipo": "exploradora",
+          "fila": 0,
+          "columna": 0
+        }
+      ],
+      "turno": "B",
+      "recurso": null,
+      "portador": "portadora",
+      "estado_partida": "victoria_A"
+    },
+    "huella_sha256": "4714aa1207d07732f147d3523e5fd04fbf8f98d7cf4fef0f4e6c447e32f92f56"
+  },
+  "resultado": "victoria_A",
+  "evaluacion": null,
+  "verificaciones": {
+    "partida": {
+      "sujeto": "partida con manual",
+      "valido": true,
+      "comprobaciones": [
+        {
+          "nombre": "jugadas_legales",
+          "correcta": true,
+          "detalle": "5 jugadas legales"
+        },
+        {
+          "nombre": "estados_encadenados",
+          "correcta": true,
+          "detalle": "cada jugada parte del estado anterior y produce el siguiente"
+        },
+        {
+          "nombre": "estados_validos",
+          "correcta": true,
+          "detalle": "ningun estado de la partida es invalido"
+        },
+        {
+          "nombre": "resultado_coherente",
+          "correcta": true,
+          "detalle": "resultado victoria_A coherente con el estado final"
+        }
+      ]
+    }
+  },
+  "integridad_sha256": "20620b3244ef048dfcf340919d8d2f337ed0bffd2539c20d120fe37978b83ba8"
+}

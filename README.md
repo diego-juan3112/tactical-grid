@@ -79,7 +79,7 @@ unidades; compara con `C`, verifica con `V` y aplica una recomendación confirma
 
 ### Guía rápida de la interfaz gráfica
 
-Consulta la [guía rápida](docs/guia-rapida-interfaz.md) para aprender los controles de Búsqueda, Partida y Adversarial.
+Consulta la [guía rápida](docs/entregables/guia-rapida-interfaz-tacticalgrid.pdf) para aprender los controles de Búsqueda, Partida y Adversarial.
 
 Para abrir un escenario propio, como el del profesor, usa el botón **O — Abrir JSON** (o la tecla `O`), o arrastra el
 archivo `.json` sobre la ventana. Si el archivo tiene errores, el panel los explica y el escenario actual no cambia.
@@ -167,7 +167,7 @@ además las propiedades y la equivalencia con sus mapas didácticos.
 | Documento | Contenido |
 |---|---|
 | [Documento técnico](docs/entregables/documento-tecnico.docx) | Modelado del problema, representación de estados, reglas, costos, heurísticas, función de utilidad, metodología experimental, resultados, complejidad, limitaciones y uso de IA. |
-| [Manual de usuario](docs/entregables/manual-de-usuario.docx) | Instalación en Windows y Linux, búsquedas, modos, escenarios externos, verificación, exportación y reproducción. Las capturas existentes son históricas; la sección actualizada de partida/adversarial espera capturas de la validación manual. |
+| [Manual de usuario](docs/entregables/manual-de-usuario.docx) | Instalación en Windows y Linux, búsquedas, modos, escenarios externos, verificación, exportación y reproducción. Las capturas de interfaz se actualizaron con renderizado automatizado de Pygame; su método y escenarios están en docs/entregables/capturas-ui/manifiesto.json. |
 
 Ambos siguen el diseño editorial aplicado a la versión 1.0. La especificación estaba en `DESIGN.md` del commit base
 `0097097`; está eliminada en el árbol de trabajo actual y no se restauró. Su recuperación queda separada de esta

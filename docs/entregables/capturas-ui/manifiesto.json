@@ -1,0 +1,1166 @@
+[
+  {
+    "archivo": "01-principal-ruta_corta_vs_economica-inicial.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "ruta_corta_vs_economica.json",
+    "configuracion": {
+      "modo": "busqueda",
+      "estado": "inicial"
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": null,
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "02-carga-externa-ruta_corta_vs_economica-json.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "ruta_corta_vs_economica.json",
+    "configuracion": {
+      "accion": "ControlGrafico.abrir_escenario"
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": null,
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "03-unidad-objetivo-ruta_corta_vs_economica-A1-2-8.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "ruta_corta_vs_economica.json",
+    "configuracion": {
+      "unidad": "A1",
+      "objetivo": [
+        2,
+        8
+      ]
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": null,
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "04-bfs-ruta_corta_vs_economica-A1-objetivo-2-8.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "ruta_corta_vs_economica.json",
+    "configuracion": {
+      "algoritmo": "bfs",
+      "unidad": "A1",
+      "objetivo": [
+        2,
+        8
+      ]
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "BFS",
+      "exito": true,
+      "camino": [
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "costo": 50,
+      "estados_generados": 33,
+      "estados_expandidos": 28,
+      "maximo_frontera": 5,
+      "longitud": 8,
+      "tiempo_segundos": 0.0015815280021342915
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "04-dfs-ruta_corta_vs_economica-A1-objetivo-2-8.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "ruta_corta_vs_economica.json",
+    "configuracion": {
+      "algoritmo": "dfs",
+      "unidad": "A1",
+      "objetivo": [
+        2,
+        8
+      ]
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "DFS",
+      "exito": true,
+      "camino": [
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "costo": 12,
+      "estados_generados": 15,
+      "estados_expandidos": 12,
+      "maximo_frontera": 3,
+      "longitud": 12,
+      "tiempo_segundos": 0.0009201829998346511
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "04-ucs-ruta_corta_vs_economica-A1-objetivo-2-8.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "ruta_corta_vs_economica.json",
+    "configuracion": {
+      "algoritmo": "ucs",
+      "unidad": "A1",
+      "objetivo": [
+        2,
+        8
+      ]
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "UCS",
+      "exito": true,
+      "camino": [
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "costo": 12,
+      "estados_generados": 22,
+      "estados_expandidos": 19,
+      "maximo_frontera": 3,
+      "longitud": 12,
+      "tiempo_segundos": 0.001200394002808025
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": true
+  },
+  {
+    "archivo": "04-ucs-exploracion-ruta_corta_vs_economica-A1-objetivo-2-8.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "ruta_corta_vs_economica.json",
+    "configuracion": {
+      "algoritmo": "ucs",
+      "unidad": "A1",
+      "objetivo": [
+        2,
+        8
+      ],
+      "exploracion": true
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "UCS",
+      "exito": true,
+      "camino": [
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "costo": 12,
+      "estados_generados": 22,
+      "estados_expandidos": 19,
+      "maximo_frontera": 3,
+      "longitud": 12,
+      "tiempo_segundos": 0.001200394002808025
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": true
+  },
+  {
+    "archivo": "05-astar-manhattan-obstaculo_rodeo.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "obstaculo_rodeo.json",
+    "configuracion": {
+      "algoritmo": "astar",
+      "heuristica": "manhattan",
+      "objetivo": [
+        1,
+        3
+      ]
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "A_ESTRELLA",
+      "exito": true,
+      "camino": [
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "costo": 16,
+      "estados_generados": 40,
+      "estados_expandidos": 33,
+      "maximo_frontera": 7,
+      "longitud": 15,
+      "tiempo_segundos": 0.0027926080001634546
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": true
+  },
+  {
+    "archivo": "05-astar-hto-obstaculo_rodeo.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "obstaculo_rodeo.json",
+    "configuracion": {
+      "algoritmo": "astar",
+      "heuristica": "hto",
+      "objetivo": [
+        1,
+        3
+      ]
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "A_ESTRELLA",
+      "exito": true,
+      "camino": [
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "costo": 16,
+      "estados_generados": 38,
+      "estados_expandidos": 26,
+      "maximo_frontera": 12,
+      "longitud": 15,
+      "tiempo_segundos": 0.0019163559991284274
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": true
+  },
+  {
+    "archivo": "06-beam-k1-campo_20x20.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "campo_20x20.json",
+    "configuracion": {
+      "algoritmo": "beam",
+      "k": 1,
+      "objetivo": [
+        9,
+        10
+      ],
+      "exito": false
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "BEAM_SEARCH_K1",
+      "exito": false,
+      "camino": [],
+      "costo": null,
+      "estados_generados": 74,
+      "estados_expandidos": 74,
+      "maximo_frontera": 1,
+      "longitud": 0,
+      "tiempo_segundos": 0.009286135002184892
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "06-beam-k2-campo_20x20.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "campo_20x20.json",
+    "configuracion": {
+      "algoritmo": "beam",
+      "k": 2,
+      "objetivo": [
+        9,
+        10
+      ],
+      "exito": false
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "BEAM_SEARCH_K2",
+      "exito": false,
+      "camino": [],
+      "costo": null,
+      "estados_generados": 137,
+      "estados_expandidos": 137,
+      "maximo_frontera": 2,
+      "longitud": 0,
+      "tiempo_segundos": 0.01618691600015154
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "06-beam-k4-campo_20x20.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "campo_20x20.json",
+    "configuracion": {
+      "algoritmo": "beam",
+      "k": 4,
+      "objetivo": [
+        9,
+        10
+      ],
+      "exito": true
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "BEAM_SEARCH_K4",
+      "exito": true,
+      "camino": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          1,
+          10
+        ],
+        [
+          1,
+          11
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          2,
+          15
+        ],
+        [
+          2,
+          16
+        ],
+        [
+          2,
+          17
+        ],
+        [
+          2,
+          18
+        ],
+        [
+          3,
+          18
+        ],
+        [
+          4,
+          18
+        ],
+        [
+          5,
+          18
+        ],
+        [
+          6,
+          18
+        ],
+        [
+          7,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          9,
+          18
+        ],
+        [
+          10,
+          18
+        ],
+        [
+          10,
+          17
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          14
+        ],
+        [
+          10,
+          13
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "costo": 40,
+      "estados_generados": 137,
+      "estados_expandidos": 133,
+      "maximo_frontera": 4,
+      "longitud": 34,
+      "tiempo_segundos": 0.016844698999193497
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "06-beam-k8-campo_20x20.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "campo_20x20.json",
+    "configuracion": {
+      "algoritmo": "beam",
+      "k": 8,
+      "objetivo": [
+        9,
+        10
+      ],
+      "exito": true
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": {
+      "algoritmo": "BEAM_SEARCH_K8",
+      "exito": true,
+      "camino": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          1,
+          10
+        ],
+        [
+          1,
+          11
+        ],
+        [
+          1,
+          12
+        ],
+        [
+          1,
+          13
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          1,
+          14
+        ],
+        [
+          0,
+          14
+        ],
+        [
+          0,
+          15
+        ],
+        [
+          1,
+          15
+        ],
+        [
+          1,
+          16
+        ],
+        [
+          1,
+          17
+        ],
+        [
+          2,
+          17
+        ],
+        [
+          3,
+          17
+        ],
+        [
+          4,
+          17
+        ],
+        [
+          5,
+          17
+        ],
+        [
+          6,
+          17
+        ],
+        [
+          7,
+          17
+        ],
+        [
+          8,
+          17
+        ],
+        [
+          9,
+          17
+        ],
+        [
+          10,
+          17
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          14
+        ],
+        [
+          10,
+          13
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          9,
+          10
+        ]
+      ],
+      "costo": 46,
+      "estados_generados": 284,
+      "estados_expandidos": 276,
+      "maximo_frontera": 8,
+      "longitud": 36,
+      "tiempo_segundos": 0.03991339899948798
+    },
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "07-partida-seleccion-y-acciones-legales-prueba_gui_partida.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "prueba_gui_partida.json",
+    "configuracion": {
+      "unidad": "portadora",
+      "acciones_legales": 2
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": null,
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "08-recurso-transportado-prueba_gui_partida-secuencia-3.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "prueba_gui_partida.json",
+    "configuracion": {
+      "jugadas": 3,
+      "portador": "portadora",
+      "turno": "B"
+    },
+    "estado": "en_curso",
+    "turno": "B",
+    "portador": "portadora",
+    "resultado_busqueda": null,
+    "resultado_adversarial": null,
+    "verificacion_valida": null
+  },
+  {
+    "archivo": "09-victoria_A-prueba_gui_partida-secuencia-5.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "prueba_gui_partida.json",
+    "configuracion": {
+      "jugadas": 5,
+      "resultado": "victoria_A",
+      "verificacion": true
+    },
+    "estado": "victoria_A",
+    "turno": "B",
+    "portador": "portadora",
+    "resultado_busqueda": null,
+    "resultado_adversarial": null,
+    "verificacion_valida": true
+  },
+  {
+    "archivo": "10-exportacion-partida-reproducible-prueba_gui_partida.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "prueba_gui_partida.json",
+    "configuracion": {
+      "registro": "registro-partida-prueba_gui_partida.json",
+      "jugadas": 5
+    },
+    "estado": "victoria_A",
+    "turno": "B",
+    "portador": "portadora",
+    "resultado_busqueda": null,
+    "resultado_adversarial": null,
+    "verificacion_valida": true,
+    "reproduccion_cli": "Partida reproducida y verificada: 5 acciones; victoria_A.\nOK jugadas_legales: 5 jugadas legales\nOK estados_encadenados: cada jugada parte del estado anterior y produce el siguiente\nOK estados_validos: ningun estado de la partida es invalido\nOK resultado_coherente: resultado victoria_A coherente con el estado final"
+  },
+  {
+    "archivo": "11-minimax-decision_adversarial-profundidad-configurada.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "decision_adversarial.json",
+    "configuracion": {
+      "algoritmo": "MINIMAX",
+      "profundidad": 4,
+      "orden": "generacion",
+      "verificado": true
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": null,
+    "resultado_adversarial": {
+      "algoritmo": "MINIMAX",
+      "bando_max": "A",
+      "profundidad_maxima": 4,
+      "orden_acciones": "generacion",
+      "nodos_generados": 68,
+      "nodos_evaluados": 44,
+      "nodos_podados": 0,
+      "profundidad_alcanzada": 4,
+      "tiempo_segundos": 0.008425316998909693,
+      "accion_seleccionada": {
+        "unidad": "A3",
+        "tipo": "mover",
+        "origen": [
+          2,
+          1
+        ],
+        "destino": [
+          2,
+          2
+        ],
+        "tactica": "aproximarse_al_recurso"
+      },
+      "valor": -39.0
+    },
+    "verificacion_valida": true
+  },
+  {
+    "archivo": "12-alfa-beta-decision_adversarial-profundidad-configurada.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "decision_adversarial.json",
+    "configuracion": {
+      "algoritmo": "ALFA_BETA",
+      "profundidad": 4,
+      "orden": "generacion",
+      "verificado": true
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": null,
+    "resultado_adversarial": {
+      "algoritmo": "ALFA_BETA",
+      "bando_max": "A",
+      "profundidad_maxima": 4,
+      "orden_acciones": "generacion",
+      "nodos_generados": 45,
+      "nodos_evaluados": 25,
+      "nodos_podados": 11,
+      "profundidad_alcanzada": 4,
+      "tiempo_segundos": 0.00639735300137545,
+      "accion_seleccionada": {
+        "unidad": "A3",
+        "tipo": "mover",
+        "origen": [
+          2,
+          1
+        ],
+        "destino": [
+          2,
+          2
+        ],
+        "tactica": "aproximarse_al_recurso"
+      },
+      "valor": -39.0
+    },
+    "verificacion_valida": true
+  },
+  {
+    "archivo": "13-comparacion-minimax-alfa-beta-decision_adversarial.png",
+    "metodo": "SDL dummy; pygame.image.save sobre Surface del RenderizadorTablero; eventos Pygame",
+    "ventana_x11": false,
+    "escenario": "decision_adversarial.json",
+    "configuracion": {
+      "profundidad": 4,
+      "orden": "generacion",
+      "comparar": true,
+      "verificado": true
+    },
+    "estado": "en_curso",
+    "turno": "A",
+    "portador": null,
+    "resultado_busqueda": null,
+    "resultado_adversarial": {
+      "algoritmo": "ALFA_BETA",
+      "bando_max": "A",
+      "profundidad_maxima": 4,
+      "orden_acciones": "generacion",
+      "nodos_generados": 45,
+      "nodos_evaluados": 25,
+      "nodos_podados": 11,
+      "profundidad_alcanzada": 4,
+      "tiempo_segundos": 0.005825057000038214,
+      "accion_seleccionada": {
+        "unidad": "A3",
+        "tipo": "mover",
+        "origen": [
+          2,
+          1
+        ],
+        "destino": [
+          2,
+          2
+        ],
+        "tactica": "aproximarse_al_recurso"
+      },
+      "valor": -39.0
+    },
+    "verificacion_valida": true
+  }
+]
