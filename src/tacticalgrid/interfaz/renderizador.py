@@ -1,4 +1,4 @@
-"""Renderizado Pygame del escenario y del estado dinamico de TacticalGrid."""
+"""Renderizado Pygame del escenario y del estado dinámico de TacticalGrid."""
 
 from dataclasses import dataclass
 from hashlib import sha256
@@ -13,13 +13,15 @@ from tacticalgrid.interfaz.recursos import RecursosGraficos
 from tacticalgrid.juego.accion import INTERCEPTAR
 from tacticalgrid.juego.estado import EstadoJuego
 
+from .control import CONTROL_ALGORITMOS, CONTROL_MANUAL, ETIQUETAS_ALGORITMOS_AGENTE
+
 
 Color = tuple[int, int, int]
 
 
 @dataclass(frozen=True)
 class DisposicionTablero:
-    """Geometria calculada para ubicar el tablero y su panel informativo."""
+    """Geometría calculada para ubicar el tablero y su panel informativo."""
 
     tablero: pygame.Rect
     panel: pygame.Rect
@@ -28,7 +30,7 @@ class DisposicionTablero:
 
 @dataclass(frozen=True)
 class EstadoPanelControl:
-    """Datos minimos que el renderizador necesita para dibujar controles sin ejecutar acciones."""
+    """Datos mínimos que el renderizador necesita para dibujar los controles sin ejecutar acciones."""
 
     escenario: str
     algoritmo: str
@@ -59,11 +61,36 @@ class EstadoPanelControl:
     confirmar_aplicacion: bool = False
     busquedas_comparables: tuple[str, ...] = ()
     heuristica_astar: str = "manhattan"
+    control_partida: str = CONTROL_MANUAL
+    algoritmo_bando_a: str = ""
+    algoritmo_bando_b: str = ""
+    turno_actual: str | None = None
+    ultima_jugada: tuple[Posicion, Posicion] | None = None
+    lineas_turno: tuple[str, ...] = ()
 
     @classmethod
     def desde_control(cls, control) -> "EstadoPanelControl":
-        """Proyecta el controlador mutable a datos inmutables de presentacion."""
+        """Proyectar el controlador mutable a datos inmutables de presentación.
+
+        Proposito: entregar al renderizador lo que necesita del ``ControlGrafico`` sin que pueda ejecutar acciones,
+        incluida la partida por turnos entre algoritmos: quién controla la partida, el algoritmo de cada bando y la
+        última jugada decidida con sus métricas.
+        Precondiciones: ``control`` expone los campos de ``ControlGrafico``.
+        Postcondiciones: se devuelve un ``EstadoPanelControl`` inmutable; ``ultima_jugada`` y ``lineas_turno`` solo se
+        rellenan en modo partida con control por algoritmos, y ``ultima_jugada`` es el par (origen, destino) de la
+        acción de ``ultima_decision``. El controlador no cambia.
+        Complejidad: O(A + L) temporal y espacial, con A acciones legales de la unidad y L la longitud de los textos.
+        Uso de IA: Si.
+        Intervencion de IA: Codex: proyección original. Claude (Opus 5.5): campos de la partida por turnos entre
+        algoritmos (E9.5).
+        Validacion del estudiante: pruebas de tests/interfaz/test_turnos_renderizador.py (proyección del control por
+        algoritmos, última jugada y control manual) y de tests/interfaz/test_renderizador.py.
+        """
         unidad_partida = control.unidad_partida_actual
+        control_partida = getattr(control, "control_partida", CONTROL_MANUAL)
+        algoritmos_bandos = getattr(control, "algoritmos_bandos", {})
+        por_algoritmos = control.modo == "partida" and control_partida == CONTROL_ALGORITMOS
+        decision = getattr(control, "ultima_decision", None) if por_algoritmos else None
         return cls(
             escenario=control.ruta_escenario.name,
             algoritmo=control.algoritmo,
@@ -109,21 +136,89 @@ class EstadoPanelControl:
                 )
             ),
             heuristica_astar=control.heuristica_astar,
+            control_partida=control_partida,
+            algoritmo_bando_a=_etiqueta_algoritmo_agente(algoritmos_bandos.get("A")),
+            algoritmo_bando_b=_etiqueta_algoritmo_agente(algoritmos_bandos.get("B")),
+            turno_actual=control.estado.turno_actual,
+            ultima_jugada=None if decision is None else (decision.accion.origen, decision.accion.destino),
+            lineas_turno=_lineas_turno(control, decision) if por_algoritmos else (),
         )
 
 
+def _etiqueta_algoritmo_agente(algoritmo: str | None) -> str:
+    """Traducir el identificador del algoritmo de un bando a su etiqueta legible; vacío si no hay algoritmo."""
+    if algoritmo is None:
+        return ""
+    return ETIQUETAS_ALGORITMOS_AGENTE.get(algoritmo, algoritmo)
+
+
+def _lineas_turno(control, decision) -> tuple[str, ...]:
+    """Preparar los textos que describen la última jugada decidida por un algoritmo y la configuración compartida.
+
+    Proposito: mostrar en el panel por qué y con qué esfuerzo decidió el algoritmo del bando la última jugada de la
+    partida por turnos, usando solo las métricas que ya devolvió ``decidir_jugada``.
+    Precondiciones: ``control`` expone ``historial_partida``, ``profundidad_adversarial``, ``orden_adversarial``,
+    ``k`` y ``heuristica_astar``; ``decision`` es la ``DecisionAgente`` vigente o ``None``.
+    Postcondiciones: si hay decisión, las primeras líneas nombran bando y algoritmo, la acción ``unidad (f,c) ->
+    (f,c)``, la meta y, según el caso, costo y estados expandidos del camino planeado o valor, nodos generados,
+    evaluados y podados y profundidad de Minimax/alfa-beta; la última línea siempre resume profundidad, orden, k y
+    heurística A*. No recalcula decisiones ni modifica el controlador.
+    Complejidad: O(L) temporal y espacial para la longitud total de los textos.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5): presentación de la partida por turnos entre algoritmos (E9.5).
+    Validacion del estudiante: pruebas de tests/interfaz/test_turnos_renderizador.py: líneas con el algoritmo, la
+    acción y el costo del camino planeado tras una jugada de A*, y panel dibujado sin errores.
+    """
+    lineas: list[str] = []
+    if decision is not None:
+        accion = decision.accion
+        tipo = " (intercepción)" if accion.tipo == INTERCEPTAR else ""
+        meta = decision.meta
+        if decision.objetivo is not None:
+            meta += f" en ({decision.objetivo.fila},{decision.objetivo.columna})"
+        lineas.extend(
+            (
+                f"Jugada {len(control.historial_partida)}: bando {decision.bando} con "
+                f"{_etiqueta_algoritmo_agente(decision.algoritmo)}",
+                f"Acción: {accion.identificador_unidad} ({accion.origen.fila},{accion.origen.columna}) -> "
+                f"({accion.destino.fila},{accion.destino.columna}){tipo}",
+                f"Meta: {meta}",
+            )
+        )
+        if decision.busqueda is not None:
+            busqueda = decision.busqueda
+            costo = "—" if busqueda.costo is None else f"{busqueda.costo:g}"
+            lineas.append(
+                f"Camino planeado: costo {costo}; longitud {busqueda.longitud}; "
+                f"estados expandidos {busqueda.estados_expandidos}"
+            )
+        if decision.adversarial is not None:
+            adversarial = decision.adversarial
+            lineas.append(
+                f"Valor: {adversarial.valor:.6g}; nodos generados {adversarial.nodos_generados}; evaluados "
+                f"{adversarial.nodos_evaluados}; podados {adversarial.nodos_podados}; profundidad "
+                f"{adversarial.profundidad_alcanzada}/{adversarial.profundidad_maxima}"
+            )
+    heuristica = "Manhattan" if control.heuristica_astar == "manhattan" else "HTO"
+    lineas.append(
+        f"Configuración: profundidad {control.profundidad_adversarial}; orden {control.orden_adversarial}; "
+        f"k {control.k}; heurística A* {heuristica}"
+    )
+    return tuple(lineas)
+
+
 def _lineas_decision(control) -> tuple[str, ...]:
-    """Prepara textos de métricas exclusivamente a partir de los resultados adversariales almacenados.
+    """Preparar los textos de métricas exclusivamente a partir de los resultados adversariales almacenados.
 
     Proposito: exponer en el panel las métricas reportadas por Minimax y alfa-beta sin recalcular decisiones.
     Precondiciones: ``control`` tiene los campos de resultado definidos por ``ControlGrafico``.
-    Postcondiciones: devuelve lineas que reflejan algoritmo, bando, profundidades, accion, valor, nodos y tiempo; en
-    comparacion conserva y presenta las mediciones de ambas ejecuciones. No modifica el controlador.
+    Postcondiciones: se devuelven líneas con el algoritmo, el bando, las profundidades, la acción, el valor, los nodos y
+    el tiempo; en una comparación se presentan las mediciones de ambas ejecuciones. El controlador no cambia.
     Complejidad: O(L) temporal y espacial para la longitud total de los textos generados.
     Uso de IA: Si.
-    Intervencion de IA: Codex integro la presentacion de metricas adversariales comparables en el panel Pygame.
-    Validacion del estudiante: No puedo confirmar revision manual; pruebas automatizadas de renderizador comprueban
-    proyeccion y contenido de metricas bajo SDL dummy.
+    Intervencion de IA: Codex: presentación de métricas adversariales comparables en el panel Pygame.
+    Validacion del estudiante: prueba ``test_panel_presenta_metricas_decision_y_estado_de_confirmacion`` de
+    tests/interfaz/test_renderizador.py.
     """
     resultado = control.resultado_adversarial
     if resultado is None:
@@ -194,7 +289,7 @@ class RectangulosControles:
 
 
 class RenderizadorTablero:
-    """Compone una vista completa sin modificar el escenario ni el estado."""
+    """Compositor de una vista completa que no modifica el escenario ni el estado."""
 
     COLOR_FONDO: Color = (20, 25, 29)
     COLOR_PANEL: Color = (31, 39, 43)
@@ -208,6 +303,7 @@ class RenderizadorTablero:
     COLOR_ORIGEN: Color = (68, 220, 112)
     COLOR_DESTINO: Color = (255, 112, 82)
     COLOR_EXPLORACION: Color = (176, 92, 255)
+    COLOR_ULTIMA_JUGADA: Color = (255, 60, 190)
     COLOR_BOTON: Color = (48, 63, 67)
     COLOR_BOTON_BORDE: Color = (100, 131, 133)
     ALFA_EXPLORACION = 92
@@ -215,15 +311,16 @@ class RenderizadorTablero:
     MARGEN = 16
 
     def __init__(self, recursos: RecursosGraficos | None = None) -> None:
-        """Prepara fuentes reutilizables para las etiquetas del tablero.
+        """Preparar las fuentes reutilizables y los recursos gráficos del tablero.
 
-        Proposito: inicializar fuentes y el proveedor cacheado de recursos graficos exclusivos de la interfaz.
-        Precondiciones: Pygame esta importado; no se requiere una ventana activa.
-        Postcondiciones: la instancia dispone de fuentes y atlas, y no altera el dominio.
-        Complejidad: O(P) temporal y espacial por los pixeles de atlas cuando no se inyecta un proveedor existente.
+        Proposito: inicializar las fuentes y el proveedor en caché de recursos gráficos exclusivos de la interfaz.
+        Precondiciones: Pygame está importado; no se requiere una ventana activa.
+        Postcondiciones: la instancia dispone de fuentes y atlas; el dominio no cambia.
+        Complejidad: O(P) temporal y espacial por los píxeles de los atlas cuando no se inyecta un proveedor existente.
         Uso de IA: Si.
-        Intervencion de IA: Codex amplio la inicializacion de E9.1 con un proveedor de PNG inyectable y cacheado.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas sin pantalla.
+        Intervencion de IA: Codex: ampliación de la inicialización de E9.1 con un proveedor de PNG inyectable y en
+        caché.
+        Validacion del estudiante: pruebas de tests/interfaz/test_renderizador.py ejecutadas sin pantalla (SDL dummy).
         """
         if not pygame.font.get_init():
             pygame.font.init()
@@ -233,16 +330,17 @@ class RenderizadorTablero:
         self.recursos = recursos or RecursosGraficos()
 
     def calcular_disposicion(self, superficie: pygame.Surface, escenario: Escenario) -> DisposicionTablero:
-        """Calcula una cuadricula centrada y un panel lateral segun las dimensiones disponibles.
+        """Calcular una cuadrícula centrada y un panel lateral según las dimensiones disponibles.
 
-        Proposito: adaptar el tablero a cualquier cantidad valida de filas y columnas sin coordenadas de mapa fijas.
+        Proposito: adaptar el tablero a cualquier cantidad válida de filas y columnas sin coordenadas de mapa fijas.
         Precondiciones: ``superficie`` tiene dimensiones positivas y ``escenario`` tiene filas y columnas positivas.
-        Postcondiciones: devuelve celdas cuadradas de al menos un pixel, contenidas en la superficie.
+        Postcondiciones: se devuelven celdas cuadradas de al menos un píxel, contenidas en la superficie.
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño el ajuste proporcional y la reserva del panel informativo para E9.1.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de mapas 20x20 y
-        rectangulares.
+        Intervencion de IA: Codex: ajuste proporcional y reserva del panel informativo (E9.1).
+        Validacion del estudiante: pruebas ``test_renderiza_escenario_20x20_con_cuadricula_completa`` y
+        ``test_ajusta_mapa_rectangular_y_dimensiones_variables_sin_coordenadas_fijas`` de
+        tests/interfaz/test_renderizador.py.
         """
         ancho, alto = superficie.get_size()
         ancho_panel = min(self.ANCHO_PANEL, max(0, ancho // 3))
@@ -266,18 +364,18 @@ class RenderizadorTablero:
         return DisposicionTablero(tablero=tablero, panel=panel, tamano_celda=tamano_celda)
 
     def calcular_rectangulos_controles(self, panel: pygame.Rect) -> RectangulosControles:
-        """Calcula controles compactos dentro del panel lateral.
+        """Calcular controles compactos dentro del panel lateral.
 
-        Proposito: compartir exactamente las mismas zonas entre dibujo y manejo de clics.
-        Precondiciones: ``panel`` fue calculado para la superficie vigente.
-        Postcondiciones: devuelve rectangulos contenidos horizontalmente en el panel, sin modificarlo.
+        Proposito: compartir exactamente las mismas zonas entre el dibujo y el manejo de clics.
+        Precondiciones: ``panel`` se calculó para la superficie vigente.
+        Postcondiciones: se devuelven rectángulos contenidos horizontalmente en el panel; el panel no cambia.
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño las zonas compactas para integrar controles sin invadir el tablero y agrego
-        el boton de verificacion en esta auditoria. Claude (Opus 5.5) agrego en E9.4 el boton para abrir un escenario
-        JSON, en la fila del titulo.
-        Validacion del estudiante: No puedo confirmar una revision manual del equipo del nuevo boton; las pruebas
-        automatizadas comprueban geometria y eventos SDL dummy, incluida la apertura y verificacion.
+        Intervencion de IA: Codex: zonas compactas para integrar controles sin invadir el tablero y botón de
+        verificación. Claude (Opus 5.5): botón para abrir un escenario JSON en la fila del título (E9.4).
+        Validacion del estudiante: prueba ``test_boton_abrir_json_esta_en_la_fila_del_titulo_sin_tapar_otros_controles``
+        de tests/interfaz/test_renderizador.py y pruebas de eventos de tests/interfaz/test_aplicacion.py, incluidas la
+        apertura y la verificación.
         """
         x = panel.x + 12
         ancho = max(1, panel.width - 24)
@@ -310,16 +408,16 @@ class RenderizadorTablero:
         )
 
     def color_para_terreno(self, nombre: str, tipo: TipoTerreno) -> Color:
-        """Deriva un color estable de cualquier nombre de terreno cargado.
+        """Derivar un color estable para cualquier nombre de terreno cargado.
 
-        Proposito: diferenciar terrenos conocidos o externos sin mantener un catalogo codificado en la interfaz.
-        Precondiciones: ``nombre`` no esta vacio y ``tipo`` pertenece al catalogo validado del escenario.
-        Postcondiciones: devuelve siempre el mismo color RGB para el mismo nombre y transitabilidad.
-        Complejidad: O(L) temporal y O(1) espacial, donde L es la longitud UTF-8 del nombre.
+        Proposito: diferenciar terrenos conocidos o externos sin mantener un catálogo codificado en la interfaz.
+        Precondiciones: ``nombre`` no está vacío y ``tipo`` pertenece al catálogo validado del escenario.
+        Postcondiciones: se devuelve siempre el mismo color RGB para el mismo nombre y la misma transitabilidad.
+        Complejidad: O(L) temporal y O(1) espacial, con L la longitud UTF-8 del nombre.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño la paleta determinista basada en SHA-256 y el tono neutro para obstaculos.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de estabilidad y terreno
-        externo.
+        Intervencion de IA: Codex: paleta determinista basada en SHA-256 y tono neutro para los obstáculos.
+        Validacion del estudiante: pruebas ``test_diferencia_tipos_de_terreno_y_marca_no_transitable`` y
+        ``test_admite_tipo_externo_con_color_determinista_y_leyenda_visible`` de tests/interfaz/test_renderizador.py.
         """
         resumen = sha256(nombre.encode("utf-8")).digest()
         if tipo.transitable:
@@ -337,18 +435,23 @@ class RenderizadorTablero:
         exploracion_visible: bool = False,
         control: EstadoPanelControl | None = None,
     ) -> DisposicionTablero:
-        """Dibuja el tablero completo y su informacion vigente sobre una superficie Pygame.
+        """Dibujar el tablero completo y su información vigente sobre una superficie Pygame.
 
-        Proposito: representar terrenos, exploracion, objetivo, camino, entidades, controles, turno y leyenda.
-        Precondiciones: ``escenario`` esta validado y ``estado`` es coherente con el escenario.
-        Postcondiciones: la superficie refleja el estado, las acciones legales de partida y, si se solicita, la
-        proyeccion de la traza; escenario, estado y resultado permanecen inmutables.
-        Complejidad: O(F*C + U + T + L + P) temporal y O(F*C + L + lado^2) espacial, con L posiciones del camino
-        y P posiciones expandidas unicas almacenadas.
+        Proposito: representar terrenos, exploración, objetivo, camino, entidades, última jugada, controles, turno y
+        leyenda.
+        Precondiciones: ``escenario`` está validado y ``estado`` es coherente con el escenario.
+        Postcondiciones: la superficie refleja el estado, las acciones legales de la partida, la última jugada decidida
+        por un algoritmo (si ``control.ultima_jugada`` existe) y, si se solicita, la proyección de la traza; el
+        escenario, el estado y el resultado no cambian.
+        Complejidad: O(F*C + U + T + L + P) temporal y O(F*C + L + lado^2) espacial, con L posiciones del camino y P
+        posiciones expandidas únicas almacenadas.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento E9.1/E9.2, el rediseño con sprites y la capa E9.3 sin cambiar el camino.
-        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
-        pruebas automatizadas del orden, fidelidad y superposicion de capas.
+        Intervencion de IA: Codex: E9.1 y E9.2, rediseño con sprites y capa de E9.3 sin cambiar el camino. Claude (Opus
+        5.5): marcado de la última jugada de la partida por turnos entre algoritmos (E9.5).
+        Validacion del estudiante: pruebas de tests/interfaz/test_renderizador.py: segundo renderizado sin retener el
+        estado anterior, camino de cada algoritmo trazado en orden, renderizado sin modificar el resultado ni el estado
+        y exploración que conserva camino y entidades; pruebas de tests/interfaz/test_turnos_renderizador.py: marcado
+        de la última jugada sin modificar el estado ni el resultado.
         """
         disposicion = self.calcular_disposicion(superficie, escenario)
         superficie.fill(self.COLOR_FONDO)
@@ -377,6 +480,8 @@ class RenderizadorTablero:
         if estado.portador_recurso is None and estado.posicion_recurso is not None:
             self._dibujar_recurso(superficie, celdas[estado.posicion_recurso], disposicion.tamano_celda)
         self._dibujar_unidades(superficie, estado, celdas, disposicion.tamano_celda)
+        if control is not None and control.ultima_jugada is not None:
+            self._dibujar_ultima_jugada(superficie, control.ultima_jugada, celdas, disposicion.tamano_celda)
         if control is not None:
             self._dibujar_acciones_legales(superficie, control, celdas, disposicion.tamano_celda)
         self._dibujar_cuadricula(superficie, escenario, disposicion)
@@ -398,16 +503,16 @@ class RenderizadorTablero:
         celdas: dict[Posicion, pygame.Rect],
         lado: int,
     ) -> None:
-        """Superpone las posiciones proyectadas de expansiones reales.
+        """Superponer las posiciones proyectadas de las expansiones reales.
 
-        Proposito: distinguir exploracion de camino mediante una capa semitransparente adaptable a la celda.
-        Precondiciones: cada posicion procede de la traza asociada al mismo escenario representado por ``celdas``.
-        Postcondiciones: se resaltan solo posiciones observadas; tiles y datos de entrada permanecen intactos.
-        Complejidad: O(P) temporal y O(lado^2) espacial, donde P son posiciones unicas almacenadas.
+        Proposito: distinguir la exploración del camino mediante una capa semitransparente adaptable a la celda.
+        Precondiciones: cada posición procede de la traza asociada al mismo escenario representado por ``celdas``.
+        Postcondiciones: solo se resaltan las posiciones observadas; los tiles y los datos de entrada no cambian.
+        Complejidad: O(P) temporal y O(lado^2) espacial, con P posiciones únicas almacenadas.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento la capa visual bajo demanda para E9.3.
-        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
-        pruebas SDL dummy de pixeles y capas.
+        Intervencion de IA: Codex: capa visual bajo demanda (E9.3).
+        Validacion del estudiante: pruebas ``test_exploracion_proyecta_eventos_reales_y_conserva_camino_y_entidades`` y
+        ``test_fracaso_con_traza_permite_mostrar_exploracion_y_panel`` de tests/interfaz/test_renderizador.py.
         """
         capa = pygame.Surface((lado, lado), pygame.SRCALPHA)
         capa.fill((*self.COLOR_EXPLORACION, self.ALFA_EXPLORACION))
@@ -425,16 +530,17 @@ class RenderizadorTablero:
         escenario: Escenario,
         disposicion: DisposicionTablero,
     ) -> dict[Posicion, pygame.Rect]:
-        """Dibuja cada terreno y marca visualmente los no transitables.
+        """Dibujar cada terreno y marcar visualmente los no transitables.
 
-        Proposito: crear la capa base desde el catalogo real de terrenos del escenario.
-        Precondiciones: la disposicion corresponde al escenario y cabe en la superficie.
-        Postcondiciones: devuelve el rectangulo de cada posicion y no modifica el escenario.
-        Complejidad: O(F*C) temporal y espacial por el indice de rectangulos.
+        Proposito: crear la capa base a partir del catálogo real de terrenos del escenario.
+        Precondiciones: la disposición corresponde al escenario y cabe en la superficie.
+        Postcondiciones: se devuelve el rectángulo de cada posición; el escenario no cambia.
+        Complejidad: O(F*C) temporal y espacial por el índice de rectángulos.
         Uso de IA: Si.
-        Intervencion de IA: Codex integro tiles variados, obstaculos fisicos y el respaldo generico sobre el recorrido
-        original de E9.1.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de colores y transitabilidad.
+        Intervencion de IA: Codex: tiles variados, obstáculos físicos y respaldo genérico sobre el recorrido original de
+        E9.1.
+        Validacion del estudiante: prueba ``test_diferencia_tipos_de_terreno_y_marca_no_transitable`` de
+        tests/interfaz/test_renderizador.py.
         """
         celdas: dict[Posicion, pygame.Rect] = {}
         lado = disposicion.tamano_celda
@@ -474,15 +580,16 @@ class RenderizadorTablero:
 
     @staticmethod
     def _variante_visual(nombre: str, posicion: Posicion) -> int:
-        """Deriva una variante local estable sin tocar el generador aleatorio global.
+        """Derivar una variante local estable sin usar el generador aleatorio global.
 
-        Proposito: distribuir reflejos de textura de forma repetible entre celdas del mismo terreno.
-        Precondiciones: nombre y posicion proceden del escenario validado.
-        Postcondiciones: retorna un entero entre 0 y 3 estable para la misma entrada.
+        Proposito: distribuir los reflejos de textura de forma repetible entre celdas del mismo terreno.
+        Precondiciones: el nombre y la posición proceden del escenario validado.
+        Postcondiciones: se devuelve un entero entre 0 y 3, estable para la misma entrada.
         Complejidad: O(L) temporal y O(1) espacial por el nombre codificado.
         Uso de IA: Si.
-        Intervencion de IA: Codex definio la variacion visual mediante SHA-256 y coordenadas.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de determinismo.
+        Intervencion de IA: Codex: variación visual mediante SHA-256 y coordenadas.
+        Validacion del estudiante: prueba ``test_variacion_visual_es_determinista_y_no_muta_estado`` de
+        tests/interfaz/test_renderizador.py.
         """
         datos = f"{nombre}:{posicion.fila}:{posicion.columna}".encode("utf-8")
         return sha256(datos).digest()[0] % 4
@@ -495,16 +602,16 @@ class RenderizadorTablero:
         tipo: TipoTerreno,
         variante: int,
     ) -> None:
-        """Añade detalle determinista a terrenos externos o a atlas ausentes.
+        """Agregar detalle determinista a terrenos externos o a atlas ausentes.
 
-        Proposito: conservar identidad, transitabilidad y legibilidad cuando no existe un sprite especifico.
-        Precondiciones: el rectangulo ya tiene el color estable del terreno.
-        Postcondiciones: la celda recibe marcas visibles sin alterar el escenario ni atribuirle otra semantica.
+        Proposito: conservar la identidad, la transitabilidad y la legibilidad cuando no existe un sprite específico.
+        Precondiciones: el rectángulo ya tiene el color estable del terreno.
+        Postcondiciones: la celda recibe marcas visibles sin alterar el escenario ni atribuirle otra semántica.
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño el patron de respaldo determinista y neutral.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de terreno externo y
-        archivo ausente.
+        Intervencion de IA: Codex: patrón de respaldo determinista y neutral.
+        Validacion del estudiante: pruebas ``test_admite_tipo_externo_con_color_determinista_y_leyenda_visible`` y
+        ``test_fallback_visible_si_faltan_recursos`` de tests/interfaz/test_renderizador.py.
         """
         color = self.color_para_terreno(nombre, tipo)
         detalle = tuple(max(0, componente - 28) for componente in color)
@@ -522,17 +629,17 @@ class RenderizadorTablero:
         celdas: dict[Posicion, pygame.Rect],
         lado: int,
     ) -> None:
-        """Traza en orden el camino calculado y diferencia sus extremos.
+        """Trazar en orden el camino calculado y diferenciar sus extremos.
 
-        Proposito: convertir las posiciones ya calculadas en una linea visual sin recalcular ni corregir la ruta.
-        Precondiciones: cada posicion de ``camino`` pertenece a ``celdas`` y conserva el orden del resultado.
-        Postcondiciones: los centros se conectan en el mismo orden; origen y destino quedan marcados y los datos de
-        entrada permanecen sin modificaciones.
+        Proposito: convertir las posiciones ya calculadas en una línea visual sin recalcular ni corregir la ruta.
+        Precondiciones: cada posición de ``camino`` pertenece a ``celdas`` y conserva el orden del resultado.
+        Postcondiciones: los centros se conectan en el mismo orden; el origen y el destino quedan marcados y los datos
+        de entrada no cambian.
         Complejidad: O(L) temporal y espacial por los L centros del camino.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño e implemento para E9.2 la linea adaptable y los marcadores de extremos.
-        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
-        pruebas automatizadas que comparan los centros trazados con ``ResultadoBusqueda.camino``.
+        Intervencion de IA: Codex: diseño e implementación de la línea adaptable y de los marcadores de extremos (E9.2).
+        Validacion del estudiante: pruebas de tests/interfaz/test_renderizador.py que comparan los centros trazados con
+        ``ResultadoBusqueda.camino`` y comprueban que no se marcan celdas ajenas al camino.
         """
         centros = [celdas[posicion].center for posicion in camino]
         grosor_borde = max(3, lado // 4)
@@ -555,15 +662,17 @@ class RenderizadorTablero:
         celdas: dict[Posicion, pygame.Rect],
         lado: int,
     ) -> None:
-        """Superpone el contorno e identidad de ambas bases sin cubrir el contenido posterior.
+        """Superponer el contorno y la identidad de ambas bases sin cubrir el contenido posterior.
 
-        Proposito: mantener visibles Base A y Base B incluso cuando una unidad ocupa su celda.
+        Proposito: mantener visibles la base A y la base B incluso cuando una unidad ocupa su celda.
         Precondiciones: las bases del escenario existen en ``celdas``.
-        Postcondiciones: cada base queda identificada mediante borde y etiqueta; no altera datos del dominio.
-        Complejidad: O(B) temporal y O(1) espacial, donde B es la cantidad de bases.
+        Postcondiciones: cada base queda identificada con borde y etiqueta; los datos del dominio no cambian.
+        Complejidad: O(B) temporal y O(1) espacial, con B la cantidad de bases.
         Uso de IA: Si.
-        Intervencion de IA: Codex incorporo fortalezas por bando sin retirar el borde persistente de E9.1.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de bases y superposicion.
+        Intervencion de IA: Codex: fortalezas por bando sin retirar el borde persistente de E9.1.
+        Validacion del estudiante: pruebas ``test_identifica_bases_y_conserva_base_debajo_de_unidad`` y
+        ``test_composicion_superpuesta_mantiene_base_unidad_identificador_y_portador`` de
+        tests/interfaz/test_renderizador.py.
         """
         for bando, posicion in escenario.bases.items():
             rectangulo = celdas[posicion]
@@ -576,17 +685,17 @@ class RenderizadorTablero:
                 self._dibujar_texto(superficie, f"B{bando}", color, rectangulo.topleft, self._fuente_pequena)
 
     def _dibujar_recurso(self, superficie: pygame.Surface, rectangulo: pygame.Rect, lado: int) -> None:
-        """Dibuja el cristal PNG del recurso libre con un contorno circular dorado.
+        """Dibujar el cristal PNG del recurso libre con un contorno circular dorado.
 
         Proposito: mostrar el recurso solo cuando el estado declara que no tiene portador.
-        Precondiciones: ``rectangulo`` representa la posicion vigente del recurso libre.
-        Postcondiciones: si el sprite esta disponible queda centrado y, en todos los casos, se dibuja su contorno
-        circular dorado sin modificar el estado.
+        Precondiciones: ``rectangulo`` representa la posición vigente del recurso libre.
+        Postcondiciones: si el sprite está disponible, queda centrado; en todos los casos se dibuja su contorno circular
+        dorado sin modificar el estado.
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex sustituyo el simbolo abstracto de E9.1 por un cristal PNG con contorno de contraste.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de recurso libre y
-        transportado.
+        Intervencion de IA: Codex: cristal PNG con contorno de contraste en lugar del símbolo abstracto de E9.1.
+        Validacion del estudiante: pruebas ``test_muestra_recurso_libre_sin_duplicarlo_en_unidades`` y
+        ``test_recurso_transportado_solo_aparece_como_insignia_del_portador`` de tests/interfaz/test_renderizador.py.
         """
         sprite = self.recursos.objeto("recurso", max(1, int(lado * 0.78)))
         if sprite is not None:
@@ -602,17 +711,17 @@ class RenderizadorTablero:
         celdas: dict[Posicion, pygame.Rect],
         lado: int,
     ) -> None:
-        """Dibuja todas las unidades y agrega una insignia al portador.
+        """Dibujar todas las unidades y agregar una insignia al portador.
 
-        Proposito: representar posiciones, bandos, identificadores y posesion del recurso desde ``EstadoJuego``.
-        Precondiciones: cada unidad ocupa una posicion incluida en ``celdas``.
+        Proposito: representar posiciones, bandos, identificadores y posesión del recurso a partir de ``EstadoJuego``.
+        Precondiciones: cada unidad ocupa una posición incluida en ``celdas``.
         Postcondiciones: todas las unidades quedan visibles y solo el portador recibe la insignia dorada.
         Complejidad: O(U) temporal y O(1) espacial adicional.
         Uso de IA: Si.
-        Intervencion de IA: Codex incorporo sprites por bando, etiquetas con fondo e insignia de cristal para el
-        portador sobre la semantica de E9.1.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de bandos, cambios y
-        portador.
+        Intervencion de IA: Codex: sprites por bando, etiquetas con fondo e insignia de cristal para el portador, sobre
+        la semántica de E9.1.
+        Validacion del estudiante: pruebas ``test_dibuja_unidades_de_ambos_bandos_con_identidad_distinta`` y
+        ``test_recurso_transportado_solo_aparece_como_insignia_del_portador`` de tests/interfaz/test_renderizador.py.
         """
         for unidad in estado.unidades:
             rectangulo = celdas[unidad.posicion]
@@ -636,6 +745,37 @@ class RenderizadorTablero:
                     superficie.blit(insignia, insignia.get_rect(center=centro_insignia))
                 pygame.draw.circle(superficie, self.COLOR_OBSTACULO, centro_insignia, radio_insignia + 1, 1)
 
+    def _dibujar_ultima_jugada(
+        self,
+        superficie: pygame.Surface,
+        jugada: tuple[Posicion, Posicion],
+        celdas: dict[Posicion, pygame.Rect],
+        lado: int,
+    ) -> None:
+        """Marcar el origen y el destino de la última jugada decidida por un algoritmo y unirlos con una línea.
+
+        Proposito: hacer visible en el tablero qué movimiento acaba de aplicar el algoritmo del bando en turno, con un
+        color distinto del camino planeado y de los destinos legales.
+        Precondiciones: ``jugada`` es el par (origen, destino) de la acción de la última ``DecisionAgente`` y ambas
+        posiciones pertenecen al escenario representado por ``celdas``.
+        Postcondiciones: el origen queda con un contorno fino, el destino con un contorno grueso y sus centros unidos
+        por una línea, todo en ``COLOR_ULTIMA_JUGADA``; las posiciones ausentes de ``celdas`` se omiten y ningún dato
+        de entrada cambia.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5): marcado de la última jugada de la partida por turnos entre algoritmos
+        (E9.5).
+        Validacion del estudiante: prueba de tests/interfaz/test_turnos_renderizador.py que encuentra
+        ``COLOR_ULTIMA_JUGADA`` en la celda de destino tras una jugada de A* sin modificar estado ni resultado.
+        """
+        origen, destino = (celdas.get(posicion) for posicion in jugada)
+        if origen is not None and destino is not None and origen != destino:
+            pygame.draw.line(superficie, self.COLOR_ULTIMA_JUGADA, origen.center, destino.center, max(2, lado // 10))
+        if origen is not None:
+            pygame.draw.rect(superficie, self.COLOR_ULTIMA_JUGADA, origen.inflate(-6, -6), max(1, lado // 16))
+        if destino is not None:
+            pygame.draw.rect(superficie, self.COLOR_ULTIMA_JUGADA, destino.inflate(-2, -2), max(3, lado // 6))
+
     def _dibujar_acciones_legales(
         self,
         superficie: pygame.Surface,
@@ -643,16 +783,16 @@ class RenderizadorTablero:
         celdas: dict[Posicion, pygame.Rect],
         lado: int,
     ) -> None:
-        """Resalta solo destinos que el dominio ofrece para la unidad seleccionada.
+        """Resaltar solo los destinos que el dominio ofrece para la unidad seleccionada.
 
-        Proposito: hacer visibles las opciones legales antes de ejecutar un turno.
-        Precondiciones: ``destinos_legales`` proviene del estado y escenario renderizados.
-        Postcondiciones: cada destino legal queda delineado; no altera el tablero ni el estado del juego.
+        Proposito: mostrar las opciones legales antes de ejecutar un turno.
+        Precondiciones: ``destinos_legales`` proviene del estado y del escenario renderizados.
+        Postcondiciones: cada destino legal queda delineado; el tablero y el estado del juego no cambian.
         Complejidad: O(A) temporal y O(1) espacial adicional, para A acciones legales.
         Uso de IA: Si.
-        Intervencion de IA: Codex agrego el resaltado de acciones de partida durante esta continuacion.
-        Validacion del estudiante: No puedo confirmar revision manual del equipo; pruebas SDL dummy verifican
-        renderizado de destinos legales.
+        Intervencion de IA: Codex: resaltado de las acciones de partida.
+        Validacion del estudiante: prueba ``test_gui_juega_un_turno_con_clics_en_unidad_y_destino_legal`` de
+        tests/interfaz/test_aplicacion.py bajo SDL dummy.
         """
         for posicion, tipo in control.destinos_legales:
             rectangulo = celdas.get(posicion)
@@ -674,15 +814,17 @@ class RenderizadorTablero:
         escenario: Escenario,
         disposicion: DisposicionTablero,
     ) -> None:
-        """Traza limites de filas y columnas sobre las capas de contenido.
+        """Trazar los límites de filas y columnas sobre las capas de contenido.
 
-        Proposito: conservar la lectura espacial de la cuadricula completa.
-        Precondiciones: la disposicion corresponde a las dimensiones del escenario.
-        Postcondiciones: todas las celdas quedan delimitadas sin modificar el modelo.
+        Proposito: conservar la lectura espacial de la cuadrícula completa.
+        Precondiciones: la disposición corresponde a las dimensiones del escenario.
+        Postcondiciones: todas las celdas quedan delimitadas; el modelo no cambia.
         Complejidad: O(F+C) temporal y O(1) espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento las lineas dimensionadas para E9.1.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de dimensiones variables.
+        Intervencion de IA: Codex: líneas dimensionadas (E9.1).
+        Validacion del estudiante: pruebas ``test_renderiza_escenario_20x20_con_cuadricula_completa`` y
+        ``test_ajusta_mapa_rectangular_y_dimensiones_variables_sin_coordenadas_fijas`` de
+        tests/interfaz/test_renderizador.py.
         """
         lado = disposicion.tamano_celda
         for fila in range(escenario.filas + 1):
@@ -712,19 +854,20 @@ class RenderizadorTablero:
         exploracion_visible: bool,
         control: EstadoPanelControl | None = None,
     ) -> None:
-        """Presenta turno y leyenda de terrenos y simbolos usados.
+        """Presentar el turno y la leyenda de terrenos y símbolos usados.
 
-        Proposito: explicar la codificacion visual y destacar el bando activo sin duplicar el turno.
+        Proposito: explicar la codificación visual y destacar el bando activo sin duplicar el turno.
         Precondiciones: el panel pertenece a la superficie y el estado contiene el turno vigente.
-        Postcondiciones: se muestran turno o terminalidad, estado de partida, terrenos, entidades y ayudas; con
-        resultado se muestran algoritmo, exito, camino, longitud, costo, contadores, maxima frontera y tiempo.
-        Complejidad: O(T) temporal y O(1) espacial adicional, donde T es la cantidad de terrenos.
+        Postcondiciones: se muestran el turno o la terminalidad, el estado de la partida, los terrenos, las entidades y
+        las ayudas; con un resultado, también el algoritmo, el éxito, el camino, la longitud, el costo, los contadores,
+        el máximo de frontera y el tiempo.
+        Complejidad: O(T) temporal y O(1) espacial adicional, con T la cantidad de terrenos.
         Uso de IA: Si.
-        Intervencion de IA: Codex conservo los datos de E9.1/E9.2 y actualizo jerarquia, muestras de tiles, textos y
-        aviso de fallback del panel; para E9.3 agrego estado, metricas e instruccion de la capa de exploracion; en
-        esta continuacion conecto métricas completas, comparación de búsquedas y resultados adversariales.
-        Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por
-        pruebas de turno, resultado y leyenda.
+        Intervencion de IA: Codex: conservación de los datos de E9.1 y E9.2 con jerarquía, muestras de tiles, textos y
+        aviso de recursos ausentes; estado, métricas e instrucción de la capa de exploración (E9.3); métricas completas,
+        comparación de búsquedas y resultados adversariales.
+        Validacion del estudiante: pruebas de tests/interfaz/test_renderizador.py: turno actual, resultado sin solución
+        informado en el panel, métricas completas de búsqueda y comparación, y métricas reales de cada algoritmo.
         """
         if panel.width <= 0 or panel.height <= 0:
             return
@@ -941,19 +1084,25 @@ class RenderizadorTablero:
         control: EstadoPanelControl,
         exploracion_visible: bool,
     ) -> int:
-        """Dibuja selectores, acciones y ayuda contextual de la sesion grafica.
+        """Dibujar los selectores, las acciones y la ayuda contextual de la sesión gráfica.
 
-        Proposito: hacer operables los modos de busqueda, partida manual y evaluacion adversarial desde Pygame.
+        Proposito: hacer operables desde Pygame los modos de búsqueda, partida (manual o por turnos entre algoritmos)
+        y evaluación adversarial.
         Precondiciones: ``control`` representa el mismo escenario que el tablero y ``panel`` tiene ancho positivo.
-        Postcondiciones: los botones coinciden con sus hitboxes y el resumen explica modo, seleccion y opciones
-        vigentes sin ejecutar acciones ni presentar resultados invalidados.
+        Postcondiciones: los botones coinciden con sus áreas sensibles y el resumen explica el modo, la selección y las
+        opciones vigentes sin ejecutar acciones ni presentar resultados invalidados. En partida, la fila de algoritmo
+        muestra quién controla la partida; con control por algoritmos, las filas de unidad y de k muestran el
+        algoritmo de los bandos A y B, el botón de ejecutar es "N — Siguiente turno" y debajo se listan las jugadas,
+        el turno y ``lineas_turno``.
         Complejidad: O(L) temporal y espacial por renderizar textos de longitud total L.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño controles, atajos, explicaciones y verificacion de busquedas; en esta
-        continuacion agrego partida manual, ejecucion/comparacion adversarial, verificacion y confirmacion de acciones.
-        Claude (Opus 5.5) agrego en E9.4 el boton "O — Abrir JSON" junto al titulo.
-        Validacion del estudiante: No puedo confirmar una revision manual del equipo para el nuevo control; las
-        pruebas automatizadas comprueban textos, hitboxes y capas bajo SDL dummy.
+        Intervencion de IA: Codex: controles, atajos, explicaciones y verificación de búsquedas; partida manual,
+        ejecución y comparación adversarial, verificación y confirmación de acciones. Claude (Opus 5.5): botón "O —
+        Abrir JSON" junto al título (E9.4) y controles de la partida por turnos entre algoritmos (E9.5).
+        Validacion del estudiante: pruebas de tests/interfaz/test_renderizador.py: selectores, ayuda y objetivo sin
+        ocultar el tablero, parámetro k solo con Beam y botón de abrir JSON en la fila del título; pruebas de
+        tests/interfaz/test_turnos_renderizador.py: filas, botones y líneas del control por algoritmos y texto del
+        control manual.
         """
         rectangulos = self.calcular_rectangulos_controles(panel)
         x = panel.x + 12
@@ -965,13 +1114,26 @@ class RenderizadorTablero:
             control.algoritmo, control.algoritmo.upper()
         )
         filas = [(rectangulos.escenario_anterior, rectangulos.escenario_siguiente, f"Escenario: {control.escenario[:18]}")]
+        por_algoritmos = control.modo == "partida" and control.control_partida == CONTROL_ALGORITMOS
         if control.modo == "busqueda":
             filas.append((rectangulos.algoritmo_anterior, rectangulos.algoritmo_siguiente, f"Algoritmo: {etiqueta_algoritmo}"))
             filas.append((rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Unidad: {control.unidad}"))
         elif control.modo == "partida":
-            unidad = control.unidad_partida or "elige unidad activa"
-            tipo = f" ({control.tipo_unidad_partida})" if control.tipo_unidad_partida else ""
-            filas.append((rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Unidad activa: {unidad}{tipo}"))
+            etiqueta_control = "Algoritmos" if por_algoritmos else "Manual"
+            filas.append(
+                (rectangulos.algoritmo_anterior, rectangulos.algoritmo_siguiente, f"Control: {etiqueta_control}")
+            )
+            if por_algoritmos:
+                filas.append(
+                    (rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Bando A: {control.algoritmo_bando_a}")
+                )
+                filas.append((rectangulos.k_menor, rectangulos.k_mayor, f"Bando B: {control.algoritmo_bando_b}"))
+            else:
+                unidad = control.unidad_partida or "elige unidad activa"
+                tipo = f" ({control.tipo_unidad_partida})" if control.tipo_unidad_partida else ""
+                filas.append(
+                    (rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Unidad activa: {unidad}{tipo}")
+                )
         else:
             filas.append((rectangulos.algoritmo_anterior, rectangulos.algoritmo_siguiente, control.algoritmo_adversarial))
             filas.append((rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Profundidad: {control.profundidad_adversarial}"))
@@ -1002,6 +1164,19 @@ class RenderizadorTablero:
                 else f"{control.objetivo.fila}, {control.objetivo.columna}"
             )
             indicacion = f"Objetivo: {objetivo} | J: exportar registro"
+        elif por_algoritmos:
+            self._dibujar_boton(superficie, rectangulos.ejecutar, "N — Siguiente turno")
+            self._dibujar_boton(superficie, rectangulos.verificar, "V — Verificar partida")
+            self._dibujar_boton(superficie, rectangulos.exploracion, "R — Reiniciar partida")
+            if control.estado_partida == "en_curso":
+                situacion = f"turno de {control.turno_actual}"
+            elif control.estado_partida.startswith("victoria_"):
+                situacion = f"victoria del bando {control.estado_partida.removeprefix('victoria_')}"
+            elif control.estado_partida == "empate_bloqueo":
+                situacion = "empate por bloqueo"
+            else:
+                situacion = f"partida terminada ({control.estado_partida})"
+            indicacion = f"{control.jugadas_registradas} jugadas | {situacion}"
         elif control.modo == "partida":
             self._dibujar_boton(superficie, rectangulos.verificar, "V — Verificar partida")
             self._dibujar_boton(superficie, rectangulos.exploracion, "R — Reiniciar partida")
@@ -1063,6 +1238,10 @@ class RenderizadorTablero:
                 (x, y),
                 self._fuente_pequena,
             ) + 1
+        elif por_algoritmos:
+            for linea in control.lineas_turno:
+                for fragmento in wrap(linea, width=37):
+                    y = self._dibujar_texto(superficie, fragmento, self.COLOR_TEXTO, (x, y), self._fuente_pequena) + 1
         elif control.modo == "partida" and control.unidad_partida is not None:
             if control.posicion_unidad_partida is not None:
                 posicion = control.posicion_unidad_partida
@@ -1118,7 +1297,7 @@ class RenderizadorTablero:
         texto: str,
         color_texto: Color | None = None,
     ) -> None:
-        """Dibuja un boton coherente con el panel sin asociarle comportamiento."""
+        """Dibujar un botón coherente con el panel, sin asociarle comportamiento."""
         pygame.draw.rect(superficie, self.COLOR_BOTON, rectangulo, border_radius=4)
         pygame.draw.rect(superficie, self.COLOR_BOTON_BORDE, rectangulo, 1, border_radius=4)
         self._dibujar_texto_centrado(

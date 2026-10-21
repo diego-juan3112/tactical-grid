@@ -1,1 +1,1 @@
-"""Interfaz Pygame que consume dominio y resultados sin contener reglas."""
+"""Interfaz Pygame que consume el dominio y los resultados, sin contener reglas del juego."""

@@ -1,14 +1,14 @@
-"""Instrumentacion comun para BFS, DFS, UCS, A* y Beam Search: nodos, expansion y metricas.
+"""Instrumentación común para BFS, DFS, UCS, A* y Beam Search: nodos, expansión y métricas.
 
-Convencion de conteo (igual para todos los algoritmos, segun el enunciado):
+Convención de conteo, igual para todos los algoritmos según el enunciado:
 
-- **Estado generado:** estado incorporado a la busqueda, es decir, agregado a la frontera. El estado inicial cuenta
+- **Estado generado:** estado incorporado a la búsqueda, es decir, agregado a la frontera. El estado inicial cuenta
   como generado. Un sucesor descartado (por ejemplo, porque ya fue visitado) no cuenta.
 - **Estado expandido:** estado cuyos sucesores fueron analizados (cada llamada a :func:`expandir`).
-- **Maximo de frontera:** mayor tamano de la frontera observado con :meth:`MedidorBusqueda.observar_frontera`.
-- **Tiempo:** segundos transcurridos entre la creacion del medidor y :meth:`MedidorBusqueda.finalizar`.
+- **Máximo de frontera:** mayor tamaño de la frontera observado con :meth:`MedidorBusqueda.observar_frontera`.
+- **Tiempo:** segundos transcurridos entre la creación del medidor y :meth:`MedidorBusqueda.finalizar`.
 
-Uso tipico dentro de un algoritmo::
+Uso dentro de un algoritmo::
 
     medidor = MedidorBusqueda("BFS")
     raiz = Nodo(problema.estado_inicial)
@@ -38,10 +38,10 @@ from .resultado_busqueda import ResultadoBusqueda
 
 @dataclass(frozen=True, eq=False)
 class Nodo:
-    """Nodo del arbol de busqueda: estado, nodo padre, accion que lo produjo, costo acumulado y profundidad.
+    """Nodo del árbol de búsqueda: estado, nodo padre, acción que lo produjo, costo acumulado y profundidad.
 
-    La igualdad es por identidad: dos nodos distintos pueden contener el mismo estado (por ejemplo, en DFS o
-    cuando UCS encuentra un camino mejor), y cada algoritmo decide como detectar estados repetidos.
+    La igualdad es por identidad: dos nodos distintos pueden contener el mismo estado (por ejemplo, en DFS o cuando UCS
+    encuentra un camino mejor), y cada algoritmo decide cómo detectar estados repetidos.
     """
 
     estado: EstadoJuego
@@ -51,16 +51,17 @@ class Nodo:
     profundidad: int = 0
 
     def ruta(self) -> tuple["Nodo", ...]:
-        """Devuelve los nodos desde la raiz hasta este nodo, en orden, sin recursion.
+        """Devolver los nodos desde la raíz hasta este nodo, en orden y sin recursión.
 
-        Proposito: reconstruir la solucion siguiendo los enlaces ``padre`` sin riesgo de exceder el limite de
-        recursion en caminos largos.
-        Precondiciones: la cadena de padres es finita (se construye siempre hacia adelante con :func:`expandir`).
-        Postcondiciones: el primer elemento es la raiz y el ultimo es ``self``; no modifica ningun nodo.
-        Complejidad: O(d) temporal y espacial, donde d es la profundidad del nodo.
+        Proposito: reconstruir la solución siguiendo los enlaces ``padre`` sin riesgo de exceder el límite de recursión
+        en caminos largos.
+        Precondiciones: la cadena de padres es finita; se construye siempre hacia adelante con :func:`expandir`.
+        Postcondiciones: el primer elemento es la raíz y el último es ``self``; ningún nodo cambia.
+        Complejidad: O(d) temporal y espacial, con d la profundidad del nodo.
         Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion en E4.1.
-        Validacion del estudiante: cubierto por las pruebas de tests/algoritmos/test_instrumentacion.py.
+        Intervencion de IA: Claude (Opus 5.5): implementación y documentación (E4.1).
+        Validacion del estudiante: prueba ``test_nodo_ruta_va_de_la_raiz_al_nodo`` de
+        tests/algoritmos/test_instrumentacion.py.
         """
         nodos = []
         actual: Nodo | None = self
@@ -72,7 +73,7 @@ class Nodo:
 
 @dataclass(frozen=True)
 class EventoExpansion:
-    """Estado completo y proyeccion espacial de una expansion real, en su orden de observacion."""
+    """Estado completo y proyección espacial de una expansión real, en su orden de observación."""
 
     orden: int
     estado: EstadoJuego
@@ -81,7 +82,7 @@ class EventoExpansion:
 
 @dataclass(frozen=True)
 class TrazaExpansiones:
-    """Instantanea inmutable de eventos almacenados y del alcance real de la traza."""
+    """Instantánea inmutable de los eventos almacenados y del alcance real de la traza."""
 
     eventos: tuple[EventoExpansion, ...]
     total_expansiones: int
@@ -90,34 +91,34 @@ class TrazaExpansiones:
 
     @property
     def posiciones_unicas(self) -> tuple[Posicion, ...]:
-        """Proyecta los eventos guardados a posiciones unicas conservando el primer orden observado.
+        """Proyectar los eventos guardados a posiciones únicas conservando el primer orden observado.
 
-        Proposito: ofrecer al renderizador una vista espacial sin afirmar que posicion y estado son equivalentes.
+        Proposito: ofrecer al renderizador una vista espacial sin tratar como equivalentes la posición y el estado.
         Precondiciones: los eventos conservan el orden asignado por el observador.
-        Postcondiciones: devuelve cada posicion una vez; no modifica ni descarta los eventos originales.
+        Postcondiciones: se devuelve cada posición una vez; los eventos originales no cambian ni se descartan.
         Complejidad: O(X_t) temporal y espacial para X_t eventos almacenados.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento la proyeccion estable para E9.3.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de estados distintos en
-        una celda.
+        Intervencion de IA: Codex: proyección estable (E9.3).
+        Validacion del estudiante: prueba ``test_observador_registra_expansion_real_en_orden_y_con_identidad_completa``
+        de tests/algoritmos/test_instrumentacion.py, con estados distintos en una misma celda.
         """
         return tuple(dict.fromkeys(evento.posicion for evento in self.eventos))
 
 
 class ObservadorExpansiones:
-    """Captura opcional y acotada de estados realmente expandidos."""
+    """Captura opcional y acotada de los estados realmente expandidos."""
 
     def __init__(self, limite: int = 10_000) -> None:
-        """Configura el maximo de eventos conservados.
+        """Configurar el máximo de eventos conservados.
 
-        Proposito: limitar la memoria dedicada a visualizacion sin alterar el total real de expansiones.
+        Proposito: limitar la memoria dedicada a la visualización sin alterar el total real de expansiones.
         Precondiciones: ``limite`` es un entero mayor o igual que cero.
-        Postcondiciones: el observador queda vacio; un limite cero registra solo total y truncamiento.
+        Postcondiciones: el observador queda vacío; un límite cero registra solo el total y el truncamiento.
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño e implemento la captura acotada para E9.3.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas de limite y
-        orden.
+        Intervencion de IA: Codex: diseño e implementación de la captura acotada (E9.3).
+        Validacion del estudiante: pruebas de tests/algoritmos/test_instrumentacion.py: traza parcial con límite sin
+        pérdida del total y traza vacía con observador activo.
         """
         if type(limite) is not int or limite < 0:
             raise ValueError("El limite de la traza debe ser un entero mayor o igual que cero.")
@@ -126,16 +127,18 @@ class ObservadorExpansiones:
         self._total = 0
 
     def observar(self, estado: EstadoJuego, posicion: Posicion) -> None:
-        """Registra una expansion sin modificar el estado observado.
+        """Registrar una expansión sin modificar el estado observado.
 
-        Proposito: conservar identidad compuesta, posicion y orden de cada expansion hasta el limite configurado.
-        Precondiciones: ``estado`` es el nodo entregado a ``expandir`` y ``posicion`` es su proyeccion del problema.
+        Proposito: conservar la identidad compuesta, la posición y el orden de cada expansión hasta el límite
+        configurado.
+        Precondiciones: ``estado`` es el del nodo entregado a ``expandir`` y ``posicion`` es su proyección en el
+        problema.
         Postcondiciones: el total aumenta siempre; el evento se almacena solo si queda capacidad.
         Complejidad: O(1) temporal y O(1) espacial por evento almacenado.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento el registro exacto en el punto comun de expansion para E9.3.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de identidad, orden y
-        truncamiento.
+        Intervencion de IA: Codex: registro exacto en el punto común de expansión (E9.3).
+        Validacion del estudiante: pruebas de tests/algoritmos/test_instrumentacion.py: identidad completa, orden de
+        observación y truncamiento.
         """
         orden = self._total
         self._total += 1
@@ -143,15 +146,16 @@ class ObservadorExpansiones:
             self._eventos.append(EventoExpansion(orden, estado, posicion))
 
     def finalizar(self) -> TrazaExpansiones:
-        """Construye la instantanea inmutable consumida por el resultado.
+        """Construir la instantánea inmutable que consume el resultado.
 
-        Proposito: separar la captura mutable de la traza publica y señalar si el limite omitio eventos.
-        Precondiciones: las observaciones previas fueron registradas por ``observar``.
-        Postcondiciones: conserva orden, total y limite; ``truncada`` es verdadera solo si faltan eventos.
+        Proposito: separar la captura mutable de la traza pública e indicar si el límite omitió eventos.
+        Precondiciones: las observaciones previas se registraron con ``observar``.
+        Postcondiciones: se conservan el orden, el total y el límite; ``truncada`` es verdadera solo si faltan eventos.
         Complejidad: O(X_t) temporal y espacial para copiar X_t eventos almacenados.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento el cierre de la traza para E9.3.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de trazas vacias y limitadas.
+        Intervencion de IA: Codex: cierre de la traza (E9.3).
+        Validacion del estudiante: pruebas de tests/algoritmos/test_instrumentacion.py: trazas vacías, trazas limitadas
+        y ausencia de traza sin observador.
         """
         return TrazaExpansiones(
             eventos=tuple(self._eventos),
@@ -162,18 +166,17 @@ class ObservadorExpansiones:
 
 
 def es_valor_finito(valor: object) -> bool:
-    """Indica si un valor puede utilizarse con seguridad en la aritmetica de costos.
+    """Indicar si un valor puede usarse con seguridad en la aritmética de costos.
 
-    Proposito: centralizar la comprobacion numerica que impide propagar infinitos o NaN en las busquedas.
-    Precondiciones: ``valor`` es el resultado o un operando de una operacion de costo.
-    Postcondiciones: devuelve ``True`` solo para enteros o flotantes no booleanos que ``math.isfinite`` puede
-    confirmar como finitos; cualquier tipo o magnitud no soportada devuelve ``False`` sin filtrar excepciones.
+    Proposito: centralizar la comprobación numérica que impide propagar infinitos o NaN en las búsquedas.
+    Precondiciones: ``valor`` es el resultado o un operando de una operación de costo.
+    Postcondiciones: se devuelve ``True`` solo para enteros o flotantes no booleanos que ``math.isfinite`` confirma
+    como finitos; cualquier tipo o magnitud no soportada devuelve ``False`` sin propagar excepciones.
     Complejidad: O(1) temporal y espacial.
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento la guarda comun durante el cierre del riesgo numerico de E6.1.
-    Validacion del estudiante: el equipo reviso el cambio de E6.1; cubierta por
-    tests/algoritmos/test_busqueda_a_estrella.py y tests/algoritmos/test_busqueda_haz.py, que comprueban el rechazo
-    de costos, heuristicas y prioridades no finitos.
+    Intervencion de IA: Codex: guarda común durante el cierre del riesgo numérico de E6.1.
+    Validacion del estudiante: pruebas de tests/algoritmos/test_busqueda_a_estrella.py y
+    tests/algoritmos/test_busqueda_haz.py: rechazo de costos, heurísticas y prioridades no finitos.
     """
     if isinstance(valor, bool) or not isinstance(valor, (int, float)):
         return False
@@ -184,23 +187,24 @@ def es_valor_finito(valor: object) -> bool:
 
 
 def expandir(problema: Problema, nodo: Nodo, medidor: "MedidorBusqueda") -> tuple[Nodo, ...]:
-    """Genera los nodos hijos de ``nodo`` y registra una expansion en ``medidor``.
+    """Generar los nodos hijos de ``nodo`` y registrar una expansión en ``medidor``.
 
-    Proposito: concentrar la generacion de sucesores y el calculo de costo acumulado que comparten todos los
-    algoritmos de busqueda, para no duplicarlos.
-    Precondiciones: ``nodo.estado`` es un estado valido de ``problema``.
-    Postcondiciones: incrementa en 1 los estados expandidos y notifica su estado y posicion al observador opcional;
-    devuelve un hijo por cada accion de
-    ``problema.acciones`` en el mismo orden, con ``costo_acumulado`` = costo del padre + ``problema.costo``
-    (leido del escenario cargado) y profundidad + 1. Lanza ``ValueError`` si la suma no es finita o excede el
-    rango numerico soportado. No registra estados generados: cada algoritmo lo hace al incorporar un hijo.
-    Complejidad: O(b * T) temporal y O(b) espacial, donde b es el numero de acciones y T el costo de una
-    transicion del problema.
+    Proposito: concentrar la generación de sucesores y el cálculo del costo acumulado que comparten todos los
+    algoritmos de búsqueda.
+    Precondiciones: ``nodo.estado`` es un estado válido de ``problema``.
+    Postcondiciones: los estados expandidos aumentan en 1 y el observador opcional recibe el estado y su posición. Se
+    devuelve un hijo por cada acción de ``problema.acciones``, en el mismo orden, con ``costo_acumulado`` igual al costo
+    del padre más ``problema.costo`` (leído del escenario cargado) y profundidad + 1. Se lanza ``ValueError`` si la suma
+    no es finita o excede el rango numérico soportado. Los estados generados no se registran aquí: cada algoritmo los
+    cuenta al incorporar un hijo.
+    Complejidad: O(b * T) temporal y O(b) espacial, con b el número de acciones y T el costo de una transición del
+    problema.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion en E4.1; Codex agrego en
-    E6.1 el rechazo controlado de acumulaciones no finitas.
-    Validacion del estudiante: el equipo reviso el cambio numerico de E6.1; las pruebas existentes
-    comprueban orden de hijos, costo acumulado desde el JSON y conteo de expansiones.
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación (E4.1). Codex: rechazo controlado de
+    acumulaciones no finitas (E6.1).
+    Validacion del estudiante: prueba ``test_expandir_genera_hijos_en_orden_con_costo_del_json_y_cuenta_una_expansion``
+    de tests/algoritmos/test_instrumentacion.py y prueba de desbordamiento de la acumulación en
+    tests/algoritmos/test_busqueda_a_estrella.py.
     """
     medidor.registrar_expandido(nodo.estado, problema.posicion(nodo.estado))
     hijos = []
@@ -226,7 +230,7 @@ def expandir(problema: Problema, nodo: Nodo, medidor: "MedidorBusqueda") -> tupl
 
 
 class MedidorBusqueda:
-    """Acumula las metricas de una ejecucion y construye su :class:`ResultadoBusqueda`."""
+    """Acumulador de las métricas de una ejecución que construye su :class:`ResultadoBusqueda`."""
 
     def __init__(
         self,
@@ -234,20 +238,20 @@ class MedidorBusqueda:
         reloj: Callable[[], float] = time.perf_counter,
         observador_expansiones: ObservadorExpansiones | None = None,
     ) -> None:
-        """Prepara la medicion de una busqueda: cronometro en marcha y contadores en cero.
+        """Preparar la medición de una búsqueda con el cronómetro en marcha y los contadores en cero.
 
-        Proposito: que todos los algoritmos de busqueda midan generados, expandidos, maximo de frontera y tiempo con
-        la misma convencion de E4.1.
-        Precondiciones: ``algoritmo`` es el nombre con el que se reportara el resultado; ``reloj`` devuelve segundos
+        Proposito: que todos los algoritmos de búsqueda midan generados, expandidos, máximo de frontera y tiempo con la
+        misma convención de E4.1.
+        Precondiciones: ``algoritmo`` es el nombre con el que se reporta el resultado; ``reloj`` devuelve segundos
         crecientes (por defecto ``time.perf_counter``; las pruebas pueden fijarlo).
-        Postcondiciones: el medidor queda con los tres contadores en 0, el instante de inicio tomado de ``reloj`` y,
-        si se recibe, el observador de expansiones de E9.3, que no altera las metricas.
+        Postcondiciones: el medidor queda con los tres contadores en 0, el instante de inicio tomado de ``reloj`` y, si
+        se recibe, el observador de expansiones de E9.3, que no altera las métricas.
         Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) lo implemento en E4.1; Codex agrego el observador de expansiones en
-        E9.3; Claude (Opus 5.5) redacto esta documentacion en E11.1.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
-        tests/algoritmos/test_instrumentacion.py, que construye medidores con un reloj fijo y con observador.
+        Intervencion de IA: Claude (Opus 5.5): implementación (E4.1) y documentación (E11.1). Codex: observador de
+        expansiones (E9.3).
+        Validacion del estudiante: pruebas de tests/algoritmos/test_instrumentacion.py, que construyen medidores con un
+        reloj fijo y con observador.
         """
         self.algoritmo = algoritmo
         self._reloj = reloj
@@ -258,34 +262,35 @@ class MedidorBusqueda:
         self._observador_expansiones = observador_expansiones
 
     def registrar_generado(self, cantidad: int = 1) -> None:
-        """Cuenta ``cantidad`` estados incorporados a la frontera."""
+        """Contar ``cantidad`` estados incorporados a la frontera."""
         self.estados_generados += cantidad
 
     def registrar_expandido(self, estado: EstadoJuego, posicion: Posicion) -> None:
-        """Cuenta un estado cuyos sucesores fueron analizados."""
+        """Contar un estado cuyos sucesores fueron analizados."""
         self.estados_expandidos += 1
         if self._observador_expansiones is not None:
             self._observador_expansiones.observar(estado, posicion)
 
     def observar_frontera(self, tamano: int) -> None:
-        """Actualiza el maximo de frontera con el tamano actual."""
+        """Actualizar el máximo de frontera con el tamaño actual."""
         self.maximo_frontera = max(self.maximo_frontera, tamano)
 
     def finalizar(self, problema: Problema, nodo_objetivo: Nodo | None) -> ResultadoBusqueda:
-        """Detiene el cronometro y construye el resultado comun de la busqueda.
+        """Detener el cronómetro y construir el resultado común de la búsqueda.
 
         Proposito: producir para cualquier algoritmo la misma estructura de salida del enunciado.
-        Precondiciones: ``nodo_objetivo`` es ``None`` si no hubo solucion, o un nodo cuyo estado satisface
+        Precondiciones: ``nodo_objetivo`` es ``None`` si no hubo solución, o un nodo cuyo estado satisface
         ``problema.es_objetivo`` y cuya cadena de padres llega al estado inicial.
-        Postcondiciones: con solucion, ``camino`` contiene ``problema.posicion`` de cada estado desde el inicial
-        hasta el objetivo, ``acciones`` las transiciones aplicadas y ``costo`` el costo acumulado del nodo; sin
-        solucion, ``exito`` es falso, el camino y las acciones estan vacios y ``costo`` es ``None``. En ambos
-        casos incluye contadores, tiempo y la instantanea del observador opcional.
-        Complejidad: O(d + X_t) temporal y espacial, donde d es la profundidad y X_t los eventos almacenados.
+        Postcondiciones: con solución, ``camino`` contiene ``problema.posicion`` de cada estado desde el inicial hasta
+        el objetivo, ``acciones`` las transiciones aplicadas y ``costo`` el costo acumulado del nodo; sin solución,
+        ``exito`` es falso, el camino y las acciones quedan vacíos y ``costo`` es ``None``. En ambos casos se incluyen
+        los contadores, el tiempo y la instantánea del observador opcional.
+        Complejidad: O(d + X_t) temporal y espacial, con d la profundidad y X_t los eventos almacenados.
         Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) propuso E4.1; Codex agrego la traza opcional de E9.3.
-        Validacion del estudiante: cubierto por las pruebas de tests/algoritmos/test_instrumentacion.py, que
-        ejecutan una busqueda de ejemplo sobre escenarios del repositorio y comprueban camino, costo y metricas.
+        Intervencion de IA: Claude (Opus 5.5): implementación (E4.1). Codex: traza opcional (E9.3).
+        Validacion del estudiante: pruebas de tests/algoritmos/test_instrumentacion.py: resultado exitoso coherente con
+        el problema, misma estructura para dos estrategias, objetivo en un muro sin solución e inicio que ya es
+        objetivo.
         """
         tiempo = self._reloj() - self._inicio
         traza = self._observador_expansiones.finalizar() if self._observador_expansiones is not None else None

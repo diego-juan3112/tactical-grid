@@ -1,10 +1,11 @@
 """Registro reproducible de experimentos (E10.3).
 
-Reune en una sola estructura serializable a JSON todo lo necesario para repetir y comparar una prueba: el escenario
-(con una huella de su contenido), el modo, los parametros ya resueltos (de la consola o del JSON), el comando que la
-reproduce, los resultados con la estructura del enunciado y, si se pidio, la verificacion de E10.2.
+Reúne en una sola estructura serializable a JSON lo necesario para repetir y comparar una prueba: el escenario (con
+una huella de su contenido), el modo, los parámetros ya resueltos (de la consola o del JSON), el comando que la
+reproduce, los resultados con la estructura del enunciado y, si se pidió, la verificación de E10.2.
 
-Este modulo no abre archivos (regla de la capa de modos): la huella del escenario la calcula quien lee el archivo.
+Este módulo no abre archivos, según la regla de la capa de modos: la huella del escenario la calcula quien lee el
+archivo.
 """
 
 import json
@@ -37,7 +38,7 @@ CLAVES_ENUNCIADO_ADVERSARIAL = (
     "valor",
 )
 
-# Opcion de consola de cada parametro, en el orden en que se escribe el comando de reproduccion.
+# Opción de consola de cada parámetro, en el orden en que se escribe el comando de reproducción.
 _OPCIONES = (
     ("algoritmo", "--algoritmo"),
     ("unidad", "--unidad"),
@@ -52,7 +53,7 @@ _OPCIONES = (
 
 @dataclass
 class RegistroExperimento:
-    """Acumula el modo, los parametros y los resultados de una ejecucion para exportarlos juntos."""
+    """Acumulador del modo, los parámetros y los resultados de una ejecución para exportarlos juntos."""
 
     archivo: str
     huella_sha256: str
@@ -64,16 +65,16 @@ class RegistroExperimento:
     verificar: bool = False
 
     def definir(self, modo: str, **parametros: object) -> None:
-        """Registra el modo y los parametros ya resueltos (los que realmente uso la ejecucion)."""
+        """Registrar el modo y los parámetros ya resueltos, es decir, los que usó la ejecución."""
         self.modo = modo
         self.parametros = {clave: valor for clave, valor in parametros.items() if valor is not None}
 
     def agregar_resultado(self, resultado) -> None:
-        """Agrega un resultado con ``a_diccionario`` (busqueda, Minimax, alfa-beta, comparacion o partida)."""
+        """Agregar un resultado con ``a_diccionario`` (búsqueda, Minimax, alfa-beta, comparación o partida)."""
         self.resultados.append(resultado.a_diccionario())
 
     def agregar_verificacion(self, reporte) -> None:
-        """Agrega un ``ReporteVerificacion`` de E10.2."""
+        """Agregar un ``ReporteVerificacion`` de E10.2."""
         self.verificaciones.append(
             {
                 "sujeto": reporte.sujeto,
@@ -85,21 +86,21 @@ class RegistroExperimento:
         )
 
     def comando(self) -> str:
-        """Construye la linea de consola que reproduce este registro.
+        """Construir la línea de consola que reproduce este registro.
 
-        Proposito: serializar escenario, modo, parametros resueltos y verificacion como un comando seguro para shell.
-        Precondiciones: ``archivo`` es una ruta representable como texto y ``parametros`` contiene valores ya
-        resueltos por el orquestador; el metodo no comprueba que el comando pueda ejecutarse en otro entorno.
-        Postcondiciones: devuelve una linea que empieza con ``python main.py`` y conserva cada opcion conocida en
-        ``_OPCIONES``; listas/tuplas se emiten como argumentos multiples y ``shlex.join`` cita cada argumento. Anade
-        ``--modo`` y ``--verificar`` cuando corresponden. No modifica el registro.
-        Complejidad: O(P + S) temporal y espacial, donde P es la cantidad de valores emitidos y S la longitud total
-        de sus representaciones de texto.
+        Proposito: serializar escenario, modo, parámetros resueltos y verificación como un comando seguro para la shell.
+        Precondiciones: ``archivo`` es una ruta representable como texto y ``parametros`` contiene valores ya resueltos
+        por el orquestador; aquí no se comprueba que el comando se pueda ejecutar en otro entorno.
+        Postcondiciones: se devuelve una línea que empieza con ``python main.py`` y conserva cada opción conocida en
+        ``_OPCIONES``; las listas y tuplas se emiten como argumentos múltiples y ``shlex.join`` cita cada argumento. Se
+        agregan ``--modo`` y ``--verificar`` cuando corresponden. El registro no cambia.
+        Complejidad: O(P + S) temporal y espacial, con P la cantidad de valores emitidos y S la longitud total de sus
+        representaciones de texto.
         Uso de IA: Si.
-        Intervencion de IA: Codex documento este metodo en la correccion de hallazgos; la procedencia individual de la
-        implementacion original no esta declarada en Git. E10.3 atribuye a Claude (Opus 5.5) el diseno del registro.
-        Validacion del estudiante: no hay constancia de revision del equipo en los archivos consultados. Las pruebas
-        de tests/modos/test_registro.py comprueban argumentos, quoting y orden, pero no acreditan una revision.
+        Intervencion de IA: Claude (Opus 5.5): diseño del registro reproducible (E10.3). Codex: documentación del método
+        durante la corrección de hallazgos.
+        Validacion del estudiante: pruebas de tests/modos/test_registro.py: comando que reproduce los mismos resultados,
+        citado de argumentos con espacios y omisión de parámetros que no son opciones de consola.
         """
         partes = ["python", "main.py", self.archivo]
         if self.modo is not None:
@@ -115,21 +116,20 @@ class RegistroExperimento:
         return shlex.join(partes)
 
     def a_diccionario(self) -> dict[str, object]:
-        """Construye el documento reproducible del experimento.
+        """Construir el documento reproducible del experimento.
 
-        Proposito: hacer accesible el resultado de cualquier prueba en una estructura equivalente a la del enunciado,
-        con lo necesario para repetirla y compararla.
-        Precondiciones: ``definir`` ya se llamo con el modo y los parametros resueltos.
-        Postcondiciones: devuelve un diccionario serializable con ``json.dumps`` con las claves ``formato``,
-        ``escenario`` (archivo, version, dimensiones y huella SHA-256), ``modo``, ``parametros``, ``comando``,
-        ``nota``, ``resultados`` (cada uno con las claves del enunciado para su tipo) y, si se verifico,
-        ``verificacion``. No modifica el registro.
-        Complejidad: O(R) temporal y espacial, donde R es el tamano total de los resultados registrados.
+        Proposito: exponer el resultado de cualquier prueba en una estructura equivalente a la del enunciado, con lo
+        necesario para repetirla y compararla.
+        Precondiciones: ``definir`` ya se llamó con el modo y los parámetros resueltos.
+        Postcondiciones: se devuelve un diccionario serializable con ``json.dumps`` con las claves ``formato``,
+        ``escenario`` (archivo, versión, dimensiones y huella SHA-256), ``modo``, ``parametros``, ``comando``, ``nota``,
+        ``resultados`` (cada uno con las claves del enunciado para su tipo) y, si se verificó, ``verificacion``. El
+        registro no cambia.
+        Complejidad: O(R) temporal y espacial, con R el tamaño total de los resultados registrados.
         Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) diseno la estructura del registro y la implemento en E10.3.
-        Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
-        tests/modos/test_registro.py comprueban las claves del enunciado en los tres modos, que el comando reproduce
-        el mismo resultado y que dos ejecuciones coinciden salvo el tiempo.
+        Intervencion de IA: Claude (Opus 5.5): estructura del registro e implementación (E10.3).
+        Validacion del estudiante: pruebas de tests/modos/test_registro.py: claves del enunciado en los tres modos,
+        comando que reproduce el mismo resultado y dos ejecuciones que solo difieren en el tiempo.
         """
         documento: dict[str, object] = {
             "formato": FORMATO,
@@ -159,7 +159,7 @@ def _es_escalar(valor: object) -> bool:
 
 
 def _en_linea(valor: object) -> bool:
-    """Una lista va en una sola linea si sus elementos son escalares o listas de escalares (por ejemplo, un camino)."""
+    """Indicar si una lista va en una sola línea: sus elementos son escalares o listas de escalares, como un camino."""
     return all(
         _es_escalar(elemento) or (isinstance(elemento, (list, tuple)) and all(_es_escalar(e) for e in elemento))
         for elemento in valor
@@ -181,20 +181,19 @@ def _formatear(valor: object, nivel: int) -> str:
 
 
 def serializar(documento: dict[str, object]) -> str:
-    """Convierte el registro en texto JSON legible: indentado, pero con las listas de valores en una sola linea.
+    """Convertir el registro en texto JSON legible: indentado, pero con las listas de valores en una sola línea.
 
-    Proposito: que el registro se lea como el ejemplo del enunciado, con ``camino`` en la forma ``[[3, 2], [3, 3]]`` en
-    lugar de una coordenada por linea.
+    Proposito: presentar el registro como el ejemplo del enunciado, con ``camino`` en la forma ``[[3, 2], [3, 3]]`` en
+    lugar de una coordenada por línea.
     Precondiciones: ``documento`` es serializable con ``json.dumps``.
-    Postcondiciones: devuelve texto JSON valido; ``json.loads`` lo convierte de nuevo exactamente en ``documento``.
-    Recorre la estructura (no modifica el texto con expresiones regulares), asi que el contenido de las cadenas nunca
-    se altera.
-    Complejidad: O(N) temporal y espacial, donde N es el tamano del documento.
+    Postcondiciones: se devuelve texto JSON válido, que ``json.loads`` convierte de nuevo exactamente en ``documento``.
+    Se recorre la estructura, sin expresiones regulares sobre el texto, de modo que el contenido de las cadenas no se
+    altera.
+    Complejidad: O(N) temporal y espacial, con N el tamaño del documento.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) implemento este formateador recursivo en E10.3.
-    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
-    tests/modos/test_registro.py comprueban que el texto vuelve a producir el mismo documento, incluidas cadenas con
-    comas y corchetes.
+    Intervencion de IA: Claude (Opus 5.5): formateador recursivo (E10.3).
+    Validacion del estudiante: prueba ``test_serializar_conserva_cualquier_contenido`` de tests/modos/test_registro.py,
+    con cadenas que contienen comas y corchetes.
     """
     return _formatear(documento, 0)
 

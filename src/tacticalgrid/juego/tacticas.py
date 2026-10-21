@@ -1,22 +1,22 @@
-"""Acciones tacticas adversariales (E8.1): el significado tactico de cada accion legal.
+"""Acciones tácticas adversariales (E8.1): el significado táctico de cada acción legal.
 
-El juego tiene solo dos mecanicas: moverse una celda e interceptar al portador rival adyacente. Las tacticas del
-enunciado (avanzar, proteger zona, bloquear posicion, aproximarse al recurso, interceptar al portador) no agregan
-mecanicas nuevas: son una clasificacion de esas acciones legales segun la situacion. Asi el espacio de acciones de
-Minimax sigue siendo ``acciones_validas`` (legal por construccion y acotado a cinco acciones por unidad), y cada
-decision puede explicarse por su tipo tactico.
+El juego tiene solo dos mecánicas: moverse una celda e interceptar al portador rival adyacente. Las tácticas del
+enunciado (avanzar, proteger zona, bloquear posición, aproximarse al recurso, interceptar al portador) no agregan
+mecánicas: clasifican esas acciones legales según la situación. Así, el espacio de acciones de Minimax sigue siendo
+``acciones_validas``, legal por construcción y acotado a cinco acciones por unidad, y cada decisión se puede
+explicar por su tipo táctico.
 
-Reglas de clasificacion, en orden de prioridad (``d`` es la distancia Manhattan):
+Reglas de clasificación, en orden de prioridad (``d`` es la distancia Manhattan):
 
-1. ``interceptar_portador``: la accion es de tipo ``interceptar``.
+1. ``interceptar_portador``: la acción es de tipo ``interceptar``.
 2. Recurso libre: ``aproximarse_al_recurso`` si el movimiento reduce ``d`` hasta el recurso (incluye recogerlo).
 3. Recurso en manos del propio bando:
    - el portador: ``avanzar`` si reduce ``d`` hasta su base;
    - un aliado: ``proteger_zona`` si reduce ``d`` hasta el portador (lo escolta y cubre su zona).
 4. Recurso en manos del rival:
-   - ``bloquear_posicion`` si el destino queda dentro del rectangulo entre el portador rival y la base rival, es
-     decir, sobre alguna de sus rutas mas cortas;
-   - ``perseguir_portador`` si no, pero reduce ``d`` hasta el portador rival.
+   - ``bloquear_posicion`` si el destino queda dentro del rectángulo entre el portador rival y la base rival, es
+     decir, sobre alguna de sus rutas más cortas;
+   - ``perseguir_portador`` si no bloquea, pero reduce ``d`` hasta el portador rival.
 5. ``reposicionar``: cualquier otro movimiento legal.
 """
 
@@ -50,7 +50,7 @@ TIPOS_TACTICOS = (
 
 @dataclass(frozen=True)
 class AccionTactica:
-    """Accion legal acompanada de su tipo tactico."""
+    """Acción legal acompañada de su tipo táctico."""
 
     accion: Accion
     tipo_tactico: str
@@ -72,21 +72,19 @@ def _dentro_del_rectangulo(posicion: Posicion, esquina_a: Posicion, esquina_b: P
 
 
 def clasificar_accion(escenario: Escenario, estado: EstadoJuego, accion: Accion) -> str:
-    """Asigna a una accion legal su tipo tactico segun la situacion del recurso y de las unidades.
+    """Asignar a una acción legal su tipo táctico según la situación del recurso y de las unidades.
 
-    Proposito: dar significado tactico (avanzar, proteger zona, bloquear posicion, aproximarse al recurso,
-    perseguir o interceptar al portador) a las acciones que consumira Minimax, sin crear mecanicas nuevas.
+    Proposito: dar significado táctico (avanzar, proteger zona, bloquear posición, aproximarse al recurso, perseguir
+    o interceptar al portador) a las acciones que consume Minimax, sin crear mecánicas nuevas.
     Precondiciones: ``accion`` pertenece a ``acciones_validas(escenario, estado)``; las bases vienen del escenario.
-    Postcondiciones: devuelve exactamente uno de ``TIPOS_TACTICOS`` aplicando las reglas del modulo en orden de
-    prioridad; el resultado depende solo de ``escenario``, ``estado`` y ``accion`` (es determinista) y no modifica
-    nada. Es simetrico para A y B: solo usa "propio" y "rival", nunca un bando concreto.
+    Postcondiciones: se devuelve exactamente uno de ``TIPOS_TACTICOS`` según las reglas del módulo, en orden de
+    prioridad. El resultado depende solo de ``escenario``, ``estado`` y ``accion``, es determinista y no modifica
+    nada. Es simétrico para A y B: solo usa "propio" y "rival", nunca un bando concreto.
     Complejidad: O(U) temporal para localizar la unidad y al portador, y O(1) espacial.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso el conjunto de tipos, sus reglas geometricas y la implementacion
-    en E8.1.
-    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
-    tests/juego/test_tacticas.py cubren cada tipo tactico, la simetria entre bandos y la legalidad de todas las
-    acciones clasificadas.
+    Intervencion de IA: Claude (Opus 5.5): conjunto de tipos, reglas geométricas e implementación (E8.1).
+    Validacion del estudiante: pruebas de tests/juego/test_tacticas.py: cada tipo táctico, simetría entre bandos y
+    legalidad de todas las acciones clasificadas.
     """
     if accion.tipo == INTERCEPTAR:
         return INTERCEPTAR_PORTADOR
@@ -108,20 +106,19 @@ def clasificar_accion(escenario: Escenario, estado: EstadoJuego, accion: Accion)
 
 
 def acciones_tacticas(escenario: Escenario, estado: EstadoJuego) -> tuple[AccionTactica, ...]:
-    """Devuelve las acciones legales del bando en turno, cada una con su tipo tactico.
+    """Devolver las acciones legales del bando en turno, cada una con su tipo táctico.
 
-    Proposito: ofrecer a Minimax y alfa-beta (E8.3, E8.4) un espacio de acciones legal y acotado con significado
-    tactico, util para explicar decisiones y para experimentar con el orden de las acciones.
+    Proposito: ofrecer a Minimax y alfa-beta (E8.3, E8.4) un espacio de acciones legal y acotado, con significado
+    táctico, para explicar decisiones y experimentar con el orden de las acciones.
     Precondiciones: ``estado`` es coherente con ``escenario``.
-    Postcondiciones: devuelve, en el mismo orden que ``acciones_validas``, una ``AccionTactica`` por cada accion
-    legal; la tupla esta vacia si la partida termino o el bando esta bloqueado. Toda accion devuelta es legal y a
-    lo sumo hay cinco por unidad del bando en turno. No modifica el estado.
-    Complejidad: O(A * U) temporal y O(A) espacial, donde A es el numero de acciones legales y U el de unidades.
+    Postcondiciones: se devuelve, en el mismo orden que ``acciones_validas``, una ``AccionTactica`` por cada acción
+    legal; la tupla está vacía si la partida terminó o el bando está bloqueado. Toda acción devuelta es legal y hay a
+    lo sumo cinco por unidad del bando en turno. El estado no cambia.
+    Complejidad: O(A * U) temporal y O(A) espacial, con A acciones legales y U unidades.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso e implemento esta consulta en E8.1.
-    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
-    tests/juego/test_tacticas.py exploran partidas sobre los escenarios del repositorio y comprueban que toda accion
-    tactica es legal y se puede aplicar.
+    Intervencion de IA: Claude (Opus 5.5): diseño e implementación de la consulta (E8.1).
+    Validacion del estudiante: pruebas de tests/juego/test_tacticas.py: partidas sobre los escenarios del repositorio
+    en las que toda acción táctica es legal y aplicable.
     """
     return tuple(
         AccionTactica(accion, clasificar_accion(escenario, estado, accion))

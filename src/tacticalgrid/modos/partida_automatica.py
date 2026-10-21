@@ -1,15 +1,15 @@
 """Modo ``partida`` (E10.1): ambos bandos juegan por turnos con alfa-beta (o Minimax) desde el estado cargado.
 
-Decisiones de diseno:
+Decisiones de diseño:
 
-- La partida continua desde el estado del escenario (unidades, turno y portador del JSON); no se reinicia.
-- En cada turno se aplica ``preparar_turno`` (E3.1/E1.3): si el bando en turno esta bloqueado, pasa el turno al
-  adversario, y si ambos lo estan la partida termina en empate. El pase se registra en la jugada siguiente.
+- La partida continúa desde el estado del escenario (unidades, turno y portador del JSON); no se reinicia.
+- En cada turno se aplica ``preparar_turno`` (E3.1/E1.3): si el bando en turno está bloqueado, el turno pasa al
+  adversario, y si ambos lo están la partida termina en empate. El pase se registra en la jugada siguiente.
 - El bando en turno decide con el mismo algoritmo, profundidad y orden de acciones que su rival: MAX y MIN son
-  roles de cada busqueda, no capacidades distintas.
-- Termina con victoria, con empate por bloqueo o al alcanzar ``max_turnos`` jugadas. El limite existe porque dos
-  bandos que se custodian mutuamente pueden no terminar nunca; no se agrega una regla de empate por repeticion,
-  que no forma parte de las reglas del juego.
+  roles de cada búsqueda, no capacidades distintas.
+- La partida termina con victoria, con empate por bloqueo o al alcanzar ``max_turnos`` jugadas. El límite existe
+  porque dos bandos que se custodian mutuamente pueden no terminar nunca; no se agrega una regla de empate por
+  repetición, que no forma parte de las reglas del juego.
 """
 
 from dataclasses import dataclass
@@ -30,7 +30,7 @@ LIMITE_TURNOS = "limite_turnos"
 
 @dataclass(frozen=True)
 class TurnoPartida:
-    """Una jugada de la partida: quien jugo, desde que estado, que decidio y en que estado quedo."""
+    """Jugada de la partida: bando que jugó, estado de partida, decisión y estado resultante."""
 
     numero: int
     bando: str
@@ -40,7 +40,7 @@ class TurnoPartida:
     estado_resultante: EstadoJuego
 
     def a_diccionario(self) -> dict[str, object]:
-        """Exporta la jugada con las metricas de su decision, lista para ``json.dumps``."""
+        """Exportar la jugada con las métricas de su decisión, lista para ``json.dumps``."""
         return {
             "numero": self.numero,
             "bando": self.bando,
@@ -51,7 +51,7 @@ class TurnoPartida:
 
 @dataclass(frozen=True)
 class ResultadoPartida:
-    """Partida completa: configuracion, jugadas y resultado (``victoria_A``, ``victoria_B``, empate o limite)."""
+    """Partida completa: configuración, jugadas y resultado (``victoria_A``, ``victoria_B``, empate o límite)."""
 
     algoritmo: str
     profundidad: int
@@ -64,11 +64,11 @@ class ResultadoPartida:
 
     @property
     def ganador(self) -> str | None:
-        """Bando ganador, o ``None`` si la partida termino en empate o por el limite de turnos."""
+        """Bando ganador, o ``None`` si la partida terminó en empate o por el límite de turnos."""
         return self.resultado.removeprefix("victoria_") if self.resultado.startswith("victoria_") else None
 
     def a_diccionario(self) -> dict[str, object]:
-        """Exporta la partida y sus jugadas en una estructura serializable con ``json.dumps``."""
+        """Exportar la partida y sus jugadas en una estructura serializable con ``json.dumps``."""
         return {
             "algoritmo": self.algoritmo,
             "profundidad": self.profundidad,
@@ -89,25 +89,26 @@ def jugar_partida(
     orden: str = ORDEN_GENERACION,
     max_turnos: int = MAX_TURNOS_POR_DEFECTO,
 ) -> ResultadoPartida:
-    """Continua la partida por turnos desde ``estado``, con ambos bandos decidiendo con el mismo algoritmo.
+    """Continuar la partida por turnos desde ``estado``, con ambos bandos decidiendo con el mismo algoritmo.
 
-    Proposito: implementar el modo ``partida`` del enunciado ("cargar el escenario completo para continuar el juego
-    por turnos") de forma determinista y reproducible.
+    Proposito: implementar el modo ``partida`` del enunciado ("cargar el escenario completo para continuar el juego por
+    turnos") de forma determinista y reproducible.
     Precondiciones: ``estado`` es coherente con ``escenario``; ``profundidad`` es un entero mayor o igual que 1;
-    ``algoritmo`` es ``minimax`` o ``alfa_beta``; ``orden`` es uno de ``ORDENES``; ``max_turnos`` es un entero mayor
-    o igual que 1. Si no, lanza ``ValueError`` antes de jugar.
-    Postcondiciones: devuelve un ``ResultadoPartida`` con, a lo sumo, ``max_turnos`` jugadas. Cada jugada es legal
-    en su ``estado_previo`` (ya resuelto el pase por bloqueo) y la decide el bando en turno como MAX. El resultado es
-    ``victoria_A`` o ``victoria_B`` si un portador llego a su base, ``empate_bloqueo`` si ningun bando puede actuar y
-    ``limite_turnos`` si se alcanzo el limite sin terminar. Con los mismos datos, la partida es siempre la misma.
-    ``estado`` no se modifica.
-    Complejidad: O(T * C), con T jugadas (a lo sumo ``max_turnos``) y C el costo de una decision: O(b^d) con Minimax
-    y, en el peor caso, tambien con alfa-beta, con b acciones por nodo y d la profundidad.
+    ``algoritmo`` es ``minimax`` o ``alfa_beta``; ``orden`` es uno de ``ORDENES``; ``max_turnos`` es un entero mayor o
+    igual que 1. En otro caso se lanza ``ValueError`` antes de jugar.
+    Postcondiciones: se devuelve un ``ResultadoPartida`` con, a lo sumo, ``max_turnos`` jugadas. Cada jugada es legal en
+    su ``estado_previo`` (con el pase por bloqueo ya resuelto) y la decide el bando en turno como MAX. El resultado es
+    ``victoria_A`` o ``victoria_B`` si un portador llegó a su base, ``empate_bloqueo`` si ningún bando puede actuar y
+    ``limite_turnos`` si se alcanzó el límite sin terminar. Con los mismos datos la partida es siempre la misma.
+    ``estado`` no cambia.
+    Complejidad: O(T * C), con T jugadas (a lo sumo ``max_turnos``) y C el costo de una decisión: O(b^d) con Minimax y,
+    en el peor caso, también con alfa-beta, con b acciones por nodo y d la profundidad.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso el diseno (IA contra IA desde el estado cargado, registro de pases y
-    limite de turnos sin regla de repeticion), la implementacion y sus pruebas en E10.1.
-    Validacion del estudiante: se valida la implementacion tras su integracion en
-    tests/modos/test_partida_automatica.py, que incluye una partida calculada a mano con pases por bloqueo.
+    Intervencion de IA: Claude (Opus 5.5): diseño (IA contra IA desde el estado cargado, registro de pases y límite de
+    turnos sin regla de repetición), implementación y pruebas (E10.1).
+    Validacion del estudiante: pruebas de tests/modos/test_partida_automatica.py: partida calculada a mano con pases por
+    bloqueo, legalidad de cada jugada con alternancia de bandos, límite de turnos, empate por bloqueo total, misma
+    partida con Minimax y alfa-beta, y determinismo.
     """
     profundidad = validar_profundidad(profundidad)
     orden = validar_orden(orden)

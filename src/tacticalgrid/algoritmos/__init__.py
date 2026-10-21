@@ -1,4 +1,4 @@
-"""Algoritmos de busqueda y decision, y la instrumentacion comun de sus metricas."""
+"""Algoritmos de búsqueda y decisión, y la instrumentación común de sus métricas."""
 
 from .alfa_beta import alfa_beta
 from .comparacion_adversarial import ComparacionAdversarial, comparar_minimax_alfa_beta

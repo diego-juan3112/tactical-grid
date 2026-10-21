@@ -1,4 +1,4 @@
-"""Representacion interna e inmutable de la informacion estatica del escenario."""
+"""Representación interna e inmutable de la información estática del escenario."""
 
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -9,7 +9,7 @@ from .terreno import TipoTerreno
 
 @dataclass(frozen=True)
 class Posicion:
-    """Coordenada de una celda de la cuadricula."""
+    """Coordenada de una celda de la cuadrícula."""
 
     fila: int
     columna: int
@@ -17,7 +17,7 @@ class Posicion:
 
 @dataclass(frozen=True)
 class UnidadInicial:
-    """Descripcion estatica de una unidad declarada en el escenario."""
+    """Descripción estática de una unidad declarada en el escenario."""
 
     identificador: str
     bando: str
@@ -27,7 +27,7 @@ class UnidadInicial:
 
 @dataclass(frozen=True)
 class Escenario:
-    """Informacion estatica validada que provee el escenario externo al dominio."""
+    """Información estática validada que el escenario externo entrega al dominio."""
 
     version: str
     filas: int
@@ -43,23 +43,21 @@ class Escenario:
     configuracion_prueba: Mapping[str, object] | None
 
     def __post_init__(self) -> None:
-        """Protege los mapas internos del escenario contra modificaciones posteriores a la carga.
+        """Proteger los mapas internos del escenario contra modificaciones posteriores a la carga.
 
-        Proposito: que ninguna capa (reglas, algoritmos o interfaz) pueda alterar costos, bases o configuracion de un
-        escenario ya validado, de modo que todas lean los mismos datos.
-        Precondiciones: los campos fueron construidos por ``cargar_escenario`` a partir de un JSON validado.
+        Proposito: impedir que reglas, algoritmos o interfaz alteren costos, bases o configuración de un escenario ya
+        validado, para que todas las capas lean los mismos datos.
+        Precondiciones: los campos provienen de ``cargar_escenario`` y de un JSON validado.
         Postcondiciones: ``tipos_terreno``, ``bases``, ``configuracion_juego`` y, si existe, ``configuracion_prueba``
-        quedan como copias de solo lectura (``MappingProxyType``): asignar una clave lanza ``TypeError``, y los
-        campos del dataclass congelado no se pueden reasignar. La proteccion es superficial: los objetos anidados de
-        ``configuracion_juego`` y ``configuracion_prueba`` (por ejemplo ``pesos_utilidad`` u ``objetivo``) siguen
-        siendo diccionarios comunes.
-        Complejidad: O(T + P) temporal y espacial, donde T son los tipos de terreno y P las claves de configuracion.
+        quedan como copias de solo lectura (``MappingProxyType``): asignar una clave lanza ``TypeError`` y los campos
+        del dataclass congelado no se pueden reasignar. La protección es superficial: los objetos anidados de
+        ``configuracion_juego`` y ``configuracion_prueba``, como ``pesos_utilidad`` u ``objetivo``, siguen siendo
+        diccionarios comunes.
+        Complejidad: O(T + P) temporal y espacial, con T tipos de terreno y P claves de configuración.
         Uso de IA: Si.
-        Intervencion de IA: Codex propuso la implementacion inicial en E0.3; Claude (Opus 5.5) redacto esta
-        documentacion en E11.1.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
-        tests/escenario/test_cargador.py, que comprueba que los mapas no aceptan claves nuevas y que los campos no se
-        pueden reasignar.
+        Intervencion de IA: Codex: implementación inicial (E0.3). Claude (Opus 5.5): documentación (E11.1).
+        Validacion del estudiante: prueba ``test_el_escenario_protege_sus_mapas_contra_modificaciones`` de
+        tests/escenario/test_cargador.py: los mapas no aceptan claves nuevas y los campos no se pueden reasignar.
         """
         object.__setattr__(self, "tipos_terreno", MappingProxyType(dict(self.tipos_terreno)))
         object.__setattr__(self, "bases", MappingProxyType(dict(self.bases)))
@@ -72,56 +70,59 @@ class Escenario:
             )
 
     def contiene_posicion(self, posicion: Posicion) -> bool:
-        """Indica si una posicion pertenece a los limites del mapa.
+        """Indicar si una posición pertenece a los límites del mapa.
 
-        Proposito: ofrecer al dominio una verificacion de limites sin conocer JSON.
+        Proposito: ofrecer al dominio una comprobación de límites sin depender del JSON.
         Precondiciones: ``posicion`` es una instancia de :class:`Posicion`.
-        Postcondiciones: no modifica el escenario y devuelve ``True`` solo dentro de la cuadricula.
-        Complejidad: O(1) temporal y O(1) espacial.
+        Postcondiciones: se devuelve ``True`` solo para posiciones dentro de la cuadrícula; el escenario no cambia.
+        Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex propuso la implementacion inicial de esta consulta de limites.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas.
+        Intervencion de IA: Codex: implementación inicial de la consulta de límites.
+        Validacion del estudiante: pruebas de tests/escenario/test_cargador.py y tests/juego/test_espacio_estados.py.
         """
         return 0 <= posicion.fila < self.filas and 0 <= posicion.columna < self.columnas
 
     def obtener_tipo_terreno(self, posicion: Posicion) -> TipoTerreno:
-        """Obtiene la definicion del terreno de una celda valida.
+        """Obtener la definición del terreno de una celda válida.
 
-        Proposito: centralizar el acceso a propiedades de terrenos cargadas desde el escenario.
+        Proposito: centralizar el acceso a las propiedades de terreno cargadas desde el escenario.
         Precondiciones: ``posicion`` pertenece al mapa.
-        Postcondiciones: devuelve el tipo de terreno declarado para esa celda; no modifica el escenario.
-        Complejidad: O(1) temporal y O(1) espacial.
+        Postcondiciones: se devuelve el tipo de terreno declarado para la celda; el escenario no cambia.
+        Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex propuso la implementacion inicial y su documentacion.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta indirectamente por pytest.
+        Intervencion de IA: Codex: implementación inicial y documentación.
+        Validacion del estudiante: cobertura indirecta mediante ``es_transitable`` y ``obtener_costo``, que lo usan y se
+        prueban en tests/escenario/test_cargador.py y tests/juego/test_espacio_estados.py.
         """
         if not self.contiene_posicion(posicion):
             raise ValueError("La posicion esta fuera de los limites del escenario.")
         return self.tipos_terreno[self.terreno[posicion.fila][posicion.columna]]
 
     def es_transitable(self, posicion: Posicion) -> bool:
-        """Consulta la transitabilidad de una celda a partir del catalogo del escenario.
+        """Consultar la transitabilidad de una celda en el catálogo del escenario.
 
         Proposito: evitar que las capas consumidoras codifiquen reglas por nombre de terreno.
         Precondiciones: ``posicion`` pertenece al mapa.
-        Postcondiciones: devuelve la transitabilidad declarada en el JSON; no modifica el escenario.
-        Complejidad: O(1) temporal y O(1) espacial.
+        Postcondiciones: se devuelve la transitabilidad declarada en el JSON; el escenario no cambia.
+        Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex propuso la implementacion inicial y su documentacion.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas.
+        Intervencion de IA: Codex: implementación inicial y documentación.
+        Validacion del estudiante: pruebas de tests/escenario/test_cargador.py, tests/juego/test_espacio_estados.py y de
+        las búsquedas en tests/algoritmos/.
         """
         return self.obtener_tipo_terreno(posicion).transitable
 
     def obtener_costo(self, posicion: Posicion) -> int | float:
-        """Consulta el costo de una celda transitable declarado por el escenario.
+        """Consultar el costo de una celda transitable declarado por el escenario.
 
-        Proposito: suministrar costos a reglas y algoritmos sin constantes de terreno embebidas.
+        Proposito: suministrar costos a reglas y algoritmos sin constantes de terreno en el código.
         Precondiciones: ``posicion`` pertenece al mapa y su terreno es transitable.
-        Postcondiciones: devuelve el costo positivo del catalogo; no modifica el escenario.
-        Complejidad: O(1) temporal y O(1) espacial.
+        Postcondiciones: se devuelve el costo positivo del catálogo; el escenario no cambia.
+        Complejidad: O(1) temporal y espacial.
         Uso de IA: Si.
-        Intervencion de IA: Codex propuso la implementacion inicial y su documentacion.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas automatizadas.
+        Intervencion de IA: Codex: implementación inicial y documentación.
+        Validacion del estudiante: pruebas de tests/escenario/test_cargador.py, tests/juego/test_espacio_estados.py y
+        tests/algoritmos/test_instrumentacion.py.
         """
         tipo_terreno = self.obtener_tipo_terreno(posicion)
         if not tipo_terreno.transitable or tipo_terreno.costo is None:
