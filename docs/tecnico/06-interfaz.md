@@ -1,6 +1,6 @@
 # Interfaz gráfica
 
-Historias E9.1 a E9.3: tablero, camino y exploración en Pygame. El uso paso a paso, con capturas, está en el manual de usuario (`docs/entregables/manual-de-usuario.docx`).
+Historias E9.1 a E9.5: tablero, camino, exploración, apertura de escenarios y partida por turnos en Pygame. El uso paso a paso, con capturas, está en el manual de usuario (`docs/entregables/manual-de-usuario.docx`).
 
 ## Abrir la interfaz
 
@@ -25,7 +25,7 @@ La ayuda de la ventana cambia con el algoritmo seleccionado:
 | BFS | Menor cantidad de movimientos | Puede atravesar terrenos costosos. |
 | DFS | Profundizar una alternativa | No garantiza una ruta corta ni económica. |
 | UCS | Menor costo acumulado | Puede elegir más movimientos para reducir el costo. |
-| A* | Costo acumulado más heurística Manhattan | Manhattan estima movimientos horizontales y verticales. |
+| A* | Costo acumulado más heurística | La heurística elegida (Manhattan o HTO) orienta la búsqueda hacia el objetivo. |
 | Beam Search | Exploración limitada por `k` | Conserva `k` alternativas por nivel y puede descartar rutas útiles. |
 
 El resultado distingue movimientos, costo y estados expandidos. La línea cian es el camino final. La capa violeta
@@ -55,8 +55,8 @@ botón, la tecla `O` y soltar un archivo.
 ## Partida manual por turnos desde Pygame
 
 El modo inicial se toma de `prueba.modo`; si el escenario no declara `prueba` o no incluye `modo`, la GUI empieza en
-`busqueda`. La tecla `M` o el botón **M — Modo** recorren búsqueda, partida y adversarial. Durante esta fase, la GUI
-soporta búsqueda, partida manual y evaluación adversarial.
+`busqueda`. La tecla `M` o el botón **M — Modo** recorren búsqueda, partida y adversarial. La GUI soporta búsqueda,
+partida manual, partida controlada por algoritmos y evaluación adversarial.
 
 Al cargar un escenario con `prueba.modo = "partida"`, el estado inicial se prepara con `preparar_turno`, que aplica
 el pase por bloqueo definido por el dominio. En modo partida se puede seleccionar una unidad del bando activo con
@@ -69,6 +69,18 @@ costo, estados anterior/resultante y huellas SHA-256; los clics rechazados y eva
 jugadas. `V` llama a `verificar_partida` con el historial y vuelve a aplicar las reglas para comprobar legalidad,
 encadenamiento, estados y resultado. `R` reinicia estado e historial de la sesión. Cambiar de modo no borra las jugadas;
 cargar otro escenario y reiniciar sí las descartan.
+
+### Partida por turnos entre algoritmos — E9.5
+
+En modo partida, la fila `Control` alterna `Manual` y `Algoritmos`. Con control por algoritmos, las filas `Bando A` y
+`Bando B` eligen el algoritmo de cada bando entre BFS, DFS, UCS, A*, Beam, Minimax y alfa-beta (por defecto A* para A y
+alfa-beta para B). `N` o el botón **N — Siguiente turno** aplica exactamente una jugada del bando en turno, decidida
+por `decidir_jugada` (`modos/agentes.py`). Minimax y alfa-beta deciden como en el modo `partida` de la consola. Los
+algoritmos de búsqueda reciben una meta táctica (interceptar, llevar el recurso a la base, ir por el recurso libre o
+alcanzar al portador rival), planean sobre `ProblemaNavegacionPartida`, que trata las celdas ocupadas como obstáculos,
+y aplican solo el primer paso del camino. Las jugadas se registran en el mismo historial que la partida manual, por lo
+que `V`, `R` y `J` funcionan igual. Las pruebas de `tests/interfaz/test_turnos_algoritmos.py` y
+`tests/modos/test_agentes.py` cubren este flujo.
 
 El tablero y el panel derivan bando, portador, tipo/posición de la unidad seleccionada y terminalidad de `EstadoJuego`.
 El modelo no contiene número de turno, así que la interfaz no inventa un contador. Cargar otro escenario reinicia la
@@ -176,7 +188,3 @@ el panel. Los recursos se incluyen como datos del paquete, por lo que la ejecuci
 ni realiza descargas. Su procedencia se documenta en
 `src/tacticalgrid/interfaz/recursos/ORIGEN.md`. No se incorporaron assets externos; el repositorio aún no define una
 licencia general de redistribución.
-
-Las capturas reproducibles bajo SDL dummy están en `docs/imagenes/redisenio-visual/`: incluyen el antes/después de
-`campo_20x20.json`, `recurso_en_transporte.json` y las rutas diferentes de BFS y UCS en
-`ruta_corta_vs_economica.json`. Esa evidencia no sustituye la revisión manual de una ventana real.
