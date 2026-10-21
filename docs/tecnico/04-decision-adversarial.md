@@ -4,7 +4,7 @@ Historias E8.1 a E8.6: acciones tácticas, función de utilidad, Minimax, poda a
 
 ## Acciones tácticas adversariales — E8.1
 
-E8.1 define el espacio de acciones que usarán Minimax y alfa-beta, sin convertir el juego en un sistema de combate:
+E8.1 define el espacio de acciones que usan Minimax y alfa-beta, sin convertir el juego en un sistema de combate:
 no hay puntos de vida, ataques ni eliminación de unidades. El juego tiene solo dos mecánicas.
 
 - **Mover** (`tipo = "mover"`, E1.2): la unidad avanza una celda ortogonal a una celda dentro del mapa, transitable
@@ -35,7 +35,7 @@ actual. `juego/tacticas.py` las clasifica, en orden de prioridad (`d` es la dist
 
 `acciones_tacticas(escenario, estado)` devuelve las mismas acciones que `acciones_validas`, en el mismo orden, cada
 una con su tipo táctico. La clasificación solo usa "propio" y "rival", nunca un bando concreto, por lo que A y B
-tienen las mismas tácticas: MAX y MIN serán roles, no capacidades distintas. El tipo táctico sirve para explicar
+tienen las mismas tácticas: MAX y MIN son roles, no capacidades distintas. El tipo táctico sirve para explicar
 una decisión de Minimax (por ejemplo, que bloquear sea mejor que acercarse al recurso) y para experimentar con el
 orden de las acciones; no altera la legalidad.
 
@@ -47,7 +47,7 @@ sobre `ejemplo_enunciado.json`, `recurso_en_transporte.json` y `campo_20x20.json
 ## Función de utilidad propia — E8.2
 
 `algoritmos/utilidad.py` evalúa un estado desde la perspectiva de MAX: mayor es mejor para MAX y menor es mejor
-para MIN. Es la función que Minimax y alfa-beta (E8.3, E8.4) usarán en las hojas del árbol.
+para MIN. Es la función que Minimax y alfa-beta (E8.3, E8.4) usan en las hojas del árbol.
 
 ```python
 evaluador = EvaluadorUtilidad(escenario, bando_max="A")    # pesos por defecto
