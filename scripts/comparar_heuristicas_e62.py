@@ -1,4 +1,4 @@
-"""Compara A* Manhattan, A* HTO y UCS en tres escenarios de TacticalGrid.
+"""Comparar A* con Manhattan, A* con HTO y UCS en tres escenarios de TacticalGrid.
 
 Desde la raíz del repositorio, ejecutar la campaña predeterminada con:
     .venv/bin/python scripts/comparar_heuristicas_e62.py
@@ -74,17 +74,18 @@ ESTRATEGIAS = (
 
 
 def _resolver_configuracion(escenario: Escenario) -> tuple[str, Posicion]:
-    """Obtiene unidad y destino del bloque de prueba del JSON.
+    """Obtener la unidad y el destino del bloque ``prueba`` del JSON.
 
-    Purpose: usar sin modificaciones la configuración de navegación declarada por cada escenario.
-    Preconditions: el escenario fue cargado y validado por la capa de escenario.
-    Postconditions: devuelve identificador y destino o lanza RuntimeError si el escenario no declara una
-    prueba de navegación válida.
-    Complexity: O(1) temporal y espacial.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó la lectura de los tres escenarios requeridos desde las APIs reales
-    de TacticalGrid, sin codificar posiciones de inicio o destino.
-    Student validation: pendiente de validación del equipo.
+    Proposito: usar sin modificaciones la configuración de navegación declarada por cada escenario.
+    Precondiciones: el escenario está cargado y validado por la capa de escenario.
+    Postcondiciones: se devuelven el identificador y el destino, o se lanza ``RuntimeError`` si el escenario no declara
+    una prueba de navegación válida.
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: lectura de los tres escenarios requeridos desde las API reales de TacticalGrid, sin
+    codificar posiciones de inicio ni de destino.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     prueba = escenario.configuracion_prueba
     if prueba is None or prueba.get("modo") != "busqueda":
@@ -106,17 +107,18 @@ def _resolver_configuracion(escenario: Escenario) -> tuple[str, Posicion]:
 
 
 def _nuevo_problema(escenario: Escenario) -> ProblemaNavegacion:
-    """Crea un problema y estado inicial frescos para una sola ejecución.
+    """Crear un problema y un estado inicial nuevos para una sola ejecución.
 
-    Purpose: aislar cada muestra del estado y de los objetos que usaron otras repeticiones.
-    Preconditions: el escenario tiene una configuración válida en modo búsqueda.
-    Postconditions: devuelve una nueva instancia de ProblemaNavegacion construida sobre el mismo escenario
+    Proposito: aislar cada muestra del estado y de los objetos que usaron otras repeticiones.
+    Precondiciones: el escenario tiene una configuración válida en modo búsqueda.
+    Postcondiciones: se devuelve una nueva instancia de ``ProblemaNavegacion`` construida sobre el mismo escenario
     inmutable y con un nuevo estado inicial.
-    Complexity: O(U log U + T) temporal y O(U) espacial, según el constructor del problema.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó la creación por ejecución para evitar compartir problemas o estados
-    entre calentamiento, estrategias y repeticiones.
-    Student validation: pendiente de validación del equipo.
+    Complejidad: O(U log U + T) temporal y O(U) espacial, según el constructor del problema.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: creación por ejecución para no compartir problemas ni estados entre el
+    calentamiento, las estrategias y las repeticiones.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     unidad, objetivo = _resolver_configuracion(escenario)
     return ProblemaNavegacion(escenario, unidad, objetivo)
@@ -127,18 +129,18 @@ def _validar_solucion(
     resultado: ResultadoBusqueda,
     estrategia: Estrategia,
 ) -> None:
-    """Verifica ruta, legalidad, objetivo, longitud y costo sin afectar el tiempo medido.
+    """Verificar la ruta, la legalidad, el objetivo, la longitud y el costo sin afectar el tiempo medido.
 
-    Purpose: aceptar únicamente soluciones reproducibles y compatibles con las reglas del problema.
-    Preconditions: la búsqueda terminó y produjo un ResultadoBusqueda.
-    Postconditions: retorna si la ruta es legal, termina en el objetivo, concuerda con la longitud declarada y
-    reproduce exactamente el costo reportado; en caso contrario lanza RuntimeError.
-    Complexity: O(L * A) temporal y O(1) espacial adicional, donde L es la longitud y A las acciones legales
-    de cada estado.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó la comprobación posterior a la búsqueda siguiendo el patrón de los
-    tests existentes y recalculando los costos desde ProblemaNavegacion.
-    Student validation: pendiente de validación del equipo.
+    Proposito: aceptar solo soluciones reproducibles y compatibles con las reglas del problema.
+    Precondiciones: la búsqueda terminó y produjo un ``ResultadoBusqueda``.
+    Postcondiciones: la función retorna si la ruta es legal, termina en el objetivo, concuerda con la longitud declarada
+    y reproduce exactamente el costo reportado; en otro caso se lanza ``RuntimeError``.
+    Complejidad: O(L * A) temporal y O(1) espacial adicional, con L la longitud y A las acciones legales de cada estado.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: comprobación posterior a la búsqueda con el patrón de las pruebas existentes y
+    recálculo de los costos desde ``ProblemaNavegacion``.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     if resultado.algoritmo != estrategia.algoritmo:
         raise RuntimeError(
@@ -201,19 +203,21 @@ def _ejecutar(
     repeticion: int,
     orden_ejecucion: int,
 ) -> RegistroEjecucion:
-    """Ejecuta una estrategia, midiendo sólo los componentes establecidos por el contrato.
+    """Ejecutar una estrategia midiendo solo los componentes que fija el contrato experimental.
 
-    Purpose: medir el preprocesamiento HTO con perf_counter_ns y tomar el tiempo de búsqueda del resultado
-    instrumentado, creando una instancia HTO nueva en cada ejecución.
-    Preconditions: escenario validado; estrategia pertenece a ESTRATEGIAS; repetición y orden son positivos.
-    Postconditions: retorna una muestra validada con tiempos de preparación, búsqueda y suma total; el costo de
-    carga del escenario y la validación de la solución quedan fuera de ambos intervalos.
-    Complexity: la búsqueda conserva la complejidad de su algoritmo; la validación O(L * A) ocurre fuera del
-    tiempo de búsqueda.
-    AI usage: Yes.
-    AI intervention: Copilot SDK conectó A*, HTO y UCS con sus interfaces existentes y aplicó la convención
-    distinta de cronometraje prescrita para preparación y búsqueda.
-    Student validation: pendiente de validación del equipo.
+    Proposito: medir la preparación de HTO con ``perf_counter_ns`` y tomar el tiempo de búsqueda del resultado
+    instrumentado, con una instancia de HTO nueva en cada ejecución.
+    Precondiciones: el escenario está validado; la estrategia pertenece a ``ESTRATEGIAS``; la repetición y el orden son
+    positivos.
+    Postcondiciones: se devuelve una muestra validada con los tiempos de preparación, búsqueda y total; la carga del
+    escenario y la validación de la solución quedan fuera de ambos intervalos.
+    Complejidad: la búsqueda conserva la complejidad de su algoritmo; la validación O(L * A) ocurre fuera del tiempo de
+    búsqueda.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: conexión de A*, HTO y UCS con sus interfaces existentes y cronometraje separado de
+    la preparación y la búsqueda.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     problema = _nuevo_problema(escenario)
     heuristica: HeuristicaObstaculos | None = None
@@ -267,17 +271,18 @@ def _ejecutar(
 
 
 def _verificar_costos_optimos(registros: Sequence[RegistroEjecucion]) -> None:
-    """Contrasta A* con el costo de UCS en la misma repetición.
+    """Contrastar el costo de A* con el de UCS en la misma repetición.
 
-    Purpose: usar UCS como referencia funcional por repetición, sin exigir caminos idénticos.
-    Preconditions: se recibieron exactamente las tres estrategias de una repetición y escenario.
-    Postconditions: confirma que ambas variantes A* encuentran el costo reportado por UCS, mediante igualdad
-    numérica estricta y sin tolerancia; de otro modo lanza RuntimeError.
-    Complexity: O(1) temporal y espacial para las tres estrategias.
-    AI usage: Yes.
-    AI intervention: Copilot SDK añadió el contraste con UCS después de validar cada ruta y sin cambiar los
-    algoritmos ni sus resultados.
-    Student validation: pendiente de validación del equipo.
+    Proposito: usar UCS como referencia funcional por repetición, sin exigir caminos idénticos.
+    Precondiciones: se recibieron exactamente las tres estrategias de una repetición y un escenario.
+    Postcondiciones: se confirma que ambas variantes de A* encuentran el costo reportado por UCS, con igualdad numérica
+    estricta y sin tolerancia; en otro caso se lanza ``RuntimeError``.
+    Complejidad: O(1) temporal y espacial para las tres estrategias.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: contraste con UCS después de validar cada ruta, sin cambiar los algoritmos ni sus
+    resultados.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     referencias = [registro for registro in registros if registro.algoritmo == "UCS"]
     if len(referencias) != 1 or len(registros) != len(ESTRATEGIAS):
@@ -292,16 +297,17 @@ def _verificar_costos_optimos(registros: Sequence[RegistroEjecucion]) -> None:
 
 
 def _firma_discreta(registro: RegistroEjecucion) -> tuple[object, ...]:
-    """Construye la firma de métricas que debe permanecer estable entre repeticiones.
+    """Construir la firma de métricas que debe permanecer estable entre repeticiones.
 
-    Purpose: excluir los tiempos y comparar éxito, solución y contadores discretos.
-    Preconditions: registro contiene una muestra experimental completa.
-    Postconditions: retorna una tupla comparable entre ejecuciones de la misma estrategia y escenario.
-    Complexity: O(1) temporal y espacial.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó una firma discreta para detectar variaciones antes de resumir
-    estadísticas temporales.
-    Student validation: pendiente de validación del equipo.
+    Proposito: excluir los tiempos y comparar el éxito, la solución y los contadores discretos.
+    Precondiciones: ``registro`` contiene una muestra experimental completa.
+    Postcondiciones: se devuelve una tupla comparable entre ejecuciones de la misma estrategia y escenario.
+    Complejidad: O(1) temporal y espacial.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: firma discreta para detectar variaciones antes de resumir las estadísticas
+    temporales.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     return (
         registro.exito,
@@ -314,16 +320,17 @@ def _firma_discreta(registro: RegistroEjecucion) -> tuple[object, ...]:
 
 
 def _verificar_reproducibilidad(registros: Sequence[RegistroEjecucion]) -> None:
-    """Rechaza cualquier variación discreta entre muestras equivalentes.
+    """Rechazar cualquier variación discreta entre muestras equivalentes.
 
-    Purpose: evitar promediar o resumir contadores que cambien inesperadamente entre repeticiones.
-    Preconditions: contiene todas las mediciones de la campaña.
-    Postconditions: retorna si cada escenario y estrategia tiene una única firma discreta; de lo contrario,
-    informa las repeticiones distintas y lanza RuntimeError.
-    Complexity: O(N) temporal y O(S) espacial, donde N son muestras y S grupos escenario-estrategia.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó la validación previa a la generación de las tablas descriptivas.
-    Student validation: pendiente de validación del equipo.
+    Proposito: evitar promediar o resumir contadores que cambien de forma inesperada entre repeticiones.
+    Precondiciones: se reciben todas las mediciones de la campaña.
+    Postcondiciones: la función retorna si cada escenario y estrategia tiene una única firma discreta; en otro caso
+    informa las repeticiones distintas y lanza ``RuntimeError``.
+    Complejidad: O(N) temporal y O(S) espacial, con N muestras y S grupos de escenario y estrategia.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: validación previa a la generación de las tablas descriptivas.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     firmas: dict[tuple[str, str, str], tuple[object, ...]] = {}
     for registro in registros:
@@ -338,15 +345,17 @@ def _verificar_reproducibilidad(registros: Sequence[RegistroEjecucion]) -> None:
 
 
 def _describir_escenario(ruta: Path, escenario: Escenario) -> None:
-    """Imprime los datos de escenario que definen las condiciones experimentales.
+    """Imprimir los datos del escenario que definen las condiciones experimentales.
 
-    Purpose: hacer auditable la configuración, topología, costos y estado inicial usados.
-    Preconditions: escenario corresponde al JSON ya cargado desde ruta.
-    Postconditions: escribe en stdout el nombre, dimensiones, terrenos, obstáculos, unidad, estado y objetivo.
-    Complexity: O(F * C + T + U) temporal y O(1) espacial adicional.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó el resumen a partir de la representación validada del escenario.
-    Student validation: pendiente de validación del equipo.
+    Proposito: hacer auditables la configuración, la topología, los costos y el estado inicial usados.
+    Precondiciones: ``escenario`` corresponde al JSON ya cargado desde ``ruta``.
+    Postcondiciones: se escriben en la salida estándar el nombre, las dimensiones, los terrenos, los obstáculos, la
+    unidad, el estado y el objetivo.
+    Complejidad: O(F * C + T + U) temporal y O(1) espacial adicional.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: resumen a partir de la representación validada del escenario.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     unidad, objetivo = _resolver_configuracion(escenario)
     cantidades_terreno: dict[str, int] = {}
@@ -375,15 +384,16 @@ def _describir_escenario(ruta: Path, escenario: Escenario) -> None:
 
 
 def _mediana(valores: Sequence[float]) -> float:
-    """Calcula la mediana de una lista no vacía.
+    """Calcular la mediana de una lista no vacía.
 
-    Purpose: centralizar el cálculo de mediana usado para tiempos y MAD descriptivos.
-    Preconditions: valores contiene al menos una muestra numérica.
-    Postconditions: devuelve la mediana sin modificar la secuencia o lanza RuntimeError si está vacía.
-    Complexity: O(N log N) temporal y O(N) espacial según statistics.median.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó este adaptador para evitar resúmenes sobre grupos vacíos.
-    Student validation: pendiente de validación del equipo.
+    Proposito: centralizar el cálculo de la mediana que usan los tiempos y la MAD descriptiva.
+    Precondiciones: ``valores`` contiene al menos una muestra numérica.
+    Postcondiciones: se devuelve la mediana sin modificar la secuencia, o se lanza ``RuntimeError`` si está vacía.
+    Complejidad: O(N log N) temporal y O(N) espacial, según ``statistics.median``.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: adaptador que evita resúmenes sobre grupos vacíos.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     if not valores:
         raise RuntimeError("No hay muestras para calcular una mediana.")
@@ -391,22 +401,23 @@ def _mediana(valores: Sequence[float]) -> float:
 
 
 def _mad(valores: Sequence[float]) -> float:
-    """Calcula MAD no escalada: mediana de las distancias absolutas a la mediana.
+    """Calcular la MAD no escalada: mediana de las distancias absolutas a la mediana.
 
-    Purpose: describir la dispersión temporal con una medida robusta a valores extremos.
-    Preconditions: valores contiene mediciones finitas y no negativas.
-    Postconditions: devuelve MAD en las mismas unidades, sin multiplicar por un factor de consistencia normal.
-    Complexity: O(N log N) temporal y O(N) espacial por la ordenación interna de medianas.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó MAD no escalada como resumen descriptivo solicitado.
-    Student validation: pendiente de validación del equipo.
+    Proposito: describir la dispersión temporal con una medida robusta a valores extremos.
+    Precondiciones: ``valores`` contiene mediciones finitas y no negativas.
+    Postcondiciones: se devuelve la MAD en las mismas unidades, sin multiplicar por un factor de consistencia normal.
+    Complejidad: O(N log N) temporal y O(N) espacial por la ordenación interna de las medianas.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: MAD no escalada como resumen descriptivo.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     centro = _mediana(valores)
     return _mediana([abs(valor - centro) for valor in valores])
 
 
 def _milisegundos(segundos: float) -> float:
-    """Convierte segundos a milisegundos para las tablas."""
+    """Convertir segundos a milisegundos para las tablas."""
     return segundos * 1000
 
 
@@ -415,16 +426,17 @@ def _imprimir_resultados(
     repeticiones: int,
     calentamiento: int,
 ) -> None:
-    """Presenta resultados funcionales y temporales derivados de las muestras medidas.
+    """Presentar los resultados funcionales y temporales derivados de las muestras medidas.
 
-    Purpose: calcular y mostrar medianas, extremos y MAD, además de métricas discretas verificadas.
-    Preconditions: costos óptimos y reproducibilidad discreta ya verificados; registros no está vacío.
-    Postconditions: escribe tablas cuya fuente son únicamente las repeticiones medidas.
-    Complexity: O(N log N) temporal y O(N) espacial para agrupar y ordenar las muestras temporales.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó las tablas pedidas y limita la estadística temporal a las dos
-    variantes A*, dejando UCS como referencia funcional.
-    Student validation: pendiente de validación del equipo.
+    Proposito: calcular y mostrar medianas, extremos y MAD, además de las métricas discretas verificadas.
+    Precondiciones: los costos óptimos y la reproducibilidad discreta ya están verificados; ``registros`` no está vacío.
+    Postcondiciones: se escriben tablas cuya única fuente son las repeticiones medidas.
+    Complejidad: O(N log N) temporal y O(N) espacial para agrupar y ordenar las muestras temporales.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: tablas de resultados, con la estadística temporal limitada a las dos variantes de
+    A* y UCS como referencia funcional.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     print("\nConfiguración experimental")
     print(f"  Python: {platform.python_version()} ({sys.executable})")
@@ -501,17 +513,18 @@ def _imprimir_resultados(
 
 
 def _exportar_jsonl(registros: Sequence[RegistroEjecucion], ruta: Path) -> Path:
-    """Escribe muestras medidas como JSONL fuera del repositorio y sin sobrescribir archivos.
+    """Escribir las muestras medidas como JSONL fuera del repositorio y sin sobrescribir archivos.
 
-    Purpose: preservar todos los registros crudos de los que se derivan las tablas.
-    Preconditions: la ruta de destino se solicitó explícitamente, es externa al repositorio y no existe.
-    Postconditions: crea un objeto JSON por muestra, abre el archivo en modo exclusivo y devuelve la ruta
-    absoluta; informa errores de escritura en lugar de ocultarlos.
-    Complexity: O(N) temporal y espacial en buffers de salida, donde N es el número de muestras.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó exportación JSONL con la biblioteca estándar y guarda sólo datos
-    medidos, nunca los calentamientos.
-    Student validation: pendiente de validación del equipo.
+    Proposito: conservar todos los registros crudos de los que se derivan las tablas.
+    Precondiciones: la ruta de destino se solicitó explícitamente, es externa al repositorio y no existe.
+    Postcondiciones: se crea un objeto JSON por muestra, el archivo se abre en modo exclusivo y se devuelve la ruta
+    absoluta; los errores de escritura se informan.
+    Complejidad: O(N) temporal y espacial en los búferes de salida, con N el número de muestras.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: exportación JSONL con la biblioteca estándar, solo con datos medidos y sin los
+    calentamientos.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     destino = ruta.expanduser().resolve()
     try:
@@ -529,15 +542,16 @@ def _exportar_jsonl(registros: Sequence[RegistroEjecucion], ruta: Path) -> Path:
 
 
 def _argumentos(argumentos: Sequence[str] | None = None) -> argparse.Namespace:
-    """Interpreta las opciones públicas del ejecutor experimental.
+    """Interpretar las opciones públicas del ejecutor experimental.
 
-    Purpose: permitir configurar calentamiento, repeticiones y destino opcional de datos crudos.
-    Preconditions: argumentos siguen la sintaxis declarada por argparse.
-    Postconditions: devuelve configuración validada o argparse muestra el error y termina.
-    Complexity: O(A) temporal y espacial respecto al número de argumentos.
-    AI usage: Yes.
-    AI intervention: Copilot SDK definió opciones pequeñas y explícitas conforme al uso del script.
-    Student validation: pendiente de validación del equipo.
+    Proposito: configurar el calentamiento, las repeticiones y el destino opcional de los datos crudos.
+    Precondiciones: los argumentos siguen la sintaxis declarada en argparse.
+    Postcondiciones: se devuelve la configuración validada, o argparse muestra el error y termina.
+    Complejidad: O(A) temporal y espacial respecto al número de argumentos.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: opciones pequeñas y explícitas acordes con el uso del script.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     parser = argparse.ArgumentParser(
         description="Compara A* Manhattan, A* HTO y UCS en escenarios TacticalGrid."
@@ -578,17 +592,19 @@ def _argumentos(argumentos: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def main(argumentos: Sequence[str] | None = None) -> int:
-    """Ejecuta calentamiento y campaña, verifica datos y presenta resultados trazables.
+    """Ejecutar el calentamiento y la campaña, verificar los datos y presentar resultados trazables.
 
-    Purpose: coordinar la carga única de cada escenario, la aleatorización fija, las muestras y el resumen.
-    Preconditions: dependencias de TacticalGrid disponibles; los tres escenarios requeridos existen y son válidos.
-    Postconditions: imprime tablas derivadas de mediciones validadas y, si se pidió, exporta JSONL fuera del
-    repositorio; devuelve 0. Un fallo de ejecución, validación o exportación se hace explícito con código 1.
-    Complexity: O((W + R) * S * (B + V)) temporal para W calentamientos, R repeticiones, S estrategias y
-    búsqueda/validación B + V; espacio O(R * S) para las muestras medidas.
-    AI usage: Yes.
-    AI intervention: Copilot SDK implementó la coordinación reproducible y la salida del experimento E6.2.
-    Student validation: pendiente de validación del equipo.
+    Proposito: coordinar la carga única de cada escenario, la aleatorización fija, las muestras y el resumen.
+    Precondiciones: las dependencias de TacticalGrid están disponibles; los tres escenarios requeridos existen y son
+    válidos.
+    Postcondiciones: se imprimen tablas derivadas de mediciones validadas y, si se pidió, se exporta el JSONL fuera del
+    repositorio; se devuelve 0. Un fallo de ejecución, validación o exportación devuelve el código 1 con su causa.
+    Complejidad: O((W + R) * S * (B + V)) temporal para W calentamientos, R repeticiones, S estrategias y búsqueda y
+    validación B + V; espacio O(R * S) para las muestras medidas.
+    Uso de IA: Si.
+    Intervencion de IA: Copilot SDK: coordinación reproducible y salida del experimento de E6.2.
+    Validacion del estudiante: ejecución del script documentada en
+    docs/casos-minimos/casos-3-4-obstaculo-y-heuristicas.md; el script no tiene pruebas automatizadas propias.
     """
     opciones = _argumentos(argumentos)
     generador = random.Random(SEMILLA_FIJA)

@@ -12,7 +12,7 @@ Ejecuta los comandos desde la raíz con el entorno instalado. La evidencia de re
 | BFS frente a UCS | `ruta_corta_vs_economica.json`. | `.venv/bin/python main.py --consola escenarios/ruta_corta_vs_economica.json --algoritmo ambos --verificar`. |
 | A* Manhattan/HTO | Mismo escenario, unidad y objetivo. | `.venv/bin/python main.py --consola escenarios/obstaculo_rodeo.json --algoritmo a_estrella --heuristica manhattan --verificar`; repite el mismo comando con `--heuristica hto`. |
 | Beam k | `campo_20x20.json`. | `.venv/bin/python main.py --consola escenarios/campo_20x20.json --algoritmo beam --k 1 2 4 8 --verificar`. |
-| Partida manual | `prueba_gui_partida.json`, modo `partida`. | `.venv/bin/python main.py --gui escenarios/prueba_gui_partida.json`; realiza la secuencia en la sección V11 de `guia-validacion-manual.md`. |
+| Partida manual | `prueba_gui_partida.json`, modo `partida`. | `.venv/bin/python main.py --gui escenarios/prueba_gui_partida.json`; realiza la secuencia de las secciones V10 y V11 de `guia-validacion-manual.md`. |
 | Recurso y victoria | Mismo fixture; recoge en (0,2), transporta a base A. | Interacción Pygame manual. No existe un flag de consola para enviar acciones humanas paso a paso. |
 | Minimax y alfa-beta | `caso_08_minimax_alfa_beta_20x20.json`, profundidad y orden iguales. | `.venv/bin/python main.py --consola escenarios/caso_08_minimax_alfa_beta_20x20.json --modo adversarial --algoritmo minimax_alfa_beta --profundidad 4 --orden generacion --verificar`. |
 | Profundidad / orden | `caso_10_profundidad_20x20.json`; variar un parámetro por vez. | Repite con `--profundidad 1`, `2`, `3`, `4`, o con `--orden generacion`, `inverso`, `tactico`. |
@@ -22,7 +22,8 @@ Ejecuta los comandos desde la raíz con el entorno instalado. La evidencia de re
 
 Para GUI, además de los comandos, mostrar: `M` cambia de modo; `O` abre JSON; `Enter` ejecuta búsqueda o evaluación;
 `E` muestra exploración o compara adversarial; `Q` evalúa; `C` compara; `V` verifica; `A` solicita y confirma la
-acción; `R` reinicia partida; `J` exporta. Los botones del panel describen los mismos controles.
+acción; `R` reinicia partida; `N` avanza un turno en la partida controlada por algoritmos; `J` exporta. Los botones del panel
+describen los mismos controles.
 
 ## Preguntas para defensa técnica
 

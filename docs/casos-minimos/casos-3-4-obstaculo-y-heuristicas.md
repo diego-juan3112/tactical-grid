@@ -84,8 +84,8 @@ didáctico de 8 × 7. No lo sustituye porque estudia también costos heterogéne
 ### Configuración
 
 Cada ejecución carga el mismo JSON y construye un `ProblemaNavegacion` con A1 y el objetivo `(1, 3)`. HTO recibe la
-misma instancia de problema que A* usa en esa ejecución. Manhattan permanece como opción predeterminada y la CLI no
-recibe parámetros nuevos.
+misma instancia de problema que A* usa en esa ejecución. Manhattan permanece como opción predeterminada; la consola
+selecciona HTO con `--algoritmo a_estrella --heuristica hto`.
 
 UCS actúa como referencia independiente del costo. La ejecución del 15 de octubre de 2026, con una
 muestra y sin calentamiento, produjo:

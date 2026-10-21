@@ -96,6 +96,6 @@ repetir un registro de partida manual exportado desde la GUI:
 .venv/bin/python main.py --consola --reproducir-registro ruta/al/registro.tg.json
 ```
 
-**Uso de IA:** Sí. Codex creó el ejecutor y el informe de esta continuación. **Validación del estudiante:** no puedo
-confirmar revisión, ejecución ni aprobación por parte del equipo; el artefacto contiene verificaciones automáticas
-reales y deja esa revisión como actividad estudiantil.
+**Uso de IA:** Sí. Codex creó el ejecutor `scripts/ejecutar_casos_minimos.py` y este informe. **Validación del
+estudiante:** el registro contiene verificaciones automáticas reales; la revisión y aprobación del equipo no constan en
+este documento.

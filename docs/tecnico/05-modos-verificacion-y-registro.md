@@ -6,7 +6,7 @@ Historias E10.1 a E10.3: cómo se ejecuta un escenario externo en cada modo, có
 
 El profesor puede cargar un escenario externo con un campo `prueba` y la aplicación ejecuta el modo pedido **sin
 cambios de código**. La lógica vive en `src/tacticalgrid/modos/`, una capa de orquestación que usa escenario, juego
-y algoritmos sin abrir archivos ni conocer Pygame; la consola la consume y la interfaz podrá hacerlo.
+y algoritmos sin abrir archivos ni conocer Pygame; la consumen la consola y la interfaz gráfica.
 
 ```bash
 python main.py --consola ruta/al/escenario_del_profesor.json
@@ -179,7 +179,7 @@ python main.py --consola escenarios/recurso_en_transporte.json --modo adversaria
     "version": "1.0",
     "filas": 5,
     "columnas": 9,
-    "huella_sha256": "ee55444b12fae723a21e0ec5f97e6b87c2c1b494f1a90060e21e5c9da54389b4"
+    "huella_sha256": "24f764d4e46b449055d3238dd5cb3ac89b74ff5f6be32e08863a1334a7790194"
   },
   "modo": "busqueda",
   "parametros": {
@@ -207,7 +207,7 @@ python main.py --consola escenarios/recurso_en_transporte.json --modo adversaria
 
 | Campo | Para qué sirve |
 |---|---|
-| `escenario` | Archivo, versión, dimensiones y **huella SHA-256** del contenido del JSON. Si alguien cambia un costo o mueve un muro, la huella cambia: dos registros solo son comparables si su huella coincide. |
+| `escenario` | Archivo, versión, dimensiones y **huella SHA-256** del contenido del JSON. Si alguien cambia un costo o mueve un muro, la huella cambia: dos registros solo son comparables si su huella coincide. La huella se calcula sobre los bytes del archivo, así que una copia con finales de línea CRLF (por ejemplo, con `core.autocrlf=true` en Windows) produce una huella distinta de la del archivo LF del repositorio. |
 | `modo` y `parametros` | Los valores **realmente usados**, ya resueltos entre la consola y el campo `prueba` del JSON: algoritmo, unidad, objetivo, `k`, profundidad, orden de acciones, límite de turnos y pesos de la utilidad. |
 | `comando` | La línea de consola que repite el experimento con esos mismos parámetros. |
 | `resultados` | Un elemento por algoritmo ejecutado. En búsqueda, la estructura del enunciado (`algoritmo`, `exito`, `camino`, `costo`, `estados_generados`, `estados_expandidos`, `maximo_frontera`) más `longitud` y `tiempo_segundos`. En adversarial, las métricas de Minimax y alfa-beta (nodos generados, evaluados y podados, profundidad alcanzada, tiempo, acción seleccionada y valor) o la comparación de E8.5. En partida, cada jugada con su decisión. |

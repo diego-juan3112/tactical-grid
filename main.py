@@ -1,4 +1,4 @@
-"""Punto de entrada principal de TacticalGrid."""
+"""Punto de entrada de TacticalGrid: abrir la interfaz gráfica o la consola según los argumentos."""
 
 import sys
 from pathlib import Path
