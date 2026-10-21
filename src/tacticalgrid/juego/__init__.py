@@ -2,7 +2,7 @@
 
 from .accion import INTERCEPTAR, MOVER, Accion
 from .estado import EstadoJuego, crear_estado_inicial
-from .problema import Problema, ProblemaNavegacion
+from .problema import Problema, ProblemaNavegacion, ProblemaNavegacionPartida
 from .partida import acciones_para_unidad, preparar_turno, unidades_seleccionables
 from .recurso import bando_que_entrego_recurso, obtener_portador, posicion_del_recurso, recoger_recurso
 from .reglas import (
@@ -26,6 +26,7 @@ __all__ = [
     "EstadoJuego",
     "Problema",
     "ProblemaNavegacion",
+    "ProblemaNavegacionPartida",
     "Unidad",
     "acciones_para_unidad",
     "acciones_tacticas",

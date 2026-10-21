@@ -108,3 +108,43 @@ class ProblemaNavegacion:
     def costo(self, estado: EstadoJuego, accion: Accion) -> int | float:
         """Costo del paso: el del terreno destino según el JSON cargado."""
         return costo_accion(self.escenario, accion)
+
+
+class ProblemaNavegacionPartida(ProblemaNavegacion):
+    """Navegación de una unidad dentro de una partida: las celdas ocupadas por las demás unidades bloquean el paso.
+
+    Las posiciones de las demás unidades se toman del estado inicial del problema y se tratan como obstáculos fijos
+    durante la planeación, porque en un turno solo se mueve una unidad. La celda objetivo queda siempre disponible para
+    poder planear hacia un portador rival. El resto de las reglas son las de ``ProblemaNavegacion``.
+    """
+
+    def __init__(
+        self,
+        escenario: Escenario,
+        identificador_unidad: str,
+        objetivo: Posicion,
+        estado_inicial: EstadoJuego,
+    ) -> None:
+        """Definir el problema y fijar las celdas bloqueadas por las demás unidades.
+
+        Proposito: planear el movimiento de una unidad en el turno vigente sin proponer pasos hacia celdas ocupadas.
+        Precondiciones: ``escenario`` está validado y ``estado_inicial`` es el estado vigente de la partida.
+        Postcondiciones: se cumplen las postcondiciones de ``ProblemaNavegacion``; además, las posiciones de las demás
+        unidades, salvo el objetivo, quedan registradas como bloqueadas.
+        Complejidad: O(U log U + T) temporal y O(U) espacial: la construcción base más el registro de U posiciones.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5): diseño e implementación para la partida por turnos entre algoritmos
+        (E9.5).
+        Validacion del estudiante: pruebas de tests/modos/test_agentes.py: celdas ocupadas excluidas de las acciones y
+        objetivo ocupado admitido.
+        """
+        super().__init__(escenario, identificador_unidad, objetivo, estado_inicial)
+        self.bloqueadas = frozenset(
+            unidad.posicion
+            for unidad in estado_inicial.unidades
+            if unidad.identificador != identificador_unidad and unidad.posicion != objetivo
+        )
+
+    def acciones(self, estado: EstadoJuego) -> tuple[Accion, ...]:
+        """Devolver los movimientos de la navegación base cuyo destino no está bloqueado por otra unidad."""
+        return tuple(accion for accion in super().acciones(estado) if accion.destino not in self.bloqueadas)

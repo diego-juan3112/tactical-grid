@@ -8,7 +8,7 @@ from pathlib import Path
 from tacticalgrid.escenario import ErrorValidacionEscenario, Posicion
 
 from .busquedas import ALGORITMOS, preparar_busqueda
-from .control import ControlGrafico
+from .control import CONTROL_ALGORITMOS, ControlGrafico
 from .dialogo import DialogoNoDisponible, pedir_ruta_escenario, pedir_ruta_registro
 from .renderizador import EstadoPanelControl, RectangulosControles, RenderizadorTablero
 
@@ -31,18 +31,20 @@ def ejecutar_aplicacion(
     de E9.3 bajo demanda.
     Precondiciones: Pygame está instalado, existe un entorno gráfico y la ruta identifica un escenario válido.
     Postcondiciones: se carga el modo declarado por el escenario. En búsqueda, Enter y su botón ejecutan el algoritmo;
-    en partida, se juega seleccionando una unidad y destinos legales en el tablero. V verifica las búsquedas; M o su
-    botón cambian el modo; la apertura de escenarios es atómica; Pygame se libera al cerrar.
+    en partida, se juega seleccionando una unidad y destinos legales en el tablero o, con control por algoritmos,
+    avanzando una jugada con N o su botón. V verifica las búsquedas; M o su botón cambian el modo; la apertura de
+    escenarios es atómica; Pygame se libera al cerrar.
     Complejidad: el costo de la búsqueda más O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
     O(F*C + T + L + P) espacial, con P posiciones expandidas almacenadas y E fotogramas.
     Uso de IA: Si.
     Intervencion de IA: Codex: integración de E9.2 y E9.3, controles directos de escenario, algoritmo, unidad, objetivo
     y Beam sin recalcular por fotograma ni modificar el estado de juego, verificación de búsquedas con V y partida
     manual con eventos de Pygame y transiciones del dominio. Claude (Opus 5.5): apertura de escenarios JSON con la
-    tecla O, su botón y arrastrar y soltar (E9.4).
+    tecla O, su botón y arrastrar y soltar (E9.4); controles de la partida por turnos entre algoritmos (E9.5).
     Validacion del estudiante: pruebas de tests/interfaz/test_aplicacion.py bajo SDL dummy: inicio y cierre sin repetir
     la búsqueda, error antes de abrir la ventana, turno jugado con clics, cambio a modo partida, verificación con V y
-    apertura de JSON.
+    apertura de JSON; pruebas de tests/interfaz/test_turnos_aplicacion.py: tecla N y botones de la partida por
+    algoritmos.
     """
     import pygame
 
@@ -162,6 +164,8 @@ def _procesar_evento(control: ControlGrafico, evento, disposicion, rectangulos: 
         control.cambiar_modo()
     elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_r and control.modo == "partida":
         control.reiniciar_partida()
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_n and control.modo == "partida":
+        control.siguiente_turno()
     elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_a:
         control.aplicar_decision_recomendada(confirmar=control.aplicar_confirmacion_pendiente)
     elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_q:
@@ -199,14 +203,20 @@ def _procesar_clic(
     Precondiciones: la disposición y los rectángulos corresponden al último fotograma renderizado.
     Postcondiciones: se ejecuta como máximo una acción: en búsqueda se selecciona el objetivo, en partida solo se
     aplican acciones legales y en modo adversarial se evalúa, se verifica o se pide confirmación para aplicar. Evaluar
-    no cambia el estado.
-    Complejidad: O(1), salvo la carga de un escenario o la búsqueda solicitadas explícitamente.
+    no cambia el estado. En partida, las flechas del algoritmo alternan el control manual o por algoritmos; con
+    control por algoritmos, las flechas de unidad y de k eligen el algoritmo de los bandos A y B y el botón de
+    ejecutar avanza exactamente una jugada.
+    Complejidad: O(1), salvo la carga de un escenario, la búsqueda o la decisión de una jugada solicitadas
+    explícitamente.
     Uso de IA: Si.
     Intervencion de IA: Codex: interacción directa de Pygame para E9.3, apertura de JSON, partida y evaluación
-    adversarial con aplicación confirmada.
+    adversarial con aplicación confirmada. Claude (Opus 5.5): controles de la partida por turnos entre algoritmos
+    (E9.5).
     Validacion del estudiante: pruebas de tests/interfaz/test_aplicacion.py bajo SDL dummy: clic en el tablero que
     selecciona el objetivo sin mover unidades, botón de ejecutar con una sola búsqueda, turno jugado con clics y
-    evaluación, verificación y confirmación de la recomendación.
+    evaluación, verificación y confirmación de la recomendación; pruebas de
+    tests/interfaz/test_turnos_aplicacion.py: cambio de control, algoritmo por bando, una jugada por clic o por tecla N
+    y reinicio.
     """
     acciones = [
         (rectangulos.modo, control.cambiar_modo),
@@ -241,8 +251,29 @@ def _procesar_clic(
     elif control.modo == "partida":
         acciones.extend(
             [
-                (rectangulos.unidad_anterior, lambda: control.cambiar_unidad(-1)),
-                (rectangulos.unidad_siguiente, lambda: control.cambiar_unidad(1)),
+                (rectangulos.algoritmo_anterior, lambda: control.cambiar_control_partida(-1)),
+                (rectangulos.algoritmo_siguiente, lambda: control.cambiar_control_partida(1)),
+            ]
+        )
+        if control.control_partida == CONTROL_ALGORITMOS:
+            acciones.extend(
+                [
+                    (rectangulos.unidad_anterior, lambda: control.cambiar_algoritmo_bando("A", -1)),
+                    (rectangulos.unidad_siguiente, lambda: control.cambiar_algoritmo_bando("A", 1)),
+                    (rectangulos.k_menor, lambda: control.cambiar_algoritmo_bando("B", -1)),
+                    (rectangulos.k_mayor, lambda: control.cambiar_algoritmo_bando("B", 1)),
+                    (rectangulos.ejecutar, control.siguiente_turno),
+                ]
+            )
+        else:
+            acciones.extend(
+                [
+                    (rectangulos.unidad_anterior, lambda: control.cambiar_unidad(-1)),
+                    (rectangulos.unidad_siguiente, lambda: control.cambiar_unidad(1)),
+                ]
+            )
+        acciones.extend(
+            [
                 (rectangulos.verificar, control.verificar),
                 (rectangulos.exploracion, control.reiniciar_partida),
             ]

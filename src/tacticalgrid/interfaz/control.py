@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 import base64
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from hashlib import sha256
 from pathlib import Path
 
@@ -37,8 +37,9 @@ from tacticalgrid.juego import (
     preparar_turno,
     unidades_seleccionables,
 )
-from tacticalgrid.juego.reglas import costo_accion, es_terminal, es_accion_valida
+from tacticalgrid.juego.reglas import costo_accion, es_accion_valida, es_terminal, obtener_ganador
 from tacticalgrid.juego.partida_manual import ResultadoPartidaManual, TurnoManual, huella_estado
+from tacticalgrid.modos.agentes import ALGORITMOS_AGENTE, ConfiguracionAgente, DecisionAgente, decidir_jugada
 from tacticalgrid.modos.prueba import MODO_ADVERSARIAL, MODO_BUSQUEDA, MODO_PARTIDA, MODOS, leer_configuracion_prueba
 from tacticalgrid.modos.registro import RegistroExperimento, serializar
 from tacticalgrid.modos.registro_partida import crear_registro_partida
@@ -109,6 +110,20 @@ def _reporte_a_diccionario(reporte: ReporteVerificacion) -> dict[str, object]:
     }
 
 
+CONTROL_MANUAL = "manual"
+CONTROL_ALGORITMOS = "algoritmos"
+CONTROLES_PARTIDA = (CONTROL_MANUAL, CONTROL_ALGORITMOS)
+ETIQUETAS_ALGORITMOS_AGENTE = {
+    "bfs": "BFS",
+    "dfs": "DFS",
+    "ucs": "UCS",
+    "astar": "A*",
+    "beam": "Beam",
+    "minimax": "Minimax",
+    "alfa_beta": "Alfa-beta",
+}
+
+
 @dataclass
 class ControlGrafico:
     """Selección y resultado vigentes de una sesión Pygame, fuera del dominio inmutable."""
@@ -144,6 +159,9 @@ class ControlGrafico:
     error: bool = False
     estado_busqueda: str = "sin ejecutar"
     ejecutando: bool = False
+    control_partida: str = CONTROL_MANUAL
+    algoritmos_bandos: dict[str, str] = field(default_factory=lambda: {"A": "astar", "B": "alfa_beta"})
+    ultima_decision: DecisionAgente | None = None
 
     @classmethod
     def crear(cls, ruta: str | Path, rutas_disponibles: Sequence[Path]) -> "ControlGrafico":
@@ -382,6 +400,7 @@ class ControlGrafico:
         self.exploracion_visible = False
         self.unidad_partida = None
         self.acciones_partida = ()
+        self.ultima_decision = None
         if self.modo == MODO_PARTIDA:
             self.estado = preparar_turno(self.escenario, self.estado)
             self.estado_busqueda = self.estado.estado_partida
@@ -413,6 +432,7 @@ class ControlGrafico:
             return
         self.estado = preparar_turno(self.escenario, self.estado_inicial_partida)
         self.historial_partida = ()
+        self.ultima_decision = None
         self.modo = MODO_PARTIDA
         self.unidad_partida = None
         self.acciones_partida = ()
@@ -426,6 +446,98 @@ class ControlGrafico:
         self.mensaje = "Partida reiniciada. Seleccione una unidad del bando activo."
         self.estado_busqueda = self.estado.estado_partida
         self.error = False
+
+    def cambiar_control_partida(self, paso: int = 1) -> None:
+        """Alternar quién controla la partida: la persona con clics o los algoritmos de cada bando."""
+        indice = (CONTROLES_PARTIDA.index(self.control_partida) + paso) % len(CONTROLES_PARTIDA)
+        self.control_partida = CONTROLES_PARTIDA[indice]
+        self.unidad_partida = None
+        self.acciones_partida = ()
+        self.resultado = None
+        self.exploracion_visible = False
+        self.error = False
+        self.mensaje = (
+            "Control por algoritmos: pulse N — Siguiente turno para avanzar una jugada."
+            if self.control_partida == CONTROL_ALGORITMOS
+            else "Control manual: seleccione una unidad del bando activo."
+        )
+
+    def cambiar_algoritmo_bando(self, bando: str, paso: int) -> None:
+        """Recorrer los algoritmos disponibles para ``bando`` sin modificar el del otro bando ni la partida."""
+        actual = self.algoritmos_bandos[bando]
+        siguiente = ALGORITMOS_AGENTE[(ALGORITMOS_AGENTE.index(actual) + paso) % len(ALGORITMOS_AGENTE)]
+        self.algoritmos_bandos = {**self.algoritmos_bandos, bando: siguiente}
+        self.error = False
+        self.mensaje = f"Bando {bando}: {ETIQUETAS_ALGORITMOS_AGENTE[siguiente]} decidirá sus próximas jugadas."
+
+    def siguiente_turno(self) -> None:
+        """Avanzar exactamente una jugada: la que decide el algoritmo del bando en turno.
+
+        Proposito: permitir observar la partida entre algoritmos al ritmo en que se pulsa el botón, una jugada por
+        pulsación.
+        Precondiciones: el modo es partida y el control es por algoritmos; el estado vigente ya pasó por
+        ``preparar_turno``.
+        Postcondiciones: si la partida no terminó, la acción decidida por ``decidir_jugada`` se aplica una vez con las
+        reglas del dominio, se registra en el historial con sus huellas y su costo, y se prepara el turno siguiente;
+        ``ultima_decision`` conserva la decisión y ``resultado`` el camino planeado cuando la decide un algoritmo de
+        búsqueda. Si el modo o el control no corresponden, la partida terminó o el algoritmo falla, el estado y el
+        historial no cambian y el mensaje explica la causa.
+        Complejidad: la de ``decidir_jugada`` con el algoritmo del bando en turno, más O(U log U) por las huellas.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5): diseño e implementación de la partida por turnos entre algoritmos
+        (E9.5).
+        Validacion del estudiante: pruebas de tests/interfaz/test_turnos_algoritmos.py: una jugada por pulsación con
+        alternancia de bandos, camino publicado por la búsqueda, métricas de Minimax, rechazo fuera del control por
+        algoritmos, fin de la partida, verificación, exportación y reproducción.
+        """
+        if self.modo != MODO_PARTIDA or self.control_partida != CONTROL_ALGORITMOS:
+            self.mensaje = "Siguiente turno requiere el modo partida con control por algoritmos."
+            self.error = True
+            return
+        if es_terminal(self.escenario, self.estado):
+            self.mensaje = f"Partida terminada ({self.estado.estado_partida}); reinicie con R para jugar de nuevo."
+            self.error = False
+            return
+        bando = self.estado.turno_actual
+        algoritmo = self.algoritmos_bandos[bando]
+        try:
+            configuracion = ConfiguracionAgente(
+                algoritmo,
+                profundidad=self.profundidad_adversarial,
+                orden=self.orden_adversarial,
+                k=self.k,
+                heuristica=self.heuristica_astar,
+            )
+            decision = decidir_jugada(self.escenario, self.estado, configuracion)
+        except ValueError as error:
+            self.mensaje = f"El bando {bando} no pudo decidir: {error}"
+            self.error = True
+            return
+        estado_previo = self.estado
+        self.estado = aplicar_accion(self.escenario, estado_previo, decision.accion)
+        self._registrar_turno_manual(decision.accion, estado_previo)
+        self.estado = preparar_turno(self.escenario, self.estado)
+        self.ultima_decision = decision
+        self.resultado = decision.busqueda
+        self.exploracion_visible = False
+        self.verificacion = None
+        self.unidad_partida = None
+        self.acciones_partida = ()
+        self.estado_busqueda = self.estado.estado_partida
+        self.error = False
+        accion = decision.accion
+        descripcion = (
+            f"Jugada {len(self.historial_partida)}: {bando} ({ETIQUETAS_ALGORITMOS_AGENTE[algoritmo]}) "
+            f"{accion.identificador_unidad} ({accion.origen.fila},{accion.origen.columna}) -> "
+            f"({accion.destino.fila},{accion.destino.columna})"
+        )
+        ganador = obtener_ganador(self.escenario, self.estado)
+        if ganador is not None:
+            self.mensaje = f"{descripcion}. Victoria del bando {ganador}."
+        elif es_terminal(self.escenario, self.estado):
+            self.mensaje = f"{descripcion}. Partida terminada: empate por bloqueo."
+        else:
+            self.mensaje = f"{descripcion}. Turno del bando {self.estado.turno_actual}."
 
     def seleccionar_unidad_partida(self, identificador: str) -> bool:
         """Seleccionar una unidad activa y consultar sus acciones legales al dominio.
@@ -757,6 +869,7 @@ class ControlGrafico:
         self._registrar_turno_manual(accion_tactica.accion, estado_previo)
         self.estado = preparar_turno(self.escenario, self.estado)
         self.modo = MODO_PARTIDA
+        self.ultima_decision = None
         self.unidad_partida = None
         self.acciones_partida = ()
         self.historial_busquedas = ()
@@ -787,6 +900,10 @@ class ControlGrafico:
         rechazo de unidad rival, destino no legal y obstáculo, recogida del recurso y victoria al entregarlo.
         """
         if self.modo != MODO_PARTIDA:
+            return
+        if self.control_partida == CONTROL_ALGORITMOS:
+            self.mensaje = "Los algoritmos controlan ambos bandos: use N — Siguiente turno."
+            self.error = True
             return
         unidad = next((item for item in self.estado.unidades if item.posicion == posicion), None)
         if unidad is not None and any(item.identificador == unidad.identificador for item in self.unidades_partida):
@@ -908,6 +1025,7 @@ class ControlGrafico:
         self.profundidad_adversarial = profundidad
         self.orden_adversarial = orden
         self.huella_escenario = huella_escenario
+        self.ultima_decision = None
         self.unidad_partida = None
         self.acciones_partida = ()
         self.historial_busquedas = ()

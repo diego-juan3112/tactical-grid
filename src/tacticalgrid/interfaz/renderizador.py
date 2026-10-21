@@ -13,6 +13,8 @@ from tacticalgrid.interfaz.recursos import RecursosGraficos
 from tacticalgrid.juego.accion import INTERCEPTAR
 from tacticalgrid.juego.estado import EstadoJuego
 
+from .control import CONTROL_ALGORITMOS, CONTROL_MANUAL, ETIQUETAS_ALGORITMOS_AGENTE
+
 
 Color = tuple[int, int, int]
 
@@ -59,11 +61,36 @@ class EstadoPanelControl:
     confirmar_aplicacion: bool = False
     busquedas_comparables: tuple[str, ...] = ()
     heuristica_astar: str = "manhattan"
+    control_partida: str = CONTROL_MANUAL
+    algoritmo_bando_a: str = ""
+    algoritmo_bando_b: str = ""
+    turno_actual: str | None = None
+    ultima_jugada: tuple[Posicion, Posicion] | None = None
+    lineas_turno: tuple[str, ...] = ()
 
     @classmethod
     def desde_control(cls, control) -> "EstadoPanelControl":
-        """Proyectar el controlador mutable a datos inmutables de presentación."""
+        """Proyectar el controlador mutable a datos inmutables de presentación.
+
+        Proposito: entregar al renderizador lo que necesita del ``ControlGrafico`` sin que pueda ejecutar acciones,
+        incluida la partida por turnos entre algoritmos: quién controla la partida, el algoritmo de cada bando y la
+        última jugada decidida con sus métricas.
+        Precondiciones: ``control`` expone los campos de ``ControlGrafico``.
+        Postcondiciones: se devuelve un ``EstadoPanelControl`` inmutable; ``ultima_jugada`` y ``lineas_turno`` solo se
+        rellenan en modo partida con control por algoritmos, y ``ultima_jugada`` es el par (origen, destino) de la
+        acción de ``ultima_decision``. El controlador no cambia.
+        Complejidad: O(A + L) temporal y espacial, con A acciones legales de la unidad y L la longitud de los textos.
+        Uso de IA: Si.
+        Intervencion de IA: Codex: proyección original. Claude (Opus 5.5): campos de la partida por turnos entre
+        algoritmos (E9.5).
+        Validacion del estudiante: pruebas de tests/interfaz/test_turnos_renderizador.py (proyección del control por
+        algoritmos, última jugada y control manual) y de tests/interfaz/test_renderizador.py.
+        """
         unidad_partida = control.unidad_partida_actual
+        control_partida = getattr(control, "control_partida", CONTROL_MANUAL)
+        algoritmos_bandos = getattr(control, "algoritmos_bandos", {})
+        por_algoritmos = control.modo == "partida" and control_partida == CONTROL_ALGORITMOS
+        decision = getattr(control, "ultima_decision", None) if por_algoritmos else None
         return cls(
             escenario=control.ruta_escenario.name,
             algoritmo=control.algoritmo,
@@ -109,7 +136,75 @@ class EstadoPanelControl:
                 )
             ),
             heuristica_astar=control.heuristica_astar,
+            control_partida=control_partida,
+            algoritmo_bando_a=_etiqueta_algoritmo_agente(algoritmos_bandos.get("A")),
+            algoritmo_bando_b=_etiqueta_algoritmo_agente(algoritmos_bandos.get("B")),
+            turno_actual=control.estado.turno_actual,
+            ultima_jugada=None if decision is None else (decision.accion.origen, decision.accion.destino),
+            lineas_turno=_lineas_turno(control, decision) if por_algoritmos else (),
         )
+
+
+def _etiqueta_algoritmo_agente(algoritmo: str | None) -> str:
+    """Traducir el identificador del algoritmo de un bando a su etiqueta legible; vacío si no hay algoritmo."""
+    if algoritmo is None:
+        return ""
+    return ETIQUETAS_ALGORITMOS_AGENTE.get(algoritmo, algoritmo)
+
+
+def _lineas_turno(control, decision) -> tuple[str, ...]:
+    """Preparar los textos que describen la última jugada decidida por un algoritmo y la configuración compartida.
+
+    Proposito: mostrar en el panel por qué y con qué esfuerzo decidió el algoritmo del bando la última jugada de la
+    partida por turnos, usando solo las métricas que ya devolvió ``decidir_jugada``.
+    Precondiciones: ``control`` expone ``historial_partida``, ``profundidad_adversarial``, ``orden_adversarial``,
+    ``k`` y ``heuristica_astar``; ``decision`` es la ``DecisionAgente`` vigente o ``None``.
+    Postcondiciones: si hay decisión, las primeras líneas nombran bando y algoritmo, la acción ``unidad (f,c) ->
+    (f,c)``, la meta y, según el caso, costo y estados expandidos del camino planeado o valor, nodos generados,
+    evaluados y podados y profundidad de Minimax/alfa-beta; la última línea siempre resume profundidad, orden, k y
+    heurística A*. No recalcula decisiones ni modifica el controlador.
+    Complejidad: O(L) temporal y espacial para la longitud total de los textos.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5): presentación de la partida por turnos entre algoritmos (E9.5).
+    Validacion del estudiante: pruebas de tests/interfaz/test_turnos_renderizador.py: líneas con el algoritmo, la
+    acción y el costo del camino planeado tras una jugada de A*, y panel dibujado sin errores.
+    """
+    lineas: list[str] = []
+    if decision is not None:
+        accion = decision.accion
+        tipo = " (intercepción)" if accion.tipo == INTERCEPTAR else ""
+        meta = decision.meta
+        if decision.objetivo is not None:
+            meta += f" en ({decision.objetivo.fila},{decision.objetivo.columna})"
+        lineas.extend(
+            (
+                f"Jugada {len(control.historial_partida)}: bando {decision.bando} con "
+                f"{_etiqueta_algoritmo_agente(decision.algoritmo)}",
+                f"Acción: {accion.identificador_unidad} ({accion.origen.fila},{accion.origen.columna}) -> "
+                f"({accion.destino.fila},{accion.destino.columna}){tipo}",
+                f"Meta: {meta}",
+            )
+        )
+        if decision.busqueda is not None:
+            busqueda = decision.busqueda
+            costo = "—" if busqueda.costo is None else f"{busqueda.costo:g}"
+            lineas.append(
+                f"Camino planeado: costo {costo}; longitud {busqueda.longitud}; "
+                f"estados expandidos {busqueda.estados_expandidos}"
+            )
+        if decision.adversarial is not None:
+            adversarial = decision.adversarial
+            lineas.append(
+                f"Valor: {adversarial.valor:.6g}; nodos generados {adversarial.nodos_generados}; evaluados "
+                f"{adversarial.nodos_evaluados}; podados {adversarial.nodos_podados}; profundidad "
+                f"{adversarial.profundidad_alcanzada}/{adversarial.profundidad_maxima}"
+            )
+    heuristica = "Manhattan" if control.heuristica_astar == "manhattan" else "HTO"
+    lineas.append(
+        f"Configuración: profundidad {control.profundidad_adversarial}; orden {control.orden_adversarial}; "
+        f"k {control.k}; heurística A* {heuristica}"
+    )
+    return tuple(lineas)
 
 
 def _lineas_decision(control) -> tuple[str, ...]:
@@ -208,6 +303,7 @@ class RenderizadorTablero:
     COLOR_ORIGEN: Color = (68, 220, 112)
     COLOR_DESTINO: Color = (255, 112, 82)
     COLOR_EXPLORACION: Color = (176, 92, 255)
+    COLOR_ULTIMA_JUGADA: Color = (255, 60, 190)
     COLOR_BOTON: Color = (48, 63, 67)
     COLOR_BOTON_BORDE: Color = (100, 131, 133)
     ALFA_EXPLORACION = 92
@@ -341,17 +437,21 @@ class RenderizadorTablero:
     ) -> DisposicionTablero:
         """Dibujar el tablero completo y su información vigente sobre una superficie Pygame.
 
-        Proposito: representar terrenos, exploración, objetivo, camino, entidades, controles, turno y leyenda.
+        Proposito: representar terrenos, exploración, objetivo, camino, entidades, última jugada, controles, turno y
+        leyenda.
         Precondiciones: ``escenario`` está validado y ``estado`` es coherente con el escenario.
-        Postcondiciones: la superficie refleja el estado, las acciones legales de la partida y, si se solicita, la
-        proyección de la traza; el escenario, el estado y el resultado no cambian.
+        Postcondiciones: la superficie refleja el estado, las acciones legales de la partida, la última jugada decidida
+        por un algoritmo (si ``control.ultima_jugada`` existe) y, si se solicita, la proyección de la traza; el
+        escenario, el estado y el resultado no cambian.
         Complejidad: O(F*C + U + T + L + P) temporal y O(F*C + L + lado^2) espacial, con L posiciones del camino y P
         posiciones expandidas únicas almacenadas.
         Uso de IA: Si.
-        Intervencion de IA: Codex: E9.1 y E9.2, rediseño con sprites y capa de E9.3 sin cambiar el camino.
+        Intervencion de IA: Codex: E9.1 y E9.2, rediseño con sprites y capa de E9.3 sin cambiar el camino. Claude (Opus
+        5.5): marcado de la última jugada de la partida por turnos entre algoritmos (E9.5).
         Validacion del estudiante: pruebas de tests/interfaz/test_renderizador.py: segundo renderizado sin retener el
         estado anterior, camino de cada algoritmo trazado en orden, renderizado sin modificar el resultado ni el estado
-        y exploración que conserva camino y entidades.
+        y exploración que conserva camino y entidades; pruebas de tests/interfaz/test_turnos_renderizador.py: marcado
+        de la última jugada sin modificar el estado ni el resultado.
         """
         disposicion = self.calcular_disposicion(superficie, escenario)
         superficie.fill(self.COLOR_FONDO)
@@ -380,6 +480,8 @@ class RenderizadorTablero:
         if estado.portador_recurso is None and estado.posicion_recurso is not None:
             self._dibujar_recurso(superficie, celdas[estado.posicion_recurso], disposicion.tamano_celda)
         self._dibujar_unidades(superficie, estado, celdas, disposicion.tamano_celda)
+        if control is not None and control.ultima_jugada is not None:
+            self._dibujar_ultima_jugada(superficie, control.ultima_jugada, celdas, disposicion.tamano_celda)
         if control is not None:
             self._dibujar_acciones_legales(superficie, control, celdas, disposicion.tamano_celda)
         self._dibujar_cuadricula(superficie, escenario, disposicion)
@@ -642,6 +744,37 @@ class RenderizadorTablero:
                 if insignia is not None:
                     superficie.blit(insignia, insignia.get_rect(center=centro_insignia))
                 pygame.draw.circle(superficie, self.COLOR_OBSTACULO, centro_insignia, radio_insignia + 1, 1)
+
+    def _dibujar_ultima_jugada(
+        self,
+        superficie: pygame.Surface,
+        jugada: tuple[Posicion, Posicion],
+        celdas: dict[Posicion, pygame.Rect],
+        lado: int,
+    ) -> None:
+        """Marcar el origen y el destino de la última jugada decidida por un algoritmo y unirlos con una línea.
+
+        Proposito: hacer visible en el tablero qué movimiento acaba de aplicar el algoritmo del bando en turno, con un
+        color distinto del camino planeado y de los destinos legales.
+        Precondiciones: ``jugada`` es el par (origen, destino) de la acción de la última ``DecisionAgente`` y ambas
+        posiciones pertenecen al escenario representado por ``celdas``.
+        Postcondiciones: el origen queda con un contorno fino, el destino con un contorno grueso y sus centros unidos
+        por una línea, todo en ``COLOR_ULTIMA_JUGADA``; las posiciones ausentes de ``celdas`` se omiten y ningún dato
+        de entrada cambia.
+        Complejidad: O(1) temporal y espacial.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5): marcado de la última jugada de la partida por turnos entre algoritmos
+        (E9.5).
+        Validacion del estudiante: prueba de tests/interfaz/test_turnos_renderizador.py que encuentra
+        ``COLOR_ULTIMA_JUGADA`` en la celda de destino tras una jugada de A* sin modificar estado ni resultado.
+        """
+        origen, destino = (celdas.get(posicion) for posicion in jugada)
+        if origen is not None and destino is not None and origen != destino:
+            pygame.draw.line(superficie, self.COLOR_ULTIMA_JUGADA, origen.center, destino.center, max(2, lado // 10))
+        if origen is not None:
+            pygame.draw.rect(superficie, self.COLOR_ULTIMA_JUGADA, origen.inflate(-6, -6), max(1, lado // 16))
+        if destino is not None:
+            pygame.draw.rect(superficie, self.COLOR_ULTIMA_JUGADA, destino.inflate(-2, -2), max(3, lado // 6))
 
     def _dibujar_acciones_legales(
         self,
@@ -953,17 +1086,23 @@ class RenderizadorTablero:
     ) -> int:
         """Dibujar los selectores, las acciones y la ayuda contextual de la sesión gráfica.
 
-        Proposito: hacer operables desde Pygame los modos de búsqueda, partida manual y evaluación adversarial.
+        Proposito: hacer operables desde Pygame los modos de búsqueda, partida (manual o por turnos entre algoritmos)
+        y evaluación adversarial.
         Precondiciones: ``control`` representa el mismo escenario que el tablero y ``panel`` tiene ancho positivo.
         Postcondiciones: los botones coinciden con sus áreas sensibles y el resumen explica el modo, la selección y las
-        opciones vigentes sin ejecutar acciones ni presentar resultados invalidados.
+        opciones vigentes sin ejecutar acciones ni presentar resultados invalidados. En partida, la fila de algoritmo
+        muestra quién controla la partida; con control por algoritmos, las filas de unidad y de k muestran el
+        algoritmo de los bandos A y B, el botón de ejecutar es "N — Siguiente turno" y debajo se listan las jugadas,
+        el turno y ``lineas_turno``.
         Complejidad: O(L) temporal y espacial por renderizar textos de longitud total L.
         Uso de IA: Si.
         Intervencion de IA: Codex: controles, atajos, explicaciones y verificación de búsquedas; partida manual,
         ejecución y comparación adversarial, verificación y confirmación de acciones. Claude (Opus 5.5): botón "O —
-        Abrir JSON" junto al título (E9.4).
+        Abrir JSON" junto al título (E9.4) y controles de la partida por turnos entre algoritmos (E9.5).
         Validacion del estudiante: pruebas de tests/interfaz/test_renderizador.py: selectores, ayuda y objetivo sin
-        ocultar el tablero, parámetro k solo con Beam y botón de abrir JSON en la fila del título.
+        ocultar el tablero, parámetro k solo con Beam y botón de abrir JSON en la fila del título; pruebas de
+        tests/interfaz/test_turnos_renderizador.py: filas, botones y líneas del control por algoritmos y texto del
+        control manual.
         """
         rectangulos = self.calcular_rectangulos_controles(panel)
         x = panel.x + 12
@@ -975,13 +1114,26 @@ class RenderizadorTablero:
             control.algoritmo, control.algoritmo.upper()
         )
         filas = [(rectangulos.escenario_anterior, rectangulos.escenario_siguiente, f"Escenario: {control.escenario[:18]}")]
+        por_algoritmos = control.modo == "partida" and control.control_partida == CONTROL_ALGORITMOS
         if control.modo == "busqueda":
             filas.append((rectangulos.algoritmo_anterior, rectangulos.algoritmo_siguiente, f"Algoritmo: {etiqueta_algoritmo}"))
             filas.append((rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Unidad: {control.unidad}"))
         elif control.modo == "partida":
-            unidad = control.unidad_partida or "elige unidad activa"
-            tipo = f" ({control.tipo_unidad_partida})" if control.tipo_unidad_partida else ""
-            filas.append((rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Unidad activa: {unidad}{tipo}"))
+            etiqueta_control = "Algoritmos" if por_algoritmos else "Manual"
+            filas.append(
+                (rectangulos.algoritmo_anterior, rectangulos.algoritmo_siguiente, f"Control: {etiqueta_control}")
+            )
+            if por_algoritmos:
+                filas.append(
+                    (rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Bando A: {control.algoritmo_bando_a}")
+                )
+                filas.append((rectangulos.k_menor, rectangulos.k_mayor, f"Bando B: {control.algoritmo_bando_b}"))
+            else:
+                unidad = control.unidad_partida or "elige unidad activa"
+                tipo = f" ({control.tipo_unidad_partida})" if control.tipo_unidad_partida else ""
+                filas.append(
+                    (rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Unidad activa: {unidad}{tipo}")
+                )
         else:
             filas.append((rectangulos.algoritmo_anterior, rectangulos.algoritmo_siguiente, control.algoritmo_adversarial))
             filas.append((rectangulos.unidad_anterior, rectangulos.unidad_siguiente, f"Profundidad: {control.profundidad_adversarial}"))
@@ -1012,6 +1164,19 @@ class RenderizadorTablero:
                 else f"{control.objetivo.fila}, {control.objetivo.columna}"
             )
             indicacion = f"Objetivo: {objetivo} | J: exportar registro"
+        elif por_algoritmos:
+            self._dibujar_boton(superficie, rectangulos.ejecutar, "N — Siguiente turno")
+            self._dibujar_boton(superficie, rectangulos.verificar, "V — Verificar partida")
+            self._dibujar_boton(superficie, rectangulos.exploracion, "R — Reiniciar partida")
+            if control.estado_partida == "en_curso":
+                situacion = f"turno de {control.turno_actual}"
+            elif control.estado_partida.startswith("victoria_"):
+                situacion = f"victoria del bando {control.estado_partida.removeprefix('victoria_')}"
+            elif control.estado_partida == "empate_bloqueo":
+                situacion = "empate por bloqueo"
+            else:
+                situacion = f"partida terminada ({control.estado_partida})"
+            indicacion = f"{control.jugadas_registradas} jugadas | {situacion}"
         elif control.modo == "partida":
             self._dibujar_boton(superficie, rectangulos.verificar, "V — Verificar partida")
             self._dibujar_boton(superficie, rectangulos.exploracion, "R — Reiniciar partida")
@@ -1073,6 +1238,10 @@ class RenderizadorTablero:
                 (x, y),
                 self._fuente_pequena,
             ) + 1
+        elif por_algoritmos:
+            for linea in control.lineas_turno:
+                for fragmento in wrap(linea, width=37):
+                    y = self._dibujar_texto(superficie, fragmento, self.COLOR_TEXTO, (x, y), self._fuente_pequena) + 1
         elif control.modo == "partida" and control.unidad_partida is not None:
             if control.posicion_unidad_partida is not None:
                 posicion = control.posicion_unidad_partida
