@@ -9,7 +9,7 @@ from tacticalgrid.escenario import ErrorValidacionEscenario, Posicion
 
 from .busquedas import ALGORITMOS, preparar_busqueda
 from .control import ControlGrafico
-from .dialogo import pedir_ruta_escenario
+from .dialogo import DialogoNoDisponible, pedir_ruta_escenario, pedir_ruta_registro
 from .renderizador import EstadoPanelControl, RectangulosControles, RenderizadorTablero
 
 
@@ -29,18 +29,18 @@ def ejecutar_aplicacion(
 
     Proposito: integrar carga validada, busqueda estructurada y renderizado, incluida la capa E9.3 bajo demanda.
     Precondiciones: Pygame esta instalado, existe un entorno grafico y la ruta identifica un escenario valido.
-    Postcondiciones: carga una sesion editable; Enter y el boton Ejecutar comparten una sola accion de busqueda;
-    cambiar de escenario es atomico; E o su boton solo alternan visibilidad; O o su boton abren un escenario JSON con
-    el selector de archivos, y soltar un JSON sobre la ventana lo abre, ambos con carga atomica; Pygame se libera al
-    cerrar.
+    Postcondiciones: carga el modo declarado por el escenario; busqueda usa Enter y su boton, y partida se juega
+    seleccionando unidad y destinos legales en el tablero. V verifica busquedas; M o su boton cambian el modo; abrir
+    escenarios es atomico; Pygame se libera al cerrar.
     Complejidad: costo de la busqueda mas O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
     O(F*C + T + L + P) espacial, donde P son posiciones expandidas almacenadas y E los fotogramas.
     Uso de IA: Si.
     Intervencion de IA: Codex integro E9.2/E9.3 y agrego controles directos para escenario, algoritmo, unidad,
     objetivo y Beam sin recalcular por fotograma ni modificar el estado de juego. Claude (Opus 5.5) agrego en E9.4
-    la apertura de escenarios JSON con la tecla O, su boton y arrastrar y soltar.
-    Validacion del estudiante: revisado por el equipo, incluida la validacion visual en la ventana; cubierta por pruebas
-    automatizadas de aplicacion y renderizador, incluidas las de apertura de escenarios.
+    la apertura de escenarios JSON con la tecla O, su boton y arrastrar y soltar. Codex conecto la verificacion de
+    busquedas con V y el modo partida manual con eventos de Pygame y transiciones del dominio.
+    Validacion del estudiante: No puedo confirmar una revision manual del equipo para la verificacion y partida
+    integradas. Las pruebas automatizadas de aplicacion y renderizador cubren eventos y presentacion bajo SDL dummy.
     """
     import pygame
 
@@ -54,9 +54,24 @@ def ejecutar_aplicacion(
 
     try:
         control = ControlGrafico.crear(ruta_escenario, _rutas_escenarios(ruta_escenario))
-        resultado = preparar_busqueda(control.escenario, control.estado, algoritmo, unidad, objetivo, k)
+        resultado = (
+            preparar_busqueda(
+                control.escenario,
+                control.estado,
+                algoritmo,
+                unidad,
+                objetivo,
+                k,
+                control.heuristica_astar if algoritmo == "astar" else "manhattan",
+            )
+            if control.modo == "busqueda"
+            else None
+        )
         control.resultado = resultado
-        if algoritmo is not None:
+        if control.modo != "busqueda" and any(valor is not None for valor in (algoritmo, unidad, objetivo, k)):
+            control.mensaje = f"El escenario solicita modo {control.modo}; los parametros de busqueda no se aplican."
+            control.error = True
+        elif algoritmo is not None:
             control.algoritmo = algoritmo
             if unidad is not None:
                 control.unidad = unidad
@@ -127,17 +142,41 @@ def _rutas_escenarios(ruta_actual: str | Path) -> tuple[Path, ...]:
 
 
 def _procesar_evento(control: ControlGrafico, evento, disposicion, rectangulos: RectangulosControles) -> bool:
-    """Atiende un evento de Pygame y devuelve ``False`` solo si el usuario cerro la ventana."""
+    """Atiende eventos Pygame, incluidos atajos de modo y exportacion reproducible."""
     import pygame
 
     if evento.type == pygame.QUIT:
         return False
     if evento.type == pygame.KEYDOWN and evento.key == pygame.K_e:
-        control.alternar_exploracion()
+        control.evaluar_decision(comparar=True) if control.modo == "adversarial" else control.alternar_exploracion()
     elif evento.type == pygame.KEYDOWN and evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
-        control.ejecutar()
+        control.evaluar_decision() if control.modo == "adversarial" else control.ejecutar()
     elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_o:
         control.abrir_con_dialogo(pedir_ruta_escenario)
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_v:
+        control.verificar_decision_actual() if control.modo == "adversarial" else control.verificar()
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_m:
+        control.cambiar_modo()
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_r and control.modo == "partida":
+        control.reiniciar_partida()
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_a:
+        control.aplicar_decision_recomendada(confirmar=control.aplicar_confirmacion_pendiente)
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_q:
+        control.evaluar_decision()
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_c:
+        control.evaluar_decision(comparar=True)
+    elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_j:
+        try:
+            destino = pedir_ruta_registro(control.ruta_escenario.parent)
+        except DialogoNoDisponible as error:
+            control.mensaje = f"No se pudo abrir el selector de guardado: {error}"
+            control.error = True
+        else:
+            if destino is None:
+                control.mensaje = "Exportacion cancelada."
+                control.estado_busqueda = "exportacion cancelada"
+            else:
+                control.exportar_experimento(destino)
     elif evento.type == pygame.DROPFILE:
         control.abrir_escenario(evento.file)
     elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
@@ -155,26 +194,72 @@ def _procesar_clic(
 
     Proposito: centralizar hitboxes y garantizar que teclado y boton de exploracion compartan estado.
     Precondiciones: disposicion y rectangulos corresponden al ultimo fotograma renderizado.
-    Postcondiciones: ejecuta a lo sumo una accion; seleccionar tablero no mueve unidades ni modifica el dominio.
+    Postcondiciones: ejecuta a lo sumo una accion; en busqueda selecciona objetivo, en partida aplica solo acciones
+    legales y en adversarial evalua/verifica o solicita confirmacion de aplicacion. Evaluar no cambia el estado.
     Complejidad: O(1) salvo carga de escenario o busqueda solicitadas explicitamente.
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento la interaccion directa de Pygame para la integracion final de E9.3. Claude
-    (Opus 5.5) agrego en E9.4 el boton para abrir un escenario JSON.
-    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de eventos y controles SDL dummy.
+    Intervencion de IA: Codex implemento la interaccion directa de Pygame para E9.3, apertura JSON, partida y
+    evaluacion adversarial con aplicacion confirmada en esta continuacion.
+    Validacion del estudiante: No puedo confirmar revision manual; pruebas SDL dummy cubren eventos de busqueda,
+    partida y evaluacion/verificacion/aplicacion adversarial.
     """
-    acciones = (
+    acciones = [
+        (rectangulos.modo, control.cambiar_modo),
         (rectangulos.escenario_anterior, lambda: control.cambiar_escenario(-1)),
         (rectangulos.escenario_siguiente, lambda: control.cambiar_escenario(1)),
-        (rectangulos.algoritmo_anterior, lambda: control.cambiar_algoritmo(-1)),
-        (rectangulos.algoritmo_siguiente, lambda: control.cambiar_algoritmo(1)),
-        (rectangulos.unidad_anterior, lambda: control.cambiar_unidad(-1)),
-        (rectangulos.unidad_siguiente, lambda: control.cambiar_unidad(1)),
-        (rectangulos.k_menor, lambda: control.cambiar_k(-1)),
-        (rectangulos.k_mayor, lambda: control.cambiar_k(1)),
-        (rectangulos.ejecutar, control.ejecutar),
-        (rectangulos.exploracion, control.alternar_exploracion),
         (rectangulos.abrir, lambda: control.abrir_con_dialogo(pedir_ruta_escenario)),
-    )
+    ]
+    if control.modo == "busqueda":
+        acciones.extend(
+            [
+                (rectangulos.unidad_anterior, lambda: control.cambiar_unidad(-1)),
+                (rectangulos.unidad_siguiente, lambda: control.cambiar_unidad(1)),
+                (rectangulos.algoritmo_anterior, lambda: control.cambiar_algoritmo(-1)),
+                (rectangulos.algoritmo_siguiente, lambda: control.cambiar_algoritmo(1)),
+                (
+                    rectangulos.k_menor,
+                    lambda: control.cambiar_heuristica_astar(-1)
+                    if control.algoritmo == "astar"
+                    else control.cambiar_k(-1),
+                ),
+                (
+                    rectangulos.k_mayor,
+                    lambda: control.cambiar_heuristica_astar(1)
+                    if control.algoritmo == "astar"
+                    else control.cambiar_k(1),
+                ),
+                (rectangulos.ejecutar, control.ejecutar),
+                (rectangulos.exploracion, control.alternar_exploracion),
+                (rectangulos.verificar, control.verificar),
+            ]
+        )
+    elif control.modo == "partida":
+        acciones.extend(
+            [
+                (rectangulos.unidad_anterior, lambda: control.cambiar_unidad(-1)),
+                (rectangulos.unidad_siguiente, lambda: control.cambiar_unidad(1)),
+                (rectangulos.verificar, control.verificar),
+                (rectangulos.exploracion, control.reiniciar_partida),
+            ]
+        )
+    elif control.modo == "adversarial":
+        acciones.extend(
+            [
+                (rectangulos.algoritmo_anterior, lambda: control.cambiar_algoritmo_adversarial(-1)),
+                (rectangulos.algoritmo_siguiente, lambda: control.cambiar_algoritmo_adversarial(1)),
+                (rectangulos.unidad_anterior, lambda: control.cambiar_profundidad_adversarial(-1)),
+                (rectangulos.unidad_siguiente, lambda: control.cambiar_profundidad_adversarial(1)),
+                (rectangulos.k_menor, lambda: control.cambiar_orden_adversarial(-1)),
+                (rectangulos.k_mayor, lambda: control.cambiar_orden_adversarial(1)),
+                (rectangulos.ejecutar, control.evaluar_decision),
+                (rectangulos.exploracion, lambda: control.evaluar_decision(comparar=True)),
+                (rectangulos.verificar, control.verificar_decision_actual),
+                (
+                    rectangulos.aplicar,
+                    lambda: control.aplicar_decision_recomendada(confirmar=control.aplicar_confirmacion_pendiente),
+                ),
+            ]
+        )
     for rectangulo, accion in acciones:
         if rectangulo.collidepoint(punto):
             accion()
@@ -182,7 +267,11 @@ def _procesar_clic(
     if disposicion.tablero.collidepoint(punto):
         columna = (punto[0] - disposicion.tablero.x) // disposicion.tamano_celda
         fila = (punto[1] - disposicion.tablero.y) // disposicion.tamano_celda
-        control.seleccionar_objetivo(Posicion(fila, columna))
+        posicion = Posicion(fila, columna)
+        if control.modo == "partida":
+            control.clic_partida(posicion)
+        elif control.modo == "busqueda":
+            control.seleccionar_objetivo(posicion)
 
 
 def _leer_argumentos(argumentos: Sequence[str] | None = None) -> argparse.Namespace:

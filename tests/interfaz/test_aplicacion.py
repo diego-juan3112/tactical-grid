@@ -1,6 +1,7 @@
 """Pruebas de la seleccion y ejecucion de busquedas desde la interfaz Pygame."""
 
 import os
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -373,6 +374,49 @@ def test_boton_ejecutar_invoca_una_sola_busqueda(monkeypatch):
     assert llamadas == 1
 
 
+def test_controles_graficos_evalua_verifica_y_confirma_recomendacion():
+    control = aplicacion.ControlGrafico.crear(RUTA_COMPARACION, (RUTA_COMPARACION,))
+    control.cambiar_modo()
+    control.cambiar_modo()
+    superficie = pygame.Surface((800, 600))
+    renderizador = aplicacion.RenderizadorTablero()
+    disposicion = renderizador.calcular_disposicion(superficie, control.escenario)
+    rectangulos = renderizador.calcular_rectangulos_controles(disposicion.panel)
+    estado_inicial = control.estado
+
+    aplicacion._procesar_clic(control, rectangulos.ejecutar.center, disposicion, rectangulos)
+    assert control.resultado_adversarial is not None
+    assert control.estado is estado_inicial
+    aplicacion._procesar_clic(control, rectangulos.verificar.center, disposicion, rectangulos)
+    assert control.verificacion is not None and control.verificacion.es_valido
+
+    aplicacion._procesar_clic(control, rectangulos.aplicar.center, disposicion, rectangulos)
+    assert control.estado is estado_inicial
+    assert control.aplicar_confirmacion_pendiente
+    aplicacion._procesar_clic(control, rectangulos.aplicar.center, disposicion, rectangulos)
+    assert control.estado is not estado_inicial
+    assert control.modo == "partida"
+
+
+def test_tecla_j_abre_destino_y_exporta_registro_de_busqueda(monkeypatch, tmp_path):
+    control = aplicacion.ControlGrafico.crear(RUTA_COMPARACION, (RUTA_COMPARACION,))
+    control.ejecutar()
+    destino = tmp_path / "experimento.json"
+    seleccionados = []
+
+    def pedir(directorio):
+        seleccionados.append(directorio)
+        return destino
+
+    monkeypatch.setattr(aplicacion, "pedir_ruta_registro", pedir)
+    evento = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_j)
+
+    assert aplicacion._procesar_evento(control, evento, None, None)
+    assert destino.exists()
+    assert seleccionados == [RUTA_COMPARACION.parent]
+    assert "exportado" in control.mensaje
+
+
 @pytest.mark.parametrize("tecla", [pygame.K_RETURN, pygame.K_KP_ENTER])
 def test_enter_y_enter_numerico_invocan_la_misma_accion_una_vez(monkeypatch, tecla):
     llamadas = 0
@@ -441,6 +485,98 @@ def test_boton_abrir_json_abre_un_escenario_con_el_selector(monkeypatch, tmp_pat
 
     assert ejecutar_aplicacion(RUTA_COMPARACION) == 0
     assert dimensiones == [(8, 7), (8, 7)]
+
+
+def test_tecla_v_invoca_verificacion_de_la_busqueda(monkeypatch):
+    verificaciones = []
+    monkeypatch.setattr(aplicacion.ControlGrafico, "verificar", lambda control: verificaciones.append(control))
+    _tandas(monkeypatch, pygame.event.Event(pygame.KEYDOWN, key=pygame.K_v))
+
+    assert ejecutar_aplicacion(RUTA_COMPARACION, algoritmo="bfs") == 0
+    assert len(verificaciones) == 1
+
+
+def test_boton_verificar_invoca_el_control_de_verificacion(monkeypatch):
+    verificaciones = []
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    renderizador = aplicacion.RenderizadorTablero()
+    disposicion = renderizador.calcular_disposicion(pygame.Surface((800, 600)), escenario)
+    boton = renderizador.calcular_rectangulos_controles(disposicion.panel).verificar.center
+    monkeypatch.setattr(aplicacion.ControlGrafico, "verificar", lambda control: verificaciones.append(control))
+    _tandas(monkeypatch, pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=boton))
+
+    assert ejecutar_aplicacion(RUTA_COMPARACION, algoritmo="bfs") == 0
+    assert len(verificaciones) == 1
+
+
+def test_gui_juega_un_turno_con_clics_en_unidad_y_destino_legal(monkeypatch, tmp_path):
+    datos = {
+        "version": "1.0",
+        "mapa": {"filas": 4, "columnas": 4},
+        "tipos_terreno": {"llanura": {"costo": 1, "transitable": True}},
+        "terreno": [["llanura"] * 4 for _ in range(4)],
+        "bases": {"A": {"fila": 0, "columna": 0}, "B": {"fila": 3, "columna": 3}},
+        "recurso": {"fila": 1, "columna": 2},
+        "unidades": [
+            {"id": "unidad-norte", "bando": "A", "tipo": "exploradora", "fila": 1, "columna": 1},
+            {"id": "guardia-x", "bando": "B", "tipo": "estandar", "fila": 3, "columna": 2},
+        ],
+        "turno": "A",
+        "juego": {"portador_recurso": None},
+        "prueba": {"modo": "partida"},
+    }
+    ruta = tmp_path / "modo_partida.json"
+    ruta.write_text(json.dumps(datos), encoding="utf-8")
+    escenario = cargar_escenario(ruta)
+    renderizador = aplicacion.RenderizadorTablero()
+    disposicion = renderizador.calcular_disposicion(pygame.Surface((800, 600)), escenario)
+
+    def centro(posicion):
+        return (
+            disposicion.tablero.x + posicion.columna * disposicion.tamano_celda + disposicion.tamano_celda // 2,
+            disposicion.tablero.y + posicion.fila * disposicion.tamano_celda + disposicion.tamano_celda // 2,
+        )
+
+    llamadas = []
+    original = aplicacion.ControlGrafico.clic_partida
+
+    def registrar_clic(control, posicion):
+        original(control, posicion)
+        llamadas.append((posicion, control.estado.turno_actual, control.estado.estado_partida))
+
+    monkeypatch.setattr(aplicacion.ControlGrafico, "clic_partida", registrar_clic)
+    _tandas(
+        monkeypatch,
+        pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=centro(Posicion(1, 1))),
+        pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=centro(Posicion(0, 1))),
+    )
+
+    assert ejecutar_aplicacion(ruta) == 0
+    assert llamadas == [(Posicion(1, 1), "A", "en_curso"), (Posicion(0, 1), "B", "en_curso")]
+
+
+@pytest.mark.parametrize("selector", ["tecla", "boton"])
+def test_selector_grafico_cambia_a_modo_partida(monkeypatch, selector):
+    escenario = cargar_escenario(RUTA_COMPARACION)
+    renderizador = aplicacion.RenderizadorTablero()
+    disposicion = renderizador.calcular_disposicion(pygame.Surface((800, 600)), escenario)
+    if selector == "tecla":
+        evento = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_m)
+    else:
+        boton = renderizador.calcular_rectangulos_controles(disposicion.panel).modo.center
+        evento = pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=boton)
+    modos = []
+    cambiar_original = aplicacion.ControlGrafico.cambiar_modo
+
+    def registrar_modo(control, paso=1):
+        cambiar_original(control, paso)
+        modos.append(control.modo)
+
+    monkeypatch.setattr(aplicacion.ControlGrafico, "cambiar_modo", registrar_modo)
+    _tandas(monkeypatch, evento)
+
+    assert ejecutar_aplicacion(RUTA_COMPARACION) == 0
+    assert modos == ["partida"]
 
 
 def test_soltar_un_json_sobre_la_ventana_lo_abre(monkeypatch, tmp_path):

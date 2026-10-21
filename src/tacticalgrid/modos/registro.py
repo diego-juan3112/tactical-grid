@@ -43,6 +43,7 @@ _OPCIONES = (
     ("unidad", "--unidad"),
     ("objetivo", "--objetivo"),
     ("k", "--k"),
+    ("heuristica", "--heuristica"),
     ("profundidad", "--profundidad"),
     ("orden_acciones", "--orden"),
     ("max_turnos", "--turnos"),
@@ -84,7 +85,22 @@ class RegistroExperimento:
         )
 
     def comando(self) -> str:
-        """Comando de consola que repite la ejecucion con los mismos parametros resueltos."""
+        """Construye la linea de consola que reproduce este registro.
+
+        Proposito: serializar escenario, modo, parametros resueltos y verificacion como un comando seguro para shell.
+        Precondiciones: ``archivo`` es una ruta representable como texto y ``parametros`` contiene valores ya
+        resueltos por el orquestador; el metodo no comprueba que el comando pueda ejecutarse en otro entorno.
+        Postcondiciones: devuelve una linea que empieza con ``python main.py`` y conserva cada opcion conocida en
+        ``_OPCIONES``; listas/tuplas se emiten como argumentos multiples y ``shlex.join`` cita cada argumento. Anade
+        ``--modo`` y ``--verificar`` cuando corresponden. No modifica el registro.
+        Complejidad: O(P + S) temporal y espacial, donde P es la cantidad de valores emitidos y S la longitud total
+        de sus representaciones de texto.
+        Uso de IA: Si.
+        Intervencion de IA: Codex documento este metodo en la correccion de hallazgos; la procedencia individual de la
+        implementacion original no esta declarada en Git. E10.3 atribuye a Claude (Opus 5.5) el diseno del registro.
+        Validacion del estudiante: no hay constancia de revision del equipo en los archivos consultados. Las pruebas
+        de tests/modos/test_registro.py comprueban argumentos, quoting y orden, pero no acreditan una revision.
+        """
         partes = ["python", "main.py", self.archivo]
         if self.modo is not None:
             partes += ["--modo", self.modo]

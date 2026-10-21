@@ -52,6 +52,57 @@ Las pruebas de `tests/interfaz/test_dialogo.py`, `tests/interfaz/test_control.py
 y `tests/interfaz/test_aplicacion.py` cubren el selector, la carga externa, la ruta repetida, el archivo inválido, el
 botón, la tecla `O` y soltar un archivo.
 
+## Partida manual por turnos desde Pygame
+
+El modo inicial se toma de `prueba.modo`; si el escenario no declara `prueba` o no incluye `modo`, la GUI empieza en
+`busqueda`. La tecla `M` o el botón **M — Modo** recorren búsqueda, partida y adversarial. Durante esta fase, la GUI
+soporta búsqueda, partida manual y evaluación adversarial.
+
+Al cargar un escenario con `prueba.modo = "partida"`, el estado inicial se prepara con `preparar_turno`, que aplica
+el pase por bloqueo definido por el dominio. En modo partida se puede seleccionar una unidad del bando activo con
+clic sobre ella o con las flechas de unidad. El panel muestra su ID, tipo y acciones disponibles. Los destinos de
+movimiento legales aparecen delineados en verde; una intercepción legal, en violeta. Al hacer clic en un destino, la
+GUI conserva la acción que el dominio generó y la aplica mediante `aplicar_accion`; después prepara el turno
+siguiente. Un destino arbitrario, un obstáculo o una unidad rival no consumen el turno. La recolección, el transporte,
+la entrega y la victoria proceden de las reglas existentes. Cada acción ejecutada conserva bando, unidad, acción,
+costo, estados anterior/resultante y huellas SHA-256; los clics rechazados y evaluaciones que no se aplican no generan
+jugadas. `V` llama a `verificar_partida` con el historial y vuelve a aplicar las reglas para comprobar legalidad,
+encadenamiento, estados y resultado. `R` reinicia estado e historial de la sesión. Cambiar de modo no borra las jugadas;
+cargar otro escenario y reiniciar sí las descartan.
+
+El tablero y el panel derivan bando, portador, tipo/posición de la unidad seleccionada y terminalidad de `EstadoJuego`.
+El modelo no contiene número de turno, así que la interfaz no inventa un contador. Cargar otro escenario reinicia la
+partida; una carga inválida conserva la sesión vigente. La prueba automatizada de eventos usa SDL dummy y no
+reemplaza la revisión manual en ventana real.
+
+## Evaluación adversarial desde Pygame
+
+El modo `adversarial` se reconoce en `prueba.modo`. El panel permite elegir Minimax o alfa-beta, ajustar profundidad
+(el valor de `juego.profundidad_maxima_minimax` si existe; 1 si falta) y orden (`juego.orden_acciones` si existe;
+`generacion` si falta). `Q` o **Evaluar** calcula una recomendación sobre el estado vigente sin mutarlo. `C` o
+**Comparar ambos** ejecuta los algoritmos con la misma profundidad, utilidad y orden. El panel muestra acciones,
+valores, profundidades, conteos de nodos y tiempos de las dos ejecuciones, además de indicar si coinciden.
+
+`V` verifica la decisión con `verificar_decision`. Una recomendación solo puede aplicarse si la verificación vigente
+es válida, el estado no cambió y la acción sigue siendo legal. `A` o el botón correspondiente solicita confirmación;
+una segunda activación aplica la acción por `aplicar_accion`, cambia a modo partida y elimina el resultado anterior.
+`J` conserva el registro E10.3 para búsquedas y decisiones iniciales. En modo partida, y en adversarial después de
+jugadas manuales, exporta `tacticalgrid.partida/1`: contiene una copia íntegra del JSON, secuencia de acciones legales,
+costos, huellas y decisión opcional. La CLI la verifica y repite con `python main.py --consola
+--reproducir-registro archivo.tg.json`; los campos deterministas se comparan y el tiempo se excluye.
+Las pruebas automatizadas recorren controles y transiciones bajo SDL dummy; la comprobación visual en escritorio real
+sigue pendiente.
+
+## Heurísticas, métricas y comparación de búsquedas
+
+En A*, las flechas de la fila de parámetros alternan Manhattan y HTO, ambas implementadas en `algoritmos/`. `J`
+abre el selector para exportar registros E10.3; `--heuristica hto` permite repetir la heurística desde consola. Beam
+Search conserva el ancho `k` seleccionado (las flechas lo incrementan o decrementan) y permite ejecutar, en la misma
+sesión, `k = 1, 2, 4, 8`. La interfaz conserva las dos ejecuciones consecutivas y muestra las métricas completas de la
+vigente y un resumen con métricas completas de la anterior. Las copias de comparación descartan sus trazas para limitar memoria;
+el historial se borra al cambiar escenario, unidad, objetivo o estado de partida. La ruta vigente se dibuja en el
+tablero y puede verificarse con `V`.
+
 ## Visualización del tablero, caminos y exploración — E9.1/E9.2/E9.3
 
 La interfaz gráfica acepta el escenario como argumento posicional; sin argumento usa `campo_20x20.json`. Si no se

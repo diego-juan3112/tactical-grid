@@ -221,3 +221,24 @@ resultados son idénticos salvo `tiempo_segundos`, que depende de la máquina. L
 verifican que los resultados coinciden con los originales (sin contar el tiempo) en búsqueda, Beam Search,
 alfa-beta y partida. También comprueban que la huella cambia al modificar el escenario, que el JSON se puede leer
 completo con `--json` y que `--exportar` guarda el mismo contenido.
+
+## Registro de partidas manuales y reproducción
+
+La GUI conserva por sesión el estado inicial y cada acción realmente aplicada, incluidas las recomendaciones
+adversariales confirmadas por la persona. Una evaluación Minimax, un clic inválido o una recomendación sin aplicar no
+se incorpora al historial. `V` entrega ese historial a `verificar_partida`, que reproduce pases por bloqueo, acciones,
+costos, transiciones y estado final mediante las reglas del dominio.
+
+La tecla `J` exporta partidas manuales o decisiones calculadas después de jugadas en el formato experimental separado
+`tacticalgrid.partida/1`. Incluye los bytes originales del escenario codificados en Base64 y sus SHA-256, instantáneas
+de estado, secuencia ordenada con acciones y costos, verificación y evaluación adversarial opcional. No agrega campos
+al contrato JSON académico. Para validar y reproducir el archivo:
+
+```bash
+python main.py --consola --reproducir-registro partida.tg.json
+```
+
+El reproductor rechaza integridad incorrecta, escenario incompatible, eventos faltantes o desordenados, acciones
+ilegales, costo o hash de estado diferente. Si hay evaluación adjunta, vuelve a ejecutarla y compara parámetros, acción,
+valor y contadores; excluye únicamente el tiempo. La verificación automatizada no sustituye la revisión manual del
+equipo ni el uso de un JSON oficial externo.

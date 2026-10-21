@@ -140,6 +140,20 @@ def _leer_unidad(prueba: Mapping[str, object]) -> str | None:
 
 
 def _leer_objetivo(prueba: Mapping[str, object]) -> Posicion | None:
+    """Lee la posicion objetivo opcional de la configuracion de prueba.
+
+    Proposito: convertir el objeto JSON ``objetivo`` en Posicion y rechazar su estructura si no contiene coordenadas
+    enteras estrictas.
+    Precondiciones: ``prueba`` es un mapping correspondiente al campo ya cargado ``prueba``; no se comprueba aqui que
+    la posicion pertenezca a las dimensiones del escenario.
+    Postcondiciones: devuelve None si falta o es null; devuelve Posicion(fila, columna) si ambas coordenadas son int
+    y no bool; en otro formato lanza ValueError con el valor recibido. No modifica el mapping.
+    Complejidad: O(1) temporal y espacial, pues consulta dos claves y crea como maximo una Posicion.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento el lector de objetivo en E10.1; Codex agrego esta documentacion.
+    Validacion del estudiante: no hay constancia de revision del equipo en los archivos consultados. Las pruebas de
+    tests/modos/test_configuracion_prueba.py cubren configuraciones validas e invalidas, pero no acreditan una revision.
+    """
     objetivo = prueba.get("objetivo")
     if objetivo is None:
         return None
@@ -153,6 +167,20 @@ def _leer_objetivo(prueba: Mapping[str, object]) -> Posicion | None:
 
 
 def _leer_algoritmo(prueba: Mapping[str, object], modo: str) -> str | None:
+    """Lee el algoritmo opcional permitido para el modo indicado.
+
+    Proposito: validar que el nombre configurado pertenezca a la familia JSON admitida por ``modo``.
+    Precondiciones: ``prueba`` es el mapping de configuracion y ``modo`` es una clave de ``_ALGORITMOS_JSON``; la
+    validez del modo se comprueba antes en ``leer_configuracion_prueba``.
+    Postcondiciones: devuelve None si falta o es null; devuelve el nombre si aparece en la tupla del modo; en caso
+    contrario lanza ValueError y enumera opciones validas. No modifica el mapping.
+    Complejidad: O(1) temporal y espacial, porque las tuplas admitidas tienen tamano fijo por modo.
+    Uso de IA: Si.
+    Intervencion de IA: Claude (Opus 5.5) implemento la validacion de algoritmo por modo en E10.1; Codex agrego esta
+    documentacion.
+    Validacion del estudiante: no hay constancia de revision del equipo en los archivos consultados. Las pruebas de
+    tests/modos/test_configuracion_prueba.py cubren algoritmos admitidos y rechazados, pero no acreditan una revision.
+    """
     algoritmo = prueba.get("algoritmo")
     if algoritmo is not None and algoritmo not in _ALGORITMOS_JSON[modo]:
         raise ValueError(

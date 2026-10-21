@@ -26,6 +26,7 @@ from tacticalgrid.juego.reglas import (
     EMPATE_BLOQUEO,
     EN_CURSO,
     aplicar_accion,
+    costo_accion,
     es_accion_valida,
     es_terminal,
     obtener_ganador,
@@ -36,6 +37,7 @@ from .minimax import ResultadoMinimax
 from .orden_acciones import ordenar_acciones
 from .resultado_busqueda import ResultadoBusqueda
 from .utilidad import EvaluadorUtilidad, pesos_desde_configuracion
+from tacticalgrid.juego.partida_manual import huella_estado
 
 BANDOS = ("A", "B")
 ESTADOS_PARTIDA = (EN_CURSO, EMPATE_BLOQUEO, "victoria_A", "victoria_B")
@@ -433,18 +435,21 @@ def verificar_decision(
 
 
 def verificar_partida(escenario: Escenario, partida, verificar_arboles: bool = True) -> ReporteVerificacion:
-    """Verifica una partida del modo ``partida`` jugada con Minimax o alfa-beta.
+    """Verifica una partida automatica o un historial manual con las transiciones reales del dominio.
 
     Proposito: comprobar que cada jugada es legal y produce el estado siguiente, que no se genera ningun estado invalido
     y que el resultado declarado corresponde al estado final.
-    Precondiciones: ``partida`` es un ``ResultadoPartida`` de ``jugar_partida`` para ``escenario``.
-    Postcondiciones: devuelve un reporte con ``jugadas_legales``, ``estados_encadenados``, ``estados_validos``,
-    ``resultado_coherente`` y, si ``verificar_arboles``, ``decisiones_verificadas`` (aplica :func:`verificar_decision`
-    a cada jugada, lo que cuesta tanto como volver a jugar la partida). No modifica nada.
-    Complejidad: O(T * U) sin verificar arboles; con ellos, la de T busquedas adversariales completas, donde T es la
-    cantidad de jugadas.
+    Precondiciones: ``partida`` contiene estado inicial/final, turnos y resultado; los turnos automaticos llevan una
+    decision Minimax y los manuales una accion registrada. ``verificar_arboles`` solo aplica a decisiones automaticas.
+    Postcondiciones: devuelve ``jugadas_legales``, ``estados_encadenados``, ``estados_validos`` y
+    ``resultado_coherente``. En partidas manuales reconstruye cada ``Accion`` con ``aplicar_accion`` y comprueba
+    costo/huellas; no verifica optimalidad adversarial. En partidas automáticas, ``verificar_arboles`` agrega
+    ``decisiones_verificadas`` con :func:`verificar_decision`. No modifica nada.
+    Complejidad: O(T * U) para transiciones; en partidas automáticas con árboles, añade T búsquedas adversariales,
+    donde T es la cantidad de jugadas.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) diseno las comprobaciones y las implemento en E10.2.
+    Intervencion de IA: Claude (Opus 5.5) diseño las comprobaciones e implementó E10.2; Codex agregó compatibilidad
+    con los eventos manuales verificables de la GUI en esta continuación.
     Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
     tests/algoritmos/test_verificador.py verifican partidas reales y detectan una partida alterada a proposito.
     """
@@ -455,6 +460,7 @@ def verificar_partida(escenario: Escenario, partida, verificar_arboles: bool = T
     esperado_previo = preparar_turno(escenario, partida.estado_inicial)
     ultimo = partida.estado_inicial
 
+    manual = partida.algoritmo == "manual"
     if len(partida.turnos) > partida.max_turnos:
         cadena.append(f"hay {len(partida.turnos)} jugadas y el limite es {partida.max_turnos}")
     for indice, turno in enumerate(partida.turnos, start=1):
@@ -462,15 +468,26 @@ def verificar_partida(escenario: Escenario, partida, verificar_arboles: bool = T
             cadena.append(f"la jugada {indice} esta numerada como {turno.numero}")
         if turno.estado_previo != esperado_previo:
             cadena.append(f"jugada {indice}: no parte del estado en que termino la anterior")
+        if manual and turno.hubo_pase != (esperado_previo != ultimo):
+            cadena.append(f"jugada {indice}: el indicador de pase por bloqueo no coincide")
         if turno.bando != turno.estado_previo.turno_actual:
             jugadas.append(f"jugada {indice}: la juega {turno.bando} pero el turno es de {turno.estado_previo.turno_actual}")
-        accion = turno.decision.accion_seleccionada
-        if accion is None or not es_accion_valida(escenario, turno.estado_previo, accion.accion):
-            jugadas.append(f"jugada {indice}: la accion {None if accion is None else accion.accion} no es legal")
-        elif turno.estado_resultante != aplicar_accion(escenario, turno.estado_previo, accion.accion):
+        accion = turno.accion if manual else turno.decision.accion_seleccionada.accion if turno.decision.accion_seleccionada else None
+        if accion is None or not es_accion_valida(escenario, turno.estado_previo, accion):
+            jugadas.append(f"jugada {indice}: la accion {accion} no es legal")
+        elif turno.estado_resultante != aplicar_accion(escenario, turno.estado_previo, accion):
             cadena.append(f"jugada {indice}: el estado resultante no es el que produce la accion")
+        if manual:
+            if turno.bando != turno.estado_previo.turno_actual:
+                jugadas.append(f"jugada {indice}: el bando registrado no coincide con el turno activo")
+            if turno.huella_previa != huella_estado(turno.estado_previo):
+                cadena.append(f"jugada {indice}: la huella del estado previo no coincide")
+            if turno.huella_resultante != huella_estado(turno.estado_resultante):
+                cadena.append(f"jugada {indice}: la huella del estado resultante no coincide")
+            if accion is not None and turno.costo != costo_accion(escenario, accion):
+                cadena.append(f"jugada {indice}: el costo registrado no coincide con el terreno destino")
         estados.extend(f"jugada {indice}: {e}" for e in errores_de_estado(escenario, turno.estado_resultante))
-        if verificar_arboles:
+        if verificar_arboles and not manual:
             reporte = verificar_decision(escenario, turno.estado_previo, turno.decision)
             decisiones.extend(f"jugada {indice}: {c.nombre} ({c.detalle})" for c in reporte.fallidas)
         ultimo = turno.estado_resultante
@@ -485,7 +502,7 @@ def verificar_partida(escenario: Escenario, partida, verificar_arboles: bool = T
     elif partida.estado_final.estado_partida == EMPATE_BLOQUEO:
         esperado = EMPATE_BLOQUEO
     else:
-        esperado = "limite_turnos"
+        esperado = "en_curso" if manual else "limite_turnos"
     if partida.resultado != esperado:
         resultado.append(f"el resultado declarado es {partida.resultado} y el estado final indica {esperado}")
     if esperado == "limite_turnos" and len(partida.turnos) != partida.max_turnos:
@@ -497,7 +514,7 @@ def verificar_partida(escenario: Escenario, partida, verificar_arboles: bool = T
         _comprobacion("estados_validos", estados, "ningun estado de la partida es invalido"),
         _comprobacion("resultado_coherente", resultado, f"resultado {partida.resultado} coherente con el estado final"),
     ]
-    if verificar_arboles:
+    if verificar_arboles and not manual:
         comprobaciones.append(
             _comprobacion("decisiones_verificadas", decisiones, "cada decision supera la verificacion adversarial")
         )

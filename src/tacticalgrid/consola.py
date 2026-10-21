@@ -2,10 +2,13 @@
 """Aplicacion de consola de TacticalGrid y presentacion textual de resultados."""
 
 import argparse
+import base64
 import contextlib
 import hashlib
 import io
+import json
 import sys
+import tempfile
 from dataclasses import asdict
 from pathlib import Path
 
@@ -20,6 +23,7 @@ from tacticalgrid.algoritmos import (
     busqueda_profundidad,
     validar_ancho_haz,
 )
+from tacticalgrid.algoritmos.heuristica_obstaculos import HeuristicaObstaculos
 from tacticalgrid.escenario import (
     ErrorValidacionEscenario,
     Posicion,
@@ -42,6 +46,7 @@ from tacticalgrid.algoritmos.utilidad import pesos_desde_configuracion
 from tacticalgrid.algoritmos.verificador import verificar_busqueda, verificar_decision, verificar_partida
 from tacticalgrid.juego import ProblemaNavegacion, crear_estado_inicial
 from tacticalgrid.modos.registro import RegistroExperimento, serializar
+from tacticalgrid.modos.reproduccion import reproducir_registro_partida
 from tacticalgrid.modos import (
     MAX_TURNOS_POR_DEFECTO,
     MODOS,
@@ -555,6 +560,11 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion, registro=
 
     verificar = getattr(args, "verificar", False)
     anchos = resolver_anchos_haz(args.k, escenario) if algoritmo == "beam" else None
+    heuristica = getattr(args, "heuristica", None) or "manhattan"
+    if heuristica not in ("manhattan", "hto"):
+        raise ValueError("La heuristica debe ser 'manhattan' o 'hto'.")
+    if heuristica != "manhattan" and algoritmo != "a_estrella":
+        raise ValueError("--heuristica solo puede usarse con --algoritmo a_estrella.")
     if registro is not None:
         registro.definir(
             "busqueda",
@@ -562,6 +572,7 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion, registro=
             unidad=unidad,
             objetivo=[objetivo.fila, objetivo.columna],
             k=None if anchos is None else list(anchos),
+            heuristica=heuristica if algoritmo == "a_estrella" else None,
         )
     if algoritmo == "beam":
         resultados_haz = {}
@@ -580,7 +591,11 @@ def ejecutar_busqueda(algoritmo, args, escenario, ruta, configuracion, registro=
     nombres = {"ambos": ("bfs", "ucs"), "bfs_dfs": ("bfs", "dfs")}.get(algoritmo, (algoritmo,))
     resultados = {}
     for nombre in nombres:
-        resultados[nombre] = ALGORITMOS[nombre](problema)
+        resultados[nombre] = (
+            ALGORITMOS[nombre](problema, heuristica_preparada=HeuristicaObstaculos(problema))
+            if nombre == "a_estrella" and heuristica == "hto"
+            else ALGORITMOS[nombre](problema)
+        )
         mostrar_resultado(nombre, resultados[nombre])
         if registro is not None:
             registro.agregar_resultado(resultados[nombre])
@@ -793,6 +808,12 @@ def ejecutar_consola(argumentos=None):
     )
 
     parser.add_argument(
+        "--heuristica",
+        choices=("manhattan", "hto"),
+        help="Heuristica para A*; si se omite usa Manhattan.",
+    )
+
+    parser.add_argument(
         "--profundidad",
         type=int,
         help="Profundidad maxima para --algoritmo minimax, alfa_beta o minimax_alfa_beta. Si se omite, se usa "
@@ -827,6 +848,13 @@ def ejecutar_consola(argumentos=None):
     )
 
     parser.add_argument(
+        "--reproducir-registro",
+        type=Path,
+        metavar="ARCHIVO",
+        help="Valida y reproduce un registro de partida manual exportado desde la GUI.",
+    )
+
+    parser.add_argument(
         "--unidad",
         type=str,
         help="Identificador de la unidad que se desplazará",
@@ -841,6 +869,9 @@ def ejecutar_consola(argumentos=None):
     )
 
     args = parser.parse_args(argumentos)
+
+    if args.reproducir_registro is not None:
+        return reproducir_archivo_partida(args.reproducir_registro)
 
     ruta = args.escenario
     if not ruta.is_absolute():
@@ -870,4 +901,40 @@ def ejecutar_consola(argumentos=None):
 
     except (ErrorValidacionEscenario, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
+        return 1
+
+
+def reproducir_archivo_partida(ruta: str | Path) -> int:
+    """Carga, valida y reproduce un registro GUI autocontenido sin modificar el archivo del escenario original.
+
+    Proposito: permitir repetir una partida exportada y su evaluación adversarial desde consola, sin editar código.
+    Precondiciones: ``ruta`` apunta a un registro JSON tacticalgrid.partida/1 íntegro.
+    Postcondiciones: imprime los reportes de partida/decisión y devuelve 0 si son válidos; devuelve 1 ante discrepancias.
+    Complejidad: O(N + T*U + B^d) temporal, con N bytes de JSON, T acciones, U unidades y evaluación opcional B^d.
+    Uso de IA: Si.
+    Intervencion de IA: Codex agregó la reproducción desde CLI de los registros exportados por la GUI.
+    Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas reproducen registros y rechazan daños.
+    """
+    try:
+        registro = json.loads(Path(ruta).read_text(encoding="utf-8"))
+        datos_escenario = registro["escenario"]
+        escenario_bytes = base64.b64decode(datos_escenario["contenido_base64"], validate=True)
+        if hashlib.sha256(escenario_bytes).hexdigest() != datos_escenario["huella_sha256"]:
+            raise ValueError("La huella SHA-256 del escenario embebido no coincide.")
+        with tempfile.TemporaryDirectory(prefix="tacticalgrid-replay-") as carpeta:
+            ruta_escenario = Path(carpeta) / "escenario.json"
+            ruta_escenario.write_bytes(escenario_bytes)
+            escenario = cargar_escenario(ruta_escenario)
+            reproducido = reproducir_registro_partida(escenario, registro)
+        print(f"Partida reproducida y verificada: {len(registro['acciones'])} acciones; {registro['resultado']}.")
+        if reproducido.resultado_evaluacion is not None:
+            print("Evaluación adversarial reproducida; campos deterministas coinciden.")
+        for reporte in (reproducido.reporte_partida, reproducido.reporte_decision):
+            if reporte is None:
+                continue
+            for comprobacion in reporte.comprobaciones:
+                print(f"{'OK' if comprobacion.correcta else 'FALLO'} {comprobacion.nombre}: {comprobacion.detalle}")
+        return 0
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError, ErrorValidacionEscenario) as error:
+        print(f"Error al reproducir registro: {error}", file=sys.stderr)
         return 1

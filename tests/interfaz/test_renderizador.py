@@ -14,6 +14,7 @@ from tacticalgrid.escenario import cargar_escenario
 from tacticalgrid.escenario.escenario import Escenario, Posicion, UnidadInicial
 from tacticalgrid.escenario.terreno import TipoTerreno
 from tacticalgrid.interfaz.renderizador import EstadoPanelControl, RenderizadorTablero
+from tacticalgrid.interfaz.control import ControlGrafico
 from tacticalgrid.interfaz.recursos import RecursosGraficos
 from tacticalgrid.interfaz.aplicacion import preparar_busqueda
 from tacticalgrid.juego.estado import EstadoJuego, crear_estado_inicial
@@ -397,7 +398,8 @@ def test_resultado_real_sin_solucion_no_dibuja_camino_y_lo_informa_en_panel(monk
     disposicion = renderizador.renderizar(superficie, escenario, estado, resultado)
 
     assert not resultado.exito and resultado.camino == ()
-    assert "Resultado: sin solucion | 0 movimientos" in textos
+    assert "Éxito: no" in textos
+    assert "Longitud exacta: 0" in textos
     assert renderizador.COLOR_CAMINO not in _colores_en(superficie, disposicion.tablero)
 
 
@@ -521,7 +523,8 @@ def test_fracaso_con_traza_permite_mostrar_exploracion_y_panel(monkeypatch):
     assert not resultado.exito
     assert resultado.traza_expansiones.total_expansiones == resultado.estados_expandidos > 0
     assert any(texto.startswith("Exploracion visible") for texto in textos)
-    assert f"Costo: no aplica | Expandidos: {resultado.estados_expandidos}" in textos
+    assert "Costo: no aplica" in textos
+    assert f"Estados expandidos: {resultado.estados_expandidos}" in textos
     assert "E — Ocultar exploracion" in textos
 
 
@@ -569,6 +572,7 @@ def test_panel_de_control_muestra_selectores_ayuda_y_objetivo_sin_ocultar_tabler
     assert "Origen de A1: 2, 0" in textos
     assert "Enter — Ejecutar busqueda" in botones
     assert "E — Mostrar exploracion" in botones
+    assert "V — Verificar busqueda" in botones
     assert disposicion.tablero.right < disposicion.panel.left
     assert all(disposicion.panel.contains(rectangulo) for rectangulo in vars(rectangulos).values())
     assert renderizador.COLOR_RECURSO in _colores_en(superficie, _celda(disposicion, Posicion(2, 8)))
@@ -635,3 +639,108 @@ def test_boton_abrir_json_esta_en_la_fila_del_titulo_sin_tapar_otros_controles(m
     assert abrir.bottom <= rectangulos.escenario_anterior.top
     assert abrir.left > fin_del_titulo
     assert not any(abrir.colliderect(rectangulo) for rectangulo in otros)
+
+
+def test_panel_presenta_metricas_decision_y_estado_de_confirmacion(monkeypatch):
+    ruta = Path(__file__).resolve().parents[2] / "escenarios" / "ruta_corta_vs_economica.json"
+    control = ControlGrafico.crear(ruta, (ruta,))
+    control.cambiar_modo()
+    control.cambiar_modo()
+    control.evaluar_decision(comparar=True)
+    panel = EstadoPanelControl.desde_control(control)
+
+    assert panel.decision_lineas
+    assert any("nodos generados" in linea for linea in panel.decision_lineas)
+    assert any("acción seleccionada" in linea for linea in panel.decision_lineas)
+    assert any("nodos evaluados" in linea for linea in panel.decision_lineas)
+    assert any("nodos podados" in linea for linea in panel.decision_lineas)
+    assert any("profundidad alcanzada" in linea for linea in panel.decision_lineas)
+    assert any("valor obtenido" in linea for linea in panel.decision_lineas)
+    assert any("tiempo" in linea for linea in panel.decision_lineas)
+    assert panel.recomendacion_aplicable
+    assert not panel.confirmar_aplicacion
+
+    renderizador = RenderizadorTablero()
+    superficie = pygame.Surface((960, 720))
+    botones = []
+    dibujar_boton = renderizador._dibujar_boton
+
+    def registrar_boton(superficie_destino, rectangulo, texto, color_texto=None):
+        botones.append(texto)
+        dibujar_boton(superficie_destino, rectangulo, texto, color_texto)
+
+    monkeypatch.setattr(renderizador, "_dibujar_boton", registrar_boton)
+    renderizador.renderizar(superficie, control.escenario, control.estado, control=panel)
+    assert "A — Aplicar recomendación" in botones
+
+    control.verificar_decision_actual()
+    control.aplicar_decision_recomendada()
+    assert EstadoPanelControl.desde_control(control).confirmar_aplicacion
+
+
+def test_panel_muestra_metricas_completas_de_busqueda_y_comparacion(monkeypatch):
+    ruta = Path(__file__).resolve().parents[2] / "escenarios" / "ruta_corta_vs_economica.json"
+    control = ControlGrafico.crear(ruta, (ruta,))
+    control.ejecutar()
+    control.cambiar_algoritmo(1)
+    control.ejecutar()
+    superficie = pygame.Surface((960, 720))
+    renderizador = RenderizadorTablero()
+    textos = []
+    dibujar = renderizador._dibujar_texto
+
+    def registrar(superficie_destino, texto, color, posicion, fuente):
+        textos.append(texto)
+        return dibujar(superficie_destino, texto, color, posicion, fuente)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto", registrar)
+    renderizador.renderizar(
+        superficie,
+        control.escenario,
+        control.estado,
+        resultado_busqueda=control.resultado,
+        control=EstadoPanelControl.desde_control(control),
+    )
+
+    for metrica in (
+        "Busqueda:",
+        "Éxito:",
+        "Longitud exacta:",
+        "Costo:",
+        "Estados generados:",
+        "Estados expandidos:",
+        "Máximo de frontera:",
+        "Tiempo:",
+        "Ejecución anterior para comparar",
+    ):
+        assert any(texto.startswith(metrica) for texto in textos)
+
+
+@pytest.mark.parametrize(("algoritmo", "k"), [("bfs", None), ("dfs", None), ("ucs", None), ("astar", None), ("beam", 4)])
+def test_panel_muestra_las_metricas_reales_de_cada_algoritmo(monkeypatch, algoritmo, k):
+    ruta = Path(__file__).resolve().parents[2] / "escenarios" / "ruta_corta_vs_economica.json"
+    escenario = cargar_escenario(ruta)
+    estado = crear_estado_inicial(escenario)
+    resultado = preparar_busqueda(escenario, estado, algoritmo, k=k)
+    renderizador = RenderizadorTablero()
+    textos = []
+    dibujar = renderizador._dibujar_texto
+
+    def registrar(superficie_destino, texto, color, posicion, fuente):
+        textos.append(texto)
+        return dibujar(superficie_destino, texto, color, posicion, fuente)
+
+    monkeypatch.setattr(renderizador, "_dibujar_texto", registrar)
+    renderizador.renderizar(_superficie(), escenario, estado, resultado_busqueda=resultado)
+
+    esperados = (
+        f"Busqueda: {resultado.algoritmo}",
+        f"Éxito: {'sí' if resultado.exito else 'no'}",
+        f"Longitud exacta: {resultado.longitud}",
+        f"Costo: {resultado.costo if resultado.costo is not None else 'no aplica'}",
+        f"Estados generados: {resultado.estados_generados}",
+        f"Estados expandidos: {resultado.estados_expandidos}",
+        f"Máximo de frontera: {resultado.maximo_frontera}",
+        f"Tiempo: {resultado.tiempo_segundos:.6f} s",
+    )
+    assert all(esperado in textos for esperado in esperados)

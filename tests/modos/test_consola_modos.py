@@ -163,3 +163,27 @@ def test_busqueda_sin_unidad_ni_objetivo_explica_que_falta() -> None:
 
     assert salida.returncode == 1
     assert "--unidad" in salida.stderr
+
+
+def test_a_estrella_reproduce_la_heuristica_hto_desde_argumentos_registrados() -> None:
+    salida = _ejecutar_main(
+        "escenarios/ruta_corta_vs_economica.json",
+        "--modo",
+        "busqueda",
+        "--algoritmo",
+        "a_estrella",
+        "--unidad",
+        "A1",
+        "--objetivo",
+        "2",
+        "8",
+        "--heuristica",
+        "hto",
+        "--json",
+    )
+
+    assert salida.returncode == 0, salida.stderr
+    registro = json.loads(salida.stdout)
+    assert registro["parametros"]["heuristica"] == "hto"
+    assert "--heuristica hto" in registro["comando"]
+    assert registro["resultados"][0]["algoritmo"] == "A_ESTRELLA"

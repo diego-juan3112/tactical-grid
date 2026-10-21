@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from tacticalgrid.interfaz import dialogo
-from tacticalgrid.interfaz.dialogo import DialogoNoDisponible, pedir_ruta_escenario
+from tacticalgrid.interfaz.dialogo import DialogoNoDisponible, pedir_ruta_escenario, pedir_ruta_registro
 
 
 class _RaizFalsa:
@@ -78,3 +78,23 @@ def test_sin_pantalla_informa_que_el_dialogo_no_esta_disponible(monkeypatch, tmp
 
 def test_el_modulo_no_importa_tkinter_al_cargarse():
     assert "tkinter" not in vars(dialogo)
+
+
+def test_pide_ruta_de_guardado_json_y_cierra_la_raiz(monkeypatch, tmp_path):
+    tkinter = pytest.importorskip("tkinter")
+    from tkinter import filedialog
+
+    raiz = _RaizFalsa()
+    opciones = {}
+
+    def pedir(**argumentos):
+        opciones.update(argumentos)
+        return str(tmp_path / "registro.json")
+
+    monkeypatch.setattr(tkinter, "Tk", lambda: raiz)
+    monkeypatch.setattr(filedialog, "asksaveasfilename", pedir)
+
+    assert pedir_ruta_registro(tmp_path) == tmp_path / "registro.json"
+    assert raiz.destruida
+    assert opciones["defaultextension"] == ".json"
+    assert opciones["initialdir"] == str(tmp_path)
