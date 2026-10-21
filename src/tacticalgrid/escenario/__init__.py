@@ -1,4 +1,4 @@
-"""Carga, validacion y representacion de escenarios externos."""
+"""Carga, validación y representación de escenarios externos."""
 
 from .cargador import cargar_escenario
 from .escenario import Escenario, Posicion, UnidadInicial

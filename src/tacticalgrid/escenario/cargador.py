@@ -1,4 +1,4 @@
-"""Carga atomica de archivos JSON hacia la representacion de escenario."""
+"""Carga atómica de archivos JSON hacia la representación de escenario."""
 
 import json
 from pathlib import Path
@@ -10,19 +10,20 @@ from .validador import ErrorValidacionEscenario, validar_contenido_escenario
 
 
 def cargar_escenario(ruta: str | Path) -> Escenario:
-    """Lee, valida y convierte un archivo JSON en un ``Escenario`` inmutable.
+    """Leer, validar y convertir un archivo JSON en un ``Escenario`` inmutable.
 
-    Proposito: separar carga externa, validacion y representacion interna de escenarios. Precondiciones:
-    ``ruta`` identifica un archivo JSON legible, codificado en UTF-8 con o sin BOM. Postcondiciones:
-    devuelve un escenario completamente validado (incluidos ``version`` y ``prueba``) o lanza
-    ``ErrorValidacionEscenario`` con un mensaje claro, sin modificar ningun estado existente; los valores
-    no estandar ``NaN``/``Infinity`` se rechazan. Complejidad: O(F*C + U) temporal y espacial por la
-    decodificacion y conversion. Uso de IA: Si. Intervencion de IA: Codex propuso la implementacion
-    inicial conforme al contrato del PDF; Claude (Sonnet 5) agrego la captura del campo ``version``;
-    Claude (Opus 5.5) agrego la lectura UTF-8 con BOM, el error claro para archivos no UTF-8 y el rechazo
-    de ``NaN``/``Infinity``. Validacion del estudiante: revisado y aprobado por el equipo; cubierta por
-    pruebas automatizadas de carga del ejemplo del enunciado, dimensiones distintas de 20x20, campos
-    adicionales propios, codificacion y constantes no estandar.
+    Proposito: separar la carga externa, la validación y la representación interna de los escenarios.
+    Precondiciones: ``ruta`` identifica un archivo JSON legible, codificado en UTF-8 con o sin BOM.
+    Postcondiciones: se devuelve un escenario completamente validado, incluidos ``version`` y ``prueba``, o se lanza
+    ``ErrorValidacionEscenario`` con un mensaje claro, sin modificar ningún estado existente. Los valores no estándar
+    ``NaN`` e ``Infinity`` se rechazan.
+    Complejidad: O(F*C + U) temporal y espacial por la decodificación y la conversión.
+    Uso de IA: Si.
+    Intervencion de IA: Codex: implementación inicial conforme al contrato del enunciado. Claude (Sonnet 5): lectura
+    del campo ``version``. Claude (Opus 5.5): lectura UTF-8 con BOM, error claro para archivos no UTF-8 y rechazo de
+    ``NaN`` e ``Infinity``.
+    Validacion del estudiante: pruebas de tests/escenario/test_cargador.py: ejemplo del enunciado, dimensiones
+    distintas de 20x20, campos propios adicionales, codificación y constantes no estándar.
     """
     try:
         with Path(ruta).open(encoding="utf-8-sig") as archivo:
@@ -41,27 +42,27 @@ def cargar_escenario(ruta: str | Path) -> Escenario:
 
 
 def _rechazar_constante_no_estandar(constante: str) -> float:
-    # json acepta NaN e Infinity aunque no son JSON estandar, y NaN supera la comparacion "costo <= 0".
+    # json acepta NaN e Infinity aunque no son JSON estándar, y NaN supera la comparación "costo <= 0".
     raise ErrorValidacionEscenario(f"El valor '{constante}' no es un numero JSON valido.")
 
 
 def _crear_escenario(contenido: Mapping[str, object]) -> Escenario:
-    """Convierte un contenido JSON ya validado en la representacion interna ``Escenario``.
+    """Convertir un contenido JSON ya validado en la representación interna ``Escenario``.
 
-    Proposito: separar la validacion del contrato externo (``validar_contenido_escenario``) de la construccion del
-    modelo, de modo que el resto del sistema nunca trabaje con el JSON crudo.
-    Precondiciones: ``contenido`` paso ``validar_contenido_escenario``; por eso los ``assert`` solo documentan tipos
-    que la validacion ya garantiza.
-    Postcondiciones: devuelve un ``Escenario`` inmutable con version, dimensiones, catalogo de terrenos con sus
-    costos, matriz de terreno, bases, recurso, unidades iniciales, turno, portador inicial, la configuracion de
-    ``juego`` completa (incluidos sus campos propios) y ``prueba`` (o ``None``). No modifica ``contenido``.
-    Complejidad: O(F*C + T + U) temporal y espacial, donde F y C son las dimensiones, T los tipos de terreno y U las
+    Proposito: separar la validación del contrato externo (``validar_contenido_escenario``) de la construcción del
+    modelo, para que el resto del sistema nunca trabaje con el JSON crudo.
+    Precondiciones: ``contenido`` superó ``validar_contenido_escenario``; los ``assert`` solo documentan tipos que la
+    validación ya garantiza.
+    Postcondiciones: se devuelve un ``Escenario`` inmutable con versión, dimensiones, catálogo de terrenos y costos,
+    matriz de terreno, bases, recurso, unidades iniciales, turno, portador inicial, la configuración de ``juego``
+    completa (con sus campos propios) y ``prueba`` o ``None``. ``contenido`` no cambia.
+    Complejidad: O(F*C + T + U) temporal y espacial, con F y C las dimensiones, T los tipos de terreno y U las
     unidades.
     Uso de IA: Si.
-    Intervencion de IA: Codex propuso la implementacion inicial en E0.3; Claude (Sonnet 5) agrego la captura de
-    ``version`` en E2.1; Claude (Opus 5.5) redacto esta documentacion en E11.1.
-    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/escenario/test_cargador.py, que
-    carga el ejemplo del enunciado y comprueba cada campo, incluidos ``prueba`` y los campos propios.
+    Intervencion de IA: Codex: implementación inicial (E0.3). Claude (Sonnet 5): lectura de ``version`` (E2.1).
+    Claude (Opus 5.5): documentación (E11.1).
+    Validacion del estudiante: pruebas de tests/escenario/test_cargador.py: carga del ejemplo del enunciado y
+    comprobación de cada campo, incluidos ``prueba`` y los campos propios.
     """
     mapa = contenido["mapa"]
     tipos_json = contenido["tipos_terreno"]

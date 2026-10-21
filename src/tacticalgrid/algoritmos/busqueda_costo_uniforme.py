@@ -1,4 +1,4 @@
-"""Busqueda de costo uniforme sobre el contrato comun de problemas."""
+"""Búsqueda de costo uniforme sobre el contrato común de problemas."""
 
 import heapq
 from itertools import count
@@ -14,30 +14,29 @@ def busqueda_costo_uniforme(
     problema: Problema,
     observador_expansiones: ObservadorExpansiones | None = None,
 ) -> ResultadoBusqueda:
-    """Encuentra una solucion de costo acumulado minimo mediante una cola de prioridad.
+    """Encontrar una solución de costo acumulado mínimo mediante una cola de prioridad.
 
-    Proposito: explorar primero el nodo vigente con menor costo acumulado y devolver una solucion optima para
-    costos de transicion positivos, usando las metricas comunes de E4.1.
-    Precondiciones: problema implementa el contrato Problema; sus estados son hashables y sus costos de
-    transicion son positivos.
-    Postcondiciones: devuelve la solucion de costo acumulado minimo o un resultado de fracaso si la frontera se
-    agota; la expansion comun lanza ``ValueError`` antes de propagar un costo acumulado no finito. Conserva el
-    problema y sus estados sin modificaciones. Una mejora estricta se inserta nuevamente y cuenta como estado
-    generado; una entrada obsoleta se descarta sin comprobar objetivo ni contar una expansion. La guarda de
-    finitud no elimina el redondeo propio de las operaciones representables con ``float``. El observador opcional
-    recibe solo expansiones vigentes, nunca entradas obsoletas, y no altera prioridades.
-    Complejidad: O(E * U log U + (V + E) log E + d * U) temporal y O((V + E) * U + d) espacial en el peor
-    caso, donde V son estados alcanzables, E transiciones examinadas, U unidades por EstadoJuego y d la
-    profundidad de la solucion. Ademas de las operaciones de la cola, cada transicion reconstruye y canoniza
-    un EstadoJuego en O(U log U), su procesamiento en conjuntos o diccionarios calcula un hash O(U), y la
-    reconstruccion final consulta la posicion en cada estado en O(d * U). La traza agrega O(X_t). La frontera
-    puede conservar reinserciones y entradas obsoletas.
+    Proposito: expandir primero el nodo vigente con menor costo acumulado y devolver una solución óptima para costos
+    de transición positivos, con las métricas comunes de E4.1.
+    Precondiciones: ``problema`` implementa el contrato ``Problema``; sus estados son hashables y sus costos de
+    transición son positivos.
+    Postcondiciones: se devuelve la solución de costo acumulado mínimo, o un resultado de fracaso si la frontera se
+    agota; la expansión común lanza ``ValueError`` antes de propagar un costo acumulado no finito. El problema y sus
+    estados no cambian. Una mejora estricta se reinserta y cuenta como estado generado; una entrada obsoleta se
+    descarta sin comprobar el objetivo ni contar una expansión. La guarda de finitud no elimina el redondeo propio de
+    ``float``. El observador opcional recibe solo expansiones vigentes, nunca entradas obsoletas, y no altera las
+    prioridades.
+    Complejidad: O(E * U log U + (V + E) log E + d * U) temporal y O((V + E) * U + d) espacial en el peor caso, con V
+    estados alcanzables, E transiciones examinadas, U unidades por ``EstadoJuego`` y d la profundidad de la solución.
+    Además de las operaciones de la cola, cada transición reconstruye y canoniza un ``EstadoJuego`` en O(U log U), su
+    uso en conjuntos o diccionarios calcula un hash O(U) y la reconstrucción final consulta la posición en cada estado
+    en O(d * U). La traza agrega O(X_t). La frontera puede conservar reinserciones y entradas obsoletas.
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento UCS, la gestion de mejoras y entradas obsoletas, su integracion con E4.1 y
-    documento en E6.1 el fallo controlado; Codex agrego el observador opcional E9.3.
-    Validacion del estudiante: el equipo reviso el cambio numerico de E6.1; cubierta por
-    tests/algoritmos/test_busqueda_costo_uniforme.py, que comprueba el camino de menor costo, las metricas y la
-    diferencia con BFS (caso minimo 2).
+    Intervencion de IA: Codex: implementación de UCS, gestión de mejoras y entradas obsoletas e integración con E4.1;
+    documentación del fallo controlado ante costos no finitos (E6.1); observador opcional (E9.3).
+    Validacion del estudiante: pruebas de tests/algoritmos/test_busqueda_costo_uniforme.py: ruta económica frente a
+    la ruta corta de BFS (caso mínimo 2), cambio de ruta al modificar un costo del JSON, rodeo de obstáculos, mejora y
+    descarte de entradas obsoletas, costos decimales y objetivo inalcanzable sin modificar el estado.
     """
     medidor = MedidorBusqueda("UCS", observador_expansiones=observador_expansiones)
     raiz = Nodo(problema.estado_inicial)

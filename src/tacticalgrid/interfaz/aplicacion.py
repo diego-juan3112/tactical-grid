@@ -1,4 +1,4 @@
-"""Punto de entrada de la visualizacion Pygame de TacticalGrid."""
+"""Punto de entrada de la visualización Pygame de TacticalGrid."""
 
 import argparse
 import sys
@@ -25,22 +25,24 @@ def ejecutar_aplicacion(
     objetivo: tuple[int, int] | None = None,
     k: int | None = None,
 ) -> int:
-    """Carga un escenario, ejecuta una busqueda opcional y mantiene visible el tablero.
+    """Cargar un escenario, ejecutar una búsqueda opcional y mantener visible el tablero.
 
-    Proposito: integrar carga validada, busqueda estructurada y renderizado, incluida la capa E9.3 bajo demanda.
-    Precondiciones: Pygame esta instalado, existe un entorno grafico y la ruta identifica un escenario valido.
-    Postcondiciones: carga el modo declarado por el escenario; busqueda usa Enter y su boton, y partida se juega
-    seleccionando unidad y destinos legales en el tablero. V verifica busquedas; M o su boton cambian el modo; abrir
-    escenarios es atomico; Pygame se libera al cerrar.
-    Complejidad: costo de la busqueda mas O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
-    O(F*C + T + L + P) espacial, donde P son posiciones expandidas almacenadas y E los fotogramas.
+    Proposito: integrar la carga validada, la búsqueda estructurada y el renderizado, incluida la capa de exploración
+    de E9.3 bajo demanda.
+    Precondiciones: Pygame está instalado, existe un entorno gráfico y la ruta identifica un escenario válido.
+    Postcondiciones: se carga el modo declarado por el escenario. En búsqueda, Enter y su botón ejecutan el algoritmo;
+    en partida, se juega seleccionando una unidad y destinos legales en el tablero. V verifica las búsquedas; M o su
+    botón cambian el modo; la apertura de escenarios es atómica; Pygame se libera al cerrar.
+    Complejidad: el costo de la búsqueda más O(E*(F*C + U + T + L + P)) temporal durante el ciclo y
+    O(F*C + T + L + P) espacial, con P posiciones expandidas almacenadas y E fotogramas.
     Uso de IA: Si.
-    Intervencion de IA: Codex integro E9.2/E9.3 y agrego controles directos para escenario, algoritmo, unidad,
-    objetivo y Beam sin recalcular por fotograma ni modificar el estado de juego. Claude (Opus 5.5) agrego en E9.4
-    la apertura de escenarios JSON con la tecla O, su boton y arrastrar y soltar. Codex conecto la verificacion de
-    busquedas con V y el modo partida manual con eventos de Pygame y transiciones del dominio.
-    Validacion del estudiante: No puedo confirmar una revision manual del equipo para la verificacion y partida
-    integradas. Las pruebas automatizadas de aplicacion y renderizador cubren eventos y presentacion bajo SDL dummy.
+    Intervencion de IA: Codex: integración de E9.2 y E9.3, controles directos de escenario, algoritmo, unidad, objetivo
+    y Beam sin recalcular por fotograma ni modificar el estado de juego, verificación de búsquedas con V y partida
+    manual con eventos de Pygame y transiciones del dominio. Claude (Opus 5.5): apertura de escenarios JSON con la
+    tecla O, su botón y arrastrar y soltar (E9.4).
+    Validacion del estudiante: pruebas de tests/interfaz/test_aplicacion.py bajo SDL dummy: inicio y cierre sin repetir
+    la búsqueda, error antes de abrir la ventana, turno jugado con clics, cambio a modo partida, verificación con V y
+    apertura de JSON.
     """
     import pygame
 
@@ -115,15 +117,16 @@ def ejecutar_aplicacion(
 
 
 def ejecutar_desde_argumentos(argumentos: Sequence[str] | None = None) -> int:
-    """Interpreta exclusivamente argumentos graficos y delega la aplicacion.
+    """Interpretar solo los argumentos gráficos y delegar en la aplicación.
 
-    Proposito: mantener separado el parser grafico del parser historico de consola.
+    Proposito: mantener el parser gráfico separado del parser histórico de consola.
     Precondiciones: ``argumentos`` no incluye ``--gui`` ni el nombre del programa.
-    Postcondiciones: ejecuta la GUI con las opciones interpretadas y devuelve su codigo de salida.
-    Complejidad: O(A) temporal y espacial para A argumentos, mas el costo de la aplicacion delegada.
+    Postcondiciones: se ejecuta la interfaz con las opciones interpretadas y se devuelve su código de salida.
+    Complejidad: O(A) temporal y espacial para A argumentos, más el costo de la aplicación delegada.
     Uso de IA: Si.
-    Intervencion de IA: Codex extrajo este adaptador durante la refactorizacion final de ``main.py``.
-    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas del despachador y parser grafico.
+    Intervencion de IA: Codex: extracción de este adaptador durante la refactorización final de ``main.py``.
+    Validacion del estudiante: prueba ``test_despacha_gui_predeterminada_y_consola_historica`` de
+    tests/test_despachador.py y pruebas del parser gráfico en tests/interfaz/test_aplicacion.py.
     """
     opciones = _leer_argumentos(argumentos)
     return ejecutar_aplicacion(
@@ -136,13 +139,13 @@ def ejecutar_desde_argumentos(argumentos: Sequence[str] | None = None) -> int:
 
 
 def _rutas_escenarios(ruta_actual: str | Path) -> tuple[Path, ...]:
-    """Cataloga JSON incluidos y conserva una ruta externa recibida explicitamente."""
+    """Catalogar los JSON incluidos y conservar una ruta externa recibida explícitamente."""
     incluidas = tuple((RAIZ_PROYECTO / "escenarios").glob("*.json"))
     return tuple(sorted({ruta.resolve() for ruta in incluidas} | {Path(ruta_actual).resolve()}))
 
 
 def _procesar_evento(control: ControlGrafico, evento, disposicion, rectangulos: RectangulosControles) -> bool:
-    """Atiende eventos Pygame, incluidos atajos de modo y exportacion reproducible."""
+    """Atender los eventos de Pygame, incluidos los atajos de modo, apertura y exportación reproducible."""
     import pygame
 
     if evento.type == pygame.QUIT:
@@ -190,18 +193,20 @@ def _procesar_clic(
     disposicion,
     rectangulos: RectangulosControles,
 ) -> None:
-    """Traduce un clic a una unica operacion de control o a seleccion de objetivo.
+    """Traducir un clic en una única operación de control o en la selección de un objetivo.
 
-    Proposito: centralizar hitboxes y garantizar que teclado y boton de exploracion compartan estado.
-    Precondiciones: disposicion y rectangulos corresponden al ultimo fotograma renderizado.
-    Postcondiciones: ejecuta a lo sumo una accion; en busqueda selecciona objetivo, en partida aplica solo acciones
-    legales y en adversarial evalua/verifica o solicita confirmacion de aplicacion. Evaluar no cambia el estado.
-    Complejidad: O(1) salvo carga de escenario o busqueda solicitadas explicitamente.
+    Proposito: centralizar las áreas sensibles y garantizar que el teclado y el botón de exploración compartan estado.
+    Precondiciones: la disposición y los rectángulos corresponden al último fotograma renderizado.
+    Postcondiciones: se ejecuta como máximo una acción: en búsqueda se selecciona el objetivo, en partida solo se
+    aplican acciones legales y en modo adversarial se evalúa, se verifica o se pide confirmación para aplicar. Evaluar
+    no cambia el estado.
+    Complejidad: O(1), salvo la carga de un escenario o la búsqueda solicitadas explícitamente.
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento la interaccion directa de Pygame para E9.3, apertura JSON, partida y
-    evaluacion adversarial con aplicacion confirmada en esta continuacion.
-    Validacion del estudiante: No puedo confirmar revision manual; pruebas SDL dummy cubren eventos de busqueda,
-    partida y evaluacion/verificacion/aplicacion adversarial.
+    Intervencion de IA: Codex: interacción directa de Pygame para E9.3, apertura de JSON, partida y evaluación
+    adversarial con aplicación confirmada.
+    Validacion del estudiante: pruebas de tests/interfaz/test_aplicacion.py bajo SDL dummy: clic en el tablero que
+    selecciona el objetivo sin mover unidades, botón de ejecutar con una sola búsqueda, turno jugado con clics y
+    evaluación, verificación y confirmación de la recomendación.
     """
     acciones = [
         (rectangulos.modo, control.cambiar_modo),
@@ -275,7 +280,7 @@ def _procesar_clic(
 
 
 def _leer_argumentos(argumentos: Sequence[str] | None = None) -> argparse.Namespace:
-    """Lee la seleccion opcional de escenario y busqueda de la interfaz grafica."""
+    """Leer la selección opcional de escenario y búsqueda de la interfaz gráfica."""
     analizador = argparse.ArgumentParser(description="Visualiza un escenario JSON de TacticalGrid.")
     analizador.add_argument(
         "escenario",

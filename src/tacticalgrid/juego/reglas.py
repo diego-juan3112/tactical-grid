@@ -1,21 +1,21 @@
-"""Reglas de transicion de la partida: acciones validas, sucesores, condicion objetivo y costo.
+"""Reglas de transición de la partida: acciones válidas, sucesores, condición objetivo y costo.
 
 Reglas deterministas definidas en E1.2 y E1.3:
 
-- En cada turno el bando en ``turno_actual`` elige una de sus unidades y la mueve una celda en direccion
+- En cada turno, el bando en ``turno_actual`` elige una de sus unidades y la mueve una celda en dirección
   ortogonal (arriba, abajo, izquierda, derecha). No hay movimientos diagonales.
-- El destino debe estar dentro del mapa, ser transitable y no estar ocupado por otra unidad (de cualquier bando).
-- Si el recurso no tiene portador y una unidad entra en su celda, lo recoge automaticamente.
+- El destino debe estar dentro del mapa, ser transitable y no estar ocupado por otra unidad de ningún bando.
+- Si el recurso no tiene portador y una unidad entra en su celda, la unidad lo recoge automáticamente.
 - El recurso viaja con su portador. Si el portador entra en la base de su propio bando, ese bando gana.
-- Tras cada accion el turno pasa al otro bando.
-- El costo de una accion es el costo del terreno de la celda destino, leido del escenario cargado.
-- Una partida terminada no tiene acciones validas. Una unidad bloqueada no aporta acciones; si todo el bando
-  esta bloqueado, se pasa el turno al adversario si puede actuar, o se declara empate si ambos estan bloqueados.
-- La intercepcion transfiere el recurso a una unidad adversaria sin eliminar unidades ni cambiar el turno.
-- E8.1: una unidad ortogonalmente adyacente al portador rival puede usar su turno para interceptarlo (accion de
-  tipo ``interceptar``): no se mueve nadie, el recurso pasa al interceptor y el turno cambia como en cualquier
-  accion. Es la unica accion tactica con efecto propio; las demas tacticas son movimientos clasificados.
-- La ausencia de ruta es resultado de busqueda y no modifica el estado del juego.
+- Tras cada acción, el turno pasa al otro bando.
+- El costo de una acción es el del terreno de la celda destino, leído del escenario cargado.
+- Una partida terminada no tiene acciones válidas. Una unidad bloqueada no aporta acciones; si todo el bando está
+  bloqueado, el turno pasa al adversario si este puede actuar, o se declara empate si ambos están bloqueados.
+- La intercepción transfiere el recurso a una unidad adversaria sin eliminar unidades ni cambiar el turno.
+- E8.1: una unidad ortogonalmente adyacente al portador rival puede usar su turno para interceptarlo (acción de
+  tipo ``interceptar``): nadie se mueve, el recurso pasa al interceptor y el turno cambia como en cualquier
+  acción. Es la única acción táctica con efecto propio; las demás tácticas son movimientos clasificados.
+- La ausencia de ruta es un resultado de búsqueda y no modifica el estado del juego.
 """
 
 from dataclasses import replace
@@ -33,35 +33,33 @@ BANDOS = ("A", "B")
 
 
 def obtener_ganador(escenario: Escenario, estado: EstadoJuego) -> str | None:
-    """Determina el bando ganador a partir de la informacion del estado.
+    """Determinar el bando ganador a partir del estado.
 
-    Proposito: definir la condicion objetivo de la partida: un bando gana cuando su unidad portadora del
-    recurso se encuentra en la base de ese mismo bando.
-    Precondiciones: ``estado`` es coherente con ``escenario`` (si hay portador, es una unidad del estado).
-    Postcondiciones: devuelve ``"A"`` o ``"B"`` si hay ganador y ``None`` en otro caso; no modifica nada.
-    Complejidad: O(U) temporal y O(1) espacial, donde U es el numero de unidades.
+    Proposito: definir la condición objetivo de la partida: un bando gana cuando su unidad portadora del recurso se
+    encuentra en la base de ese mismo bando.
+    Precondiciones: ``estado`` es coherente con ``escenario``; si hay portador, es una unidad del estado.
+    Postcondiciones: se devuelve ``"A"`` o ``"B"`` si hay ganador y ``None`` en otro caso; no se modifica nada.
+    Complejidad: O(U) temporal y O(1) espacial, con U unidades.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion a partir del enunciado;
-    Claude (Sonnet 5.5) la delego en ``recurso.bando_que_entrego_recurso`` en E3.2, sin cambiar su resultado.
-    Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
-    pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación a partir del enunciado. Claude (Sonnet 5.5):
+    delegación en ``recurso.bando_que_entrego_recurso`` sin cambiar el resultado (E3.2).
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py y exploración completa de sucesores en
+    tests/juego/test_espacio_estados.py.
     """
     return bando_que_entrego_recurso(escenario, estado)
 
 
 def es_terminal(escenario: Escenario, estado: EstadoJuego) -> bool:
-    """Indica si hay victoria o empate por bloqueo total.
+    """Indicar si hay victoria o empate por bloqueo total.
 
     Proposito: centralizar el reconocimiento de los resultados terminales de la partida.
     Precondiciones: ``estado`` es coherente con ``escenario``.
-    Postcondiciones: devuelve verdadero para una victoria vigente o ``empate_bloqueo``; no modifica el estado.
-    Complejidad: O(U) temporal y O(1) espacial, donde U es la cantidad de unidades.
+    Postcondiciones: se devuelve verdadero para una victoria vigente o para ``empate_bloqueo``; el estado no cambia.
+    Complejidad: O(U) temporal y O(1) espacial, con U unidades.
     Uso de IA: Si.
-    Intervencion de IA: Codex extendio la condicion existente para reconocer el empate aprobado en E1.3.
-    Validacion del estudiante: se reviso manualmente la implementacion contra los criterios de aceptacion de E1.3.
-    Se ejecutaron las pruebas especificas de reglas de juego y la suite completa del proyecto; se verificaron los
-    casos de bloqueo individual, pase automatico, empate por bloqueo total, intercepcion valida e invalida,
-    intercepcion en base propia y preservacion de la inmutabilidad del estado.
+    Intervencion de IA: Codex: extensión de la condición existente para reconocer el empate de E1.3.
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py y tests/juego/test_partida.py: bloqueo
+    individual, pase automático, empate por bloqueo total y victoria terminal.
     """
     return estado.estado_partida == EMPATE_BLOQUEO or obtener_ganador(escenario, estado) is not None
 
@@ -69,17 +67,17 @@ def es_terminal(escenario: Escenario, estado: EstadoJuego) -> bool:
 def generar_movimientos(
     escenario: Escenario, unidad: Unidad, ocupadas: frozenset[Posicion] = frozenset()
 ) -> tuple[Accion, ...]:
-    """Genera los movimientos ortogonales de una unidad permitidos por el escenario.
+    """Generar los movimientos ortogonales de una unidad permitidos por el escenario.
 
-    Proposito: concentrar en un solo punto la regla de movimiento que comparten la partida y la navegacion.
-    Precondiciones: la posicion de ``unidad`` esta dentro del mapa de ``escenario``.
-    Postcondiciones: devuelve, en el orden de ``DESPLAZAMIENTOS``, las acciones cuyo destino esta dentro del
-    mapa, es transitable segun el JSON y no pertenece a ``ocupadas``. No modifica nada.
-    Complejidad: O(1) temporal y espacial (a lo sumo cuatro destinos con consultas O(1)).
+    Proposito: concentrar en un solo punto la regla de movimiento que comparten la partida y la navegación.
+    Precondiciones: la posición de ``unidad`` está dentro del mapa de ``escenario``.
+    Postcondiciones: se devuelven, en el orden de ``DESPLAZAMIENTOS``, las acciones cuyo destino está dentro del mapa,
+    es transitable según el JSON y no pertenece a ``ocupadas``. No se modifica nada.
+    Complejidad: O(1) temporal y espacial: a lo sumo cuatro destinos con consultas O(1).
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion.
-    Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
-    pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación.
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py y exploración completa de sucesores en
+    tests/juego/test_espacio_estados.py.
     """
     acciones = []
     for delta_fila, delta_columna in DESPLAZAMIENTOS:
@@ -90,19 +88,18 @@ def generar_movimientos(
 
 
 def generar_intercepcion(estado: EstadoJuego, unidad: Unidad) -> Accion | None:
-    """Devuelve la accion de interceptar al portador rival si ``unidad`` puede hacerlo, o ``None``.
+    """Devolver la acción de interceptar al portador rival si ``unidad`` puede hacerlo, o ``None``.
 
-    Proposito: definir la condicion espacial que faltaba para usar la intercepcion de E1.3: estar junto al portador.
-    Precondiciones: ``unidad`` pertenece a ``estado``; la partida no es terminal (lo comprueba quien la llama).
-    Postcondiciones: devuelve ``Accion(unidad.identificador, unidad.posicion, portador.posicion, INTERCEPTAR)`` solo
-    si hay portador, es de otro bando y esta a distancia Manhattan 1 de ``unidad``; en otro caso ``None``. No modifica
-    nada.
+    Proposito: definir la condición espacial de la intercepción de E1.3: estar junto al portador.
+    Precondiciones: ``unidad`` pertenece a ``estado``; la partida no es terminal (lo comprueba quien llama).
+    Postcondiciones: se devuelve ``Accion(unidad.identificador, unidad.posicion, portador.posicion, INTERCEPTAR)``
+    solo si hay portador, es de otro bando y está a distancia Manhattan 1 de ``unidad``; en otro caso, ``None``. No
+    se modifica nada.
     Complejidad: O(U) temporal para localizar al portador y O(1) espacial.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la regla de adyacencia y la implemento en E8.1.
-    Validacion del estudiante: el estudiante reviso y valido el codigo; ademas, las pruebas de
-    tests/juego/test_tacticas.py cubren portador adyacente, no adyacente, aliado, en diagonal y ausencia de
-    portador.
+    Intervencion de IA: Claude (Opus 5.5): regla de adyacencia e implementación (E8.1).
+    Validacion del estudiante: pruebas de tests/juego/test_tacticas.py: portador adyacente, no adyacente, aliado, en
+    diagonal y ausencia de portador.
     """
     if estado.portador_recurso is None:
         return None
@@ -118,21 +115,21 @@ def generar_intercepcion(estado: EstadoJuego, unidad: Unidad) -> Accion | None:
 
 
 def acciones_validas(escenario: Escenario, estado: EstadoJuego) -> tuple[Accion, ...]:
-    """Enumera las acciones legales del bando en turno.
+    """Enumerar las acciones legales del bando en turno.
 
-    Proposito: definir el conjunto de acciones validas de la partida, comun a Minimax, alfa-beta y la interfaz.
+    Proposito: definir el conjunto de acciones válidas de la partida, común a Minimax, alfa-beta y la interfaz.
     Precondiciones: ``estado`` es coherente con ``escenario``.
-    Postcondiciones: devuelve una tupla vacia si la partida termino o si todas las unidades del bando en
-    turno estan bloqueadas; una unidad bloqueada no impide acciones de sus aliadas. En otro caso, devuelve las
-    acciones de cada unidad del bando, recorridas en orden de identificador: primero sus movimientos en el orden
-    de ``DESPLAZAMIENTOS`` y, si esta junto al portador rival, la intercepcion (E8.1). No modifica el estado.
-    Complejidad: O(U^2) temporal en el peor caso (cada unidad puede localizar al portador) y O(U) espacial; cada
-    unidad aporta a lo sumo cinco acciones (cuatro movimientos y una intercepcion).
+    Postcondiciones: se devuelve una tupla vacía si la partida terminó o si todas las unidades del bando en turno
+    están bloqueadas; una unidad bloqueada no impide las acciones de sus aliadas. En otro caso se devuelven las
+    acciones de cada unidad del bando en orden de identificador: primero sus movimientos en el orden de
+    ``DESPLAZAMIENTOS`` y, si está junto al portador rival, la intercepción (E8.1). El estado no cambia.
+    Complejidad: O(U^2) temporal en el peor caso, porque cada unidad puede localizar al portador, y O(U) espacial;
+    cada unidad aporta a lo sumo cinco acciones (cuatro movimientos y una intercepción).
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion; en E8.1 agrego la
-    intercepcion al final de las acciones de cada unidad.
-    Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
-    pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación; intercepción al final de las acciones de
+    cada unidad (E8.1).
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py y exploración completa de sucesores en
+    tests/juego/test_espacio_estados.py.
     """
     if es_terminal(escenario, estado):
         return ()
@@ -149,20 +146,18 @@ def acciones_validas(escenario: Escenario, estado: EstadoJuego) -> tuple[Accion,
 
 
 def resolver_bloqueo_turno(escenario: Escenario, estado: EstadoJuego) -> EstadoJuego:
-    """Aplica el pase automatico o empate cuando el bando activo no tiene acciones.
+    """Aplicar el pase automático o el empate cuando el bando activo no tiene acciones.
 
-    Proposito: resolver de manera determinista el bloqueo del bando activo sin generar pases recursivos.
-    Precondiciones: ``estado`` es coherente con ``escenario`` y sus unidades representan la situacion actual.
-    Postcondiciones: conserva el estado si hay acciones activas o la partida ya termino; pasa el turno una vez
-    si solo el adversario puede actuar; si ninguno puede, devuelve un estado con ``empate_bloqueo``. El original
-    no se modifica.
+    Proposito: resolver de forma determinista el bloqueo del bando activo sin generar pases recursivos.
+    Precondiciones: ``estado`` es coherente con ``escenario`` y sus unidades representan la situación actual.
+    Postcondiciones: el estado se conserva si hay acciones activas o la partida ya terminó; el turno pasa una vez si
+    solo el adversario puede actuar; si ninguno puede, se devuelve un estado con ``empate_bloqueo``. El original no se
+    modifica.
     Complejidad: O(U) temporal y espacial, por consultar las acciones de ambos bandos y copiar el estado.
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento la transicion conforme a las decisiones aprobadas para E1.3.
-    Validacion del estudiante: se reviso manualmente la implementacion contra los criterios de aceptacion de E1.3.
-    Se ejecutaron las pruebas especificas de reglas de juego y la suite completa del proyecto; se verificaron los
-    casos de bloqueo individual, pase automatico, empate por bloqueo total, intercepcion valida e invalida,
-    intercepcion en base propia y preservacion de la inmutabilidad del estado.
+    Intervencion de IA: Codex: implementación de la transición de E1.3.
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py: bando bloqueado sin acciones, pase al
+    adversario, empate por bloqueo total sin pases repetidos y determinismo de las reglas de borde.
     """
     if es_terminal(escenario, estado) or acciones_validas(escenario, estado):
         return estado
@@ -176,21 +171,20 @@ def resolver_bloqueo_turno(escenario: Escenario, estado: EstadoJuego) -> EstadoJ
 def resolver_intercepcion(
     escenario: Escenario, estado: EstadoJuego, identificador_interceptor: str
 ) -> EstadoJuego:
-    """Transfiere atomicamente el recurso del portador actual a una unidad adversaria.
+    """Transferir atómicamente el recurso del portador actual a una unidad adversaria.
 
-    Proposito: aplicar la consecuencia de dominio de una intercepcion ya establecida, sin definir su accion espacial.
-    Precondiciones: la partida esta en curso, hay un portador existente y el interceptor existe, pertenece al otro
+    Proposito: aplicar la consecuencia en el dominio de una intercepción ya establecida, sin definir su acción
+    espacial.
+    Precondiciones: la partida está en curso, hay un portador existente y el interceptor existe, pertenece al otro
     bando y no es el portador actual.
-    Postcondiciones: devuelve un nuevo estado con el interceptor como portador y ``posicion_recurso=None``;
-    conserva unidades y turno, y registra la victoria si el nuevo portador esta en su propia base. No muta el estado
-    original. Condiciones invalidas lanzan ``ValueError``.
+    Postcondiciones: se devuelve un estado nuevo con el interceptor como portador y ``posicion_recurso=None``; se
+    conservan las unidades y el turno, y se registra la victoria si el nuevo portador está en su propia base. El estado
+    original no cambia. Las condiciones inválidas lanzan ``ValueError``.
     Complejidad: O(U) temporal y espacial para localizar las unidades y crear el estado inmutable.
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento la transferencia atomica conforme a las decisiones aprobadas para E1.3.
-    Validacion del estudiante: se reviso manualmente la implementacion contra los criterios de aceptacion de E1.3.
-    Se ejecutaron las pruebas especificas de reglas de juego y la suite completa del proyecto; se verificaron los
-    casos de bloqueo individual, pase automatico, empate por bloqueo total, intercepcion valida e invalida,
-    intercepcion en base propia y preservacion de la inmutabilidad del estado.
+    Intervencion de IA: Codex: transferencia atómica de E1.3.
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py: transferencia sin cambio de turno ni pérdida de
+    unidades, victoria al interceptar en la propia base y rechazo de interceptores inválidos.
     """
     if estado.estado_partida != EN_CURSO or es_terminal(escenario, estado):
         raise ValueError("No se puede interceptar fuera de una partida en curso.")
@@ -214,37 +208,35 @@ def resolver_intercepcion(
 
 
 def es_accion_valida(escenario: Escenario, estado: EstadoJuego, accion: Accion) -> bool:
-    """Comprueba si una accion es legal en el estado dado segun las reglas de la partida.
+    """Comprobar si una acción es legal en el estado dado según las reglas de la partida.
 
-    Proposito: permitir que la verificacion de soluciones y de decisiones Minimax compruebe legalidad.
+    Proposito: permitir que la verificación de soluciones y de decisiones Minimax compruebe la legalidad.
     Precondiciones: ``estado`` es coherente con ``escenario``.
-    Postcondiciones: devuelve ``True`` solo si ``accion`` pertenece a ``acciones_validas(escenario, estado)``.
+    Postcondiciones: se devuelve ``True`` solo si ``accion`` pertenece a ``acciones_validas(escenario, estado)``.
     Complejidad: O(U) temporal y espacial.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion.
-    Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
-    pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación.
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py y de los verificadores de Minimax y alfa-beta en
+    tests/algoritmos/.
     """
     return accion in acciones_validas(escenario, estado)
 
 
 def aplicar_accion(escenario: Escenario, estado: EstadoJuego, accion: Accion) -> EstadoJuego:
-    """Construye el estado sucesor de la partida al ejecutar una accion valida.
+    """Construir el estado sucesor de la partida al ejecutar una acción válida.
 
-    Proposito: definir la funcion sucesor de la partida por turnos.
-    Precondiciones: ``accion`` es valida en ``estado`` (si no, se lanza ``ValueError``).
-    Postcondiciones: devuelve un nuevo ``EstadoJuego`` con el turno cedido al otro bando. Si la accion es un
-    movimiento, la unidad queda desplazada y el recurso recogido o transportado segun las reglas; si es una
-    intercepcion (E8.1), nadie se mueve y el recurso pasa al interceptor mediante ``resolver_intercepcion``.
-    ``estado_partida`` queda en ``"victoria_<bando>"`` si se cumplio la condicion objetivo. ``estado`` no se
-    modifica.
-    Complejidad: O(U) temporal y espacial por la validacion y la copia de la tupla de unidades.
+    Proposito: definir la función sucesor de la partida por turnos.
+    Precondiciones: ``accion`` es válida en ``estado``; en otro caso se lanza ``ValueError``.
+    Postcondiciones: se devuelve un ``EstadoJuego`` nuevo con el turno del otro bando. En un movimiento, la unidad
+    queda desplazada y el recurso recogido o transportado según las reglas; en una intercepción (E8.1) nadie se mueve
+    y el recurso pasa al interceptor mediante ``resolver_intercepcion``. ``estado_partida`` queda en
+    ``"victoria_<bando>"`` si se cumple la condición objetivo. ``estado`` no cambia.
+    Complejidad: O(U) temporal y espacial por la validación y la copia de la tupla de unidades.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion; en E8.1 agrego la
-    aplicacion de la intercepcion reutilizando ``resolver_intercepcion`` de E1.3.
-    Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
-    pytest (tests/juego/test_reglas.py, tests/juego/test_tacticas.py y la exploracion de sucesores en
-    tests/juego/test_espacio_estados.py).
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación; aplicación de la intercepción con
+    ``resolver_intercepcion`` de E1.3 (E8.1).
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py y tests/juego/test_tacticas.py, y exploración
+    completa de sucesores en tests/juego/test_espacio_estados.py.
     """
     if not es_accion_valida(escenario, estado, accion):
         raise ValueError(f"La accion {accion} no es valida en el estado actual.")
@@ -256,28 +248,27 @@ def aplicar_accion(escenario: Escenario, estado: EstadoJuego, accion: Accion) ->
 
 
 def generar_sucesores(escenario: Escenario, estado: EstadoJuego) -> tuple[tuple[Accion, EstadoJuego], ...]:
-    """Devuelve cada accion valida de la partida junto con el estado que produce, en el orden de generacion."""
+    """Devolver cada acción válida de la partida junto con el estado que produce, en el orden de generación."""
     return tuple((accion, aplicar_accion(escenario, estado, accion)) for accion in acciones_validas(escenario, estado))
 
 
 def desplazar_unidad(escenario: Escenario, estado: EstadoJuego, accion: Accion) -> EstadoJuego:
-    """Aplica el efecto de un movimiento sobre el estado sin cambiar el turno ni comprobar legalidad.
+    """Aplicar el efecto de un movimiento sobre el estado sin cambiar el turno ni comprobar la legalidad.
 
-    Proposito: concentrar la transicion fisica (posicion, recogida y transporte del recurso, victoria) que
-    comparten la partida por turnos y la navegacion de una sola unidad.
-    Precondiciones: ``accion`` fue generada por ``generar_movimientos`` o ``acciones_validas`` para ``estado``.
-    Postcondiciones: la unidad indicada queda en ``accion.destino``; si el recurso estaba libre en esa celda,
-    la unidad pasa a ser su portador y ``posicion_recurso`` queda en ``None``; ``estado_partida`` es
-    ``"victoria_<bando>"`` si el portador queda en su base y vuelve a ``"en_curso"`` si una victoria previa ya no
-    se cumple (solo ocurre en navegacion, donde la unidad puede seguir moviendose). El turno se conserva y
-    ``estado`` no se modifica.
-    Complejidad: O(U log U) temporal y O(U) espacial por la reconstruccion canonica de la tupla de unidades.
+    Proposito: concentrar la transición física (posición, recogida y transporte del recurso, victoria) que comparten
+    la partida por turnos y la navegación de una sola unidad.
+    Precondiciones: ``accion`` proviene de ``generar_movimientos`` o ``acciones_validas`` para ``estado``.
+    Postcondiciones: la unidad indicada queda en ``accion.destino``; si el recurso estaba libre en esa celda, la unidad
+    pasa a ser su portadora y ``posicion_recurso`` queda en ``None``; ``estado_partida`` es ``"victoria_<bando>"`` si el
+    portador queda en su base y vuelve a ``"en_curso"`` si una victoria previa deja de cumplirse, lo que solo ocurre en
+    navegación. El turno se conserva y ``estado`` no cambia.
+    Complejidad: O(U log U) temporal y O(U) espacial por la reconstrucción canónica de la tupla de unidades.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) implemento la implementacion y su documentacion; en E4.1 corrigio que la
-    marca de victoria quedara fija al salir el portador de su base, lo que duplicaba estados en navegacion;
-    Claude (Sonnet 5.5) movio la regla de recogida a ``recurso.recoger_recurso`` en E3.2, sin cambiar su efecto.
-    Validacion del estudiante: el estudiante reviso las reglas frente al enunciado y valido el metodo con
-    pytest (tests/juego/test_reglas.py y la exploracion de sucesores en tests/juego/test_espacio_estados.py).
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación; corrección de la marca de victoria que
+    quedaba fija al salir el portador de su base y duplicaba estados en navegación (E4.1). Claude (Sonnet 5.5):
+    traslado de la regla de recogida a ``recurso.recoger_recurso`` sin cambiar su efecto (E3.2).
+    Validacion del estudiante: pruebas de tests/juego/test_reglas.py y exploración completa de sucesores en
+    tests/juego/test_espacio_estados.py.
     """
     unidades = tuple(
         replace(unidad, posicion=accion.destino) if unidad.identificador == accion.identificador_unidad else unidad
@@ -293,24 +284,25 @@ def desplazar_unidad(escenario: Escenario, estado: EstadoJuego, accion: Accion) 
 
 
 def costo_accion(escenario: Escenario, accion: Accion) -> int | float:
-    """Calcula el costo de una accion como el costo del terreno de la celda destino.
+    """Calcular el costo de una acción como el del terreno de la celda destino.
 
-    Proposito: definir el costo de las acciones exclusivamente desde el catalogo ``tipos_terreno`` del JSON,
-    de modo que cambiar un costo en el escenario cambie el comportamiento sin tocar codigo.
-    Precondiciones: ``accion.destino`` esta dentro del mapa y es transitable.
-    Postcondiciones: devuelve el costo positivo declarado para el terreno destino; no modifica nada. En una
-    intercepcion (E8.1) el destino es la celda del portador, por lo que cuesta lo mismo que entrar en ella.
+    Proposito: definir el costo de las acciones exclusivamente con el catálogo ``tipos_terreno`` del JSON, para que
+    cambiar un costo en el escenario cambie el comportamiento sin tocar código.
+    Precondiciones: ``accion.destino`` está dentro del mapa y es transitable.
+    Postcondiciones: se devuelve el costo positivo declarado para el terreno destino; no se modifica nada. En una
+    intercepción (E8.1) el destino es la celda del portador, por lo que cuesta lo mismo que entrar en ella.
     Complejidad: O(1) temporal y espacial.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion.
-    Validacion del estudiante: el estudiante valido con pytest que al cambiar el costo del terreno en el JSON
-    (de 2 a 15) cambia el costo de la accion sin modificar codigo (tests/juego/test_reglas.py).
+    Intervencion de IA: Claude (Opus 5.5): implementación y documentación.
+    Validacion del estudiante: prueba ``test_costo_de_la_accion_es_el_del_terreno_destino_en_el_json`` de
+    tests/juego/test_reglas.py: al cambiar a 15 el costo de un terreno en el JSON, el costo de la acción cambia sin
+    modificar código.
     """
     return escenario.obtener_costo(accion.destino)
 
 
 def buscar_unidad(estado: EstadoJuego, identificador: str) -> Unidad:
-    """Devuelve la unidad con el identificador dado o lanza ``ValueError`` si no existe en el estado."""
+    """Devolver la unidad con el identificador dado o lanzar ``ValueError`` si no existe en el estado."""
     unidad = _buscar_unidad(estado, identificador)
     if unidad is None:
         raise ValueError(f"No existe la unidad '{identificador}' en el estado.")

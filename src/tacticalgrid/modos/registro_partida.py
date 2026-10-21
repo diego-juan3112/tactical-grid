@@ -1,4 +1,4 @@
-"""Formato experimental versionado para registrar partidas manuales sin cambiar el contrato del escenario."""
+"""Formato versionado para registrar partidas manuales sin cambiar el contrato del escenario."""
 
 import hashlib
 import json
@@ -12,15 +12,16 @@ FORMATO_PARTIDA = "tacticalgrid.partida/1"
 
 
 def estado_a_diccionario(estado: EstadoJuego) -> dict[str, object]:
-    """Serializa los campos dinámicos del estado para el registro reproducible.
+    """Serializar los campos dinámicos del estado para el registro reproducible.
 
-    Proposito: representar unidades, turno, recurso y terminalidad de forma estable.
-    Precondiciones: ``estado`` es una instancia válida de EstadoJuego.
-    Postcondiciones: devuelve estructuras básicas serializables sin modificar el estado.
+    Proposito: representar de forma estable las unidades, el turno, el recurso y la terminalidad.
+    Precondiciones: ``estado`` es una instancia válida de ``EstadoJuego``.
+    Postcondiciones: se devuelven estructuras básicas serializables; el estado no cambia.
     Complejidad: O(U) temporal y espacial para U unidades.
     Uso de IA: Si.
-    Intervencion de IA: Codex agregó la instantánea completa al registro de partidas.
-    Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas de reproducción comparan instantáneas.
+    Intervencion de IA: Codex: instantánea completa del estado en el registro de partidas.
+    Validacion del estudiante: prueba ``test_exporta_y_reproduce_partida_manual_desde_escenario_embebido`` de
+    tests/interfaz/test_control.py, que compara las instantáneas al reproducir.
     """
     return {
         "unidades": [
@@ -48,15 +49,19 @@ def crear_registro_partida(
     evaluacion: Mapping[str, object] | None = None,
     verificaciones: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
-    """Construye y sella un registro replayable de una partida manual o evaluación posterior.
+    """Construir y sellar un registro reproducible de una partida manual o de una evaluación posterior.
 
-    Proposito: preservar escenario íntegro, estados, secuencia de acciones y evaluación opcional en un formato aparte.
-    Precondiciones: el texto JSON corresponde a ``huella_escenario``; turnos fueron creados tras acciones de dominio.
-    Postcondiciones: devuelve un diccionario versionado con integridad SHA-256 del contenido; no altera sus entradas.
+    Proposito: conservar el escenario íntegro, los estados, la secuencia de acciones y la evaluación opcional en un
+    formato aparte.
+    Precondiciones: el texto JSON corresponde a ``huella_escenario``; los turnos se crearon a partir de acciones del
+    dominio.
+    Postcondiciones: se devuelve un diccionario versionado con la huella SHA-256 de integridad de su contenido; las
+    entradas no cambian.
     Complejidad: O(N + T*U) temporal y espacial para N bytes de escenario, T eventos y U unidades.
     Uso de IA: Si.
-    Intervencion de IA: Codex agregó exportación y reproducción de partidas manuales en esta continuación.
-    Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas prueban integridad y replay.
+    Intervencion de IA: Codex: exportación y reproducción de partidas manuales.
+    Validacion del estudiante: pruebas de tests/interfaz/test_control.py: exportación y reproducción de una partida
+    manual, reproducción de una evaluación adversarial y rechazo de un registro alterado.
     """
     try:
         bytes_escenario = base64.b64decode(escenario_base64, validate=True)
@@ -82,7 +87,7 @@ def crear_registro_partida(
 
 
 def huella_contenido_registro(registro: Mapping[str, object]) -> str:
-    """Calcula la huella de integridad del registro excluyendo su propio campo de sello."""
+    """Calcular la huella de integridad del registro sin incluir su propio campo de sello."""
     contenido = {clave: valor for clave, valor in registro.items() if clave != "integridad_sha256"}
     canonico = json.dumps(contenido, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonico.encode("utf-8")).hexdigest()

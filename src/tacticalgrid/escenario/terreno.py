@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class TipoTerreno:
-    """Propiedades estaticas de un tipo de terreno."""
+    """Propiedades estáticas de un tipo de terreno: costo y transitabilidad."""
 
     costo: int | float | None
     transitable: bool

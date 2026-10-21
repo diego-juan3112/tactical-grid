@@ -1,4 +1,4 @@
-"""Estado dinamico y reglas del dominio de TacticalGrid."""
+"""Estado dinámico y reglas del dominio de TacticalGrid."""
 
 from .accion import INTERCEPTAR, MOVER, Accion
 from .estado import EstadoJuego, crear_estado_inicial

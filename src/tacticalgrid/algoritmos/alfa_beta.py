@@ -1,22 +1,22 @@
 """Minimax con poda alfa-beta (E8.4) sobre las mismas acciones, utilidad y orden que el Minimax de E8.3.
 
-Decisiones de diseno:
+Decisiones de diseño:
 
-- Recorre exactamente el mismo arbol que ``minimax``: mismas ``acciones_tacticas`` en el mismo orden, el mismo
-  ``preparar_turno`` antes de expandir (el pase por bloqueo no consume profundidad), el mismo criterio de hoja y
-  el mismo evaluador (``preparar_evaluador``). La unica diferencia es que deja de explorar las ramas que ya no
-  pueden cambiar la decision.
-- ``alfa`` es el mejor valor que MAX ya tiene asegurado en el camino actual y ``beta`` el mejor que MIN tiene
-  asegurado. En un nodo MAX, si el mejor valor alcanza ``beta``, MIN nunca permitiria llegar a el y se podan las
-  acciones restantes; en un nodo MIN, simetricamente, se poda cuando el valor baja hasta ``alfa``.
-- Variante "fail-soft": cuando un nodo se poda devuelve el mejor valor encontrado, que es una cota (superior en
-  los nodos MIN que cuelgan de la raiz) del valor real. En la raiz se conserva, como en Minimax, la primera accion
-  con valor estrictamente mayor: una accion podada devuelve una cota que no supera al mejor valor ya encontrado,
-  asi que nunca reemplaza a la elegida, y ante empate gana la primera. Por eso la decision y el valor coinciden
-  con Minimax para la misma profundidad, utilidad y orden de acciones.
-- Metricas comparables con E8.3: ``nodos_generados`` cuenta la raiz y cada sucesor creado, ``nodos_evaluados``
-  las hojas evaluadas y ``profundidad_alcanzada`` la mayor profundidad visitada. ``nodos_podados`` cuenta las
-  ramas evitadas: en cada corte, las acciones hermanas que ya no se exploran (no se crea su sucesor).
+- Recorre exactamente el mismo árbol que ``minimax``: mismas ``acciones_tacticas`` en el mismo orden, el mismo
+  ``preparar_turno`` antes de expandir (el pase por bloqueo no consume profundidad), el mismo criterio de hoja y el
+  mismo evaluador (``preparar_evaluador``). La única diferencia es que deja de explorar las ramas que ya no pueden
+  cambiar la decisión.
+- ``alfa`` es el mejor valor que MAX ya tiene asegurado en el camino actual y ``beta`` el mejor que tiene asegurado
+  MIN. En un nodo MAX, si el mejor valor alcanza ``beta``, MIN nunca permitiría llegar a él y se podan las acciones
+  restantes; en un nodo MIN, de forma simétrica, se poda cuando el valor baja hasta ``alfa``.
+- Variante *fail-soft*: un nodo podado devuelve el mejor valor encontrado, que es una cota del valor real (superior
+  en los nodos MIN que cuelgan de la raíz). En la raíz se conserva, como en Minimax, la primera acción con valor
+  estrictamente mayor: una acción podada devuelve una cota que no supera al mejor valor ya encontrado, por lo que
+  nunca reemplaza a la elegida, y ante empate gana la primera. Así, la decisión y el valor coinciden con Minimax
+  para la misma profundidad, utilidad y orden de acciones.
+- Métricas comparables con E8.3: ``nodos_generados`` cuenta la raíz y cada sucesor creado, ``nodos_evaluados`` las
+  hojas evaluadas y ``profundidad_alcanzada`` la mayor profundidad visitada. ``nodos_podados`` cuenta las ramas
+  evitadas: en cada corte, las acciones hermanas que ya no se exploran y cuyo sucesor no se crea.
 """
 
 import time
@@ -51,26 +51,25 @@ def _valor_alfa_beta(
     contadores: _Contadores,
     orden: str,
 ) -> float:
-    """Calcula recursivamente el valor de ``estado`` con poda alfa-beta (variante fail-soft).
+    """Calcular recursivamente el valor de ``estado`` con poda alfa-beta (variante fail-soft).
 
-    Proposito: ser el nucleo de alfa-beta: recorre el mismo arbol que ``_valor_minimax`` pero deja de explorar los
-    hijos restantes de un nodo en cuanto su valor ya no puede cambiar la decision de un ancestro.
-    Precondiciones: las mismas que ``_valor_minimax``; ademas ``alfa`` es el mejor valor que MAX ya tiene asegurado en
-    el camino actual y ``beta`` el mejor que tiene MIN (en la raiz, menos y mas infinito).
-    Postcondiciones: si el valor real del nodo queda dentro de (``alfa``, ``beta``), lo devuelve exacto; si no,
-    devuelve una cota del lado del corte (fail-soft): en un nodo MIN cortado, un valor menor o igual que ``alfa``
-    que es cota superior del real; en un nodo MAX cortado, uno mayor o igual que ``beta``. En cada corte suma a
-    ``contadores.podados`` las acciones hermanas que ya no se exploran. Hojas, pase de turno, conteo de generados
-    y evaluados y profundidad alcanzada se tratan igual que en Minimax. No modifica ``estado``.
-    Complejidad: O(b^(d-p)) nodos en el peor orden de acciones, igual que Minimax, y O(b^((d-p)/2)) con el mejor
-    orden; cada nodo cuesta O(U^2). Espacio O(d) por la recursion.
+    Proposito: resolver el núcleo de alfa-beta: recorrer el mismo árbol que ``_valor_minimax`` y dejar de explorar los
+    hijos restantes de un nodo en cuanto su valor ya no puede cambiar la decisión de un ancestro.
+    Precondiciones: las mismas de ``_valor_minimax``; además, ``alfa`` es el mejor valor que MAX ya tiene asegurado en
+    el camino actual y ``beta`` el mejor que tiene MIN (en la raíz, menos y más infinito).
+    Postcondiciones: si el valor real del nodo queda dentro de (``alfa``, ``beta``), se devuelve exacto; si no, se
+    devuelve una cota del lado del corte (fail-soft): en un nodo MIN cortado, un valor menor o igual que ``alfa`` que
+    es cota superior del real; en un nodo MAX cortado, uno mayor o igual que ``beta``. En cada corte,
+    ``contadores.podados`` aumenta en las acciones hermanas que ya no se exploran. Las hojas, el pase de turno, el
+    conteo de generados y evaluados y la profundidad alcanzada se tratan igual que en Minimax. ``estado`` no cambia.
+    Complejidad: O(b^(d-p)) nodos con el peor orden de acciones, igual que Minimax, y O(b^((d-p)/2)) con el mejor
+    orden; cada nodo cuesta O(U^2). Espacio O(d) por la recursión.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) lo implemento en E8.4 (variante fail-soft y conteo de ramas podadas), le
-    agrego el parametro ``orden`` en E8.6 y redacto esta documentacion en E11.1.
-    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por tests/algoritmos/test_alfa_beta.py,
-    que compara con un arbol calculado a mano en el pasillo 1x8 y con Minimax en los escenarios del repositorio,
-    comprobando que los valores de la raiz son exactos o cotas correctas, y por
-    tests/algoritmos/test_orden_acciones.py.
+    Intervencion de IA: Claude (Opus 5.5): implementación con variante fail-soft y conteo de ramas podadas (E8.4),
+    parámetro ``orden`` (E8.6) y documentación (E11.1).
+    Validacion del estudiante: pruebas de tests/algoritmos/test_alfa_beta.py con el árbol del pasillo 1x8 calculado a
+    mano y la comparación con Minimax en los escenarios del repositorio (valores de la raíz exactos o cotas correctas),
+    y pruebas de tests/algoritmos/test_orden_acciones.py.
     """
     contadores.profundidad_alcanzada = max(contadores.profundidad_alcanzada, profundidad)
     estado = preparar_turno(escenario, estado)
@@ -106,26 +105,27 @@ def alfa_beta(
     evaluador: EvaluadorUtilidad | None = None,
     orden: str = ORDEN_GENERACION,
 ) -> ResultadoMinimax:
-    """Elige la misma accion que Minimax para el bando en turno, evitando explorar ramas que no cambian la decision.
+    """Elegir la misma acción que Minimax para el bando en turno sin explorar ramas que no cambian la decisión.
 
-    Proposito: implementar Minimax con poda alfa-beta y profundidad limitada, reportando las metricas de E8.3 mas
-    los nodos podados, para comparar cuanto trabajo ahorra la poda.
-    Precondiciones: ``estado`` es coherente con ``escenario``; ``profundidad_maxima`` es un entero mayor o igual que
-    1 (si no, ``ValueError``); si se pasa ``evaluador``, su ``bando_max`` debe ser el bando en turno de ``estado``.
-    Postcondiciones: devuelve un ``ResultadoMinimax`` con ``algoritmo="ALFA_BETA"``, la misma accion seleccionada y
-    el mismo valor que ``minimax`` con la misma profundidad, utilidad y orden de acciones; nodos generados y
-    evaluados menores o iguales que los de Minimax; los nodos podados; la profundidad alcanzada y el tiempo. En
-    ``valores_raiz`` el valor de cada accion de la raiz es exacto salvo cuando ``cotas_raiz`` lo marca como cota
-    superior (su valor real es menor o igual). Si la raiz es terminal o el bando en turno no puede actuar,
-    ``accion_seleccionada`` es ``None``. Toda accion considerada es legal y ``estado`` no se modifica.
-    Complejidad: en el peor caso, con el peor orden de acciones, O(b^d) nodos como Minimax; con el mejor orden,
-    O(b^(d/2)). Cada nodo cuesta O(U^2) como en Minimax y el espacio es O(d * b) por la recursion.
+    Proposito: implementar Minimax con poda alfa-beta y profundidad limitada, con las métricas de E8.3 más los nodos
+    podados, para comparar cuánto trabajo ahorra la poda.
+    Precondiciones: ``estado`` es coherente con ``escenario``; ``profundidad_maxima`` es un entero mayor o igual que 1
+    (si no, ``ValueError``); si se pasa ``evaluador``, su ``bando_max`` es el bando en turno de ``estado``.
+    Postcondiciones: se devuelve un ``ResultadoMinimax`` con ``algoritmo="ALFA_BETA"``, la misma acción seleccionada y
+    el mismo valor que ``minimax`` con la misma profundidad, utilidad y orden de acciones; nodos generados y evaluados
+    menores o iguales que los de Minimax; los nodos podados, la profundidad alcanzada y el tiempo. En ``valores_raiz``
+    el valor de cada acción de la raíz es exacto, salvo cuando ``cotas_raiz`` lo marca como cota superior (su valor
+    real es menor o igual). Si la raíz es terminal o el bando en turno no puede actuar, ``accion_seleccionada`` es
+    ``None``. Toda acción considerada es legal y ``estado`` no cambia.
+    Complejidad: con el peor orden de acciones, O(b^d) nodos como Minimax; con el mejor orden, O(b^(d/2)). Cada nodo
+    cuesta O(U^2), como en Minimax, y el espacio es O(d * b) por la recursión.
     Uso de IA: Si.
-    Intervencion de IA: Claude (Opus 5.5) propuso el diseno (variante fail-soft, conteo de ramas podadas, marca de
-    cotas en la raiz), la implementacion, sus pruebas y esta documentacion en E8.4; en E8.6 agrego el parametro
-    ``orden`` (por defecto ``generacion``, el comportamiento anterior) para estudiar su efecto sobre la poda.
-    Validacion del estudiante: Se aprueba la implementacion validada por tests/algoritmos/test_alfa_beta.py,
-    que compara con un arbol calculado a mano (pasillo 1x8) y con Minimax en los escenarios del repositorio.
+    Intervencion de IA: Claude (Opus 5.5): diseño (variante fail-soft, conteo de ramas podadas, marca de cotas en la
+    raíz), implementación, pruebas y documentación (E8.4); parámetro ``orden``, por defecto ``generacion``, para
+    estudiar su efecto sobre la poda (E8.6).
+    Validacion del estudiante: pruebas de tests/algoritmos/test_alfa_beta.py: árbol del pasillo 1x8 calculado a mano,
+    misma decisión y valor que Minimax en los escenarios del repositorio, valores de la raíz exactos o cotas correctas
+    y reducción del trabajo en escenarios reales.
     """
     profundidad_maxima = validar_profundidad(profundidad_maxima)
     orden = validar_orden(orden)
@@ -145,7 +145,7 @@ def alfa_beta(
             escenario, evaluador, raiz, 0, profundidad_maxima, float("-inf"), float("inf"), contadores, orden
         )
     else:
-        # En la raiz MAX nunca poda (beta es infinito): todas sus acciones se generan y valoran.
+        # En la raíz MAX nunca poda (beta es infinito): todas sus acciones se generan y se valoran.
         valor = float("-inf")
         for accion_tactica in acciones:
             sucesor = aplicar_accion(escenario, raiz, accion_tactica.accion)

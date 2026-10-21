@@ -1,4 +1,4 @@
-"""Registro inmutable de una partida ejecutada por una persona desde la GUI."""
+"""Registro inmutable de una partida jugada por una persona desde la interfaz gráfica."""
 
 import hashlib
 import json
@@ -11,15 +11,16 @@ from tacticalgrid.juego.reglas import costo_accion
 
 
 def huella_estado(estado: EstadoJuego) -> str:
-    """Calcula una huella canónica de todos los campos dinámicos del estado.
+    """Calcular una huella canónica de todos los campos dinámicos del estado.
 
-    Proposito: detectar alteraciones en estados registrados sin depender del orden de almacenamiento de unidades.
+    Proposito: detectar alteraciones en estados registrados sin depender del orden de almacenamiento de las unidades.
     Precondiciones: ``estado`` es una instancia de ``EstadoJuego``.
-    Postcondiciones: devuelve el SHA-256 de una representación JSON estable; no modifica el estado.
-    Complejidad: O(U log U) temporal y O(U) espacial para U unidades.
+    Postcondiciones: se devuelve el SHA-256 de una representación JSON estable; el estado no cambia.
+    Complejidad: O(U log U) temporal y O(U) espacial, con U unidades.
     Uso de IA: Si.
-    Intervencion de IA: Codex agregó el registro verificable de partidas manuales en esta continuación.
-    Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas verifican estabilidad y detección de cambios.
+    Intervencion de IA: Codex: registro verificable de partidas manuales.
+    Validacion del estudiante: prueba de exportación y reproducción de una partida manual en
+    tests/interfaz/test_control.py, cuya verificación compara las huellas de cada transición.
     """
     contenido = {
         "unidades": [
@@ -36,7 +37,7 @@ def huella_estado(estado: EstadoJuego) -> str:
 
 @dataclass(frozen=True)
 class TurnoManual:
-    """Accion realmente ejecutada y transición observada en una partida manual."""
+    """Acción ejecutada y transición observada en una partida manual."""
 
     numero: int
     bando: str
@@ -49,15 +50,16 @@ class TurnoManual:
     huella_resultante: str
 
     def a_diccionario(self) -> dict[str, object]:
-        """Convierte un evento ejecutado a campos serializables.
+        """Convertir un evento ejecutado en campos serializables.
 
         Proposito: exponer acción, costo, turno y huellas para el registro externo.
         Precondiciones: la instancia representa una transición aplicada por el dominio.
-        Postcondiciones: devuelve un diccionario sin referencias mutables a objetos de juego.
+        Postcondiciones: se devuelve un diccionario sin referencias mutables a objetos del juego.
         Complejidad: O(1) temporal y espacial respecto del tamaño del evento.
         Uso de IA: Si.
-        Intervencion de IA: Codex documentó el formato de historial manual en esta continuación.
-        Validacion del estudiante: no puedo confirmar revisión del equipo; tests/modos/test_registro_partida.py valida campos.
+        Intervencion de IA: Codex: formato del historial manual y su documentación.
+        Validacion del estudiante: prueba de exportación y reproducción de tests/interfaz/test_control.py, que lee el
+        registro exportado y lo vuelve a aplicar.
         """
         return {
             "numero": self.numero,
@@ -75,7 +77,7 @@ class TurnoManual:
 
 @dataclass(frozen=True)
 class ResultadoPartidaManual:
-    """Historial de acciones humanas con contrato de lectura compatible con el verificador de partidas."""
+    """Historial de acciones manuales, legible por el verificador de partidas."""
 
     estado_inicial: EstadoJuego
     turnos: tuple[TurnoManual, ...]
@@ -90,15 +92,16 @@ class ResultadoPartidaManual:
     def desde_estado(
         cls, escenario: Escenario, estado_inicial: EstadoJuego, turnos: tuple[TurnoManual, ...], estado_final: EstadoJuego
     ) -> "ResultadoPartidaManual":
-        """Construye el resultado de la sesión y deriva su marcador del estado final real.
+        """Construir el resultado de la sesión y derivar su marcador del estado final.
 
-        Proposito: entregar al verificador el estado inicial, los eventos ejecutados y el estado visible final.
+        Proposito: entregar al verificador el estado inicial, los eventos ejecutados y el estado final visible.
         Precondiciones: el escenario está validado y los estados pertenecen a la misma sesión.
-        Postcondiciones: devuelve un registro completo; un resultado no terminal se representa como ``en_curso``.
-        Complejidad: O(U) temporal por localizar el ganador, con U unidades.
+        Postcondiciones: se devuelve un registro completo; un resultado no terminal se representa como ``en_curso``.
+        Complejidad: O(U) temporal por localizar al ganador, con U unidades.
         Uso de IA: Si.
-        Intervencion de IA: Codex agregó el registro verificable de partidas manuales en esta continuación.
-        Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas lo contrastan con reglas y verificador.
+        Intervencion de IA: Codex: registro verificable de partidas manuales.
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py que verifican el historial con
+        ``verificar_partida`` y detectan un costo alterado.
         """
         from tacticalgrid.juego.reglas import EMPATE_BLOQUEO, obtener_ganador
 

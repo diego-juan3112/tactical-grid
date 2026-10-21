@@ -1,4 +1,4 @@
-"""Busqueda en anchura sobre el contrato comun de problemas."""
+"""Búsqueda en anchura sobre el contrato común de problemas."""
 
 from collections import deque
 
@@ -12,24 +12,21 @@ def busqueda_anchura(
     problema: Problema,
     observador_expansiones: ObservadorExpansiones | None = None,
 ) -> ResultadoBusqueda:
-    """Encuentra una solucion con la menor cantidad de acciones mediante una frontera FIFO.
+    """Encontrar una solución con la menor cantidad de acciones mediante una frontera FIFO.
 
-    Proposito: explorar por niveles los estados del problema, sin priorizar por costo, y devolver el resultado
-    con las metricas comunes de E4.1.
-    Precondiciones: problema implementa el contrato Problema y sus estados son hashables.
-    Postcondiciones: devuelve la primera solucion extraida de la frontera o un resultado de fracaso cuando esta
-    se agota; no modifica los estados recibidos. Si se proporciona observador, registra las mismas expansiones que
-    la metrica, sin alterar frontera, camino ni desempates.
-    Complejidad: O(V + E) temporal y O(V + X_t) espacial para busqueda en grafo, con X_t eventos almacenados. En
-    el modelo clasico de arbol, explorar hasta profundidad d con ramificacion b se caracteriza como O(b^d).
+    Proposito: explorar por niveles los estados del problema, sin priorizar por costo, y devolver el resultado con las
+    métricas comunes de E4.1.
+    Precondiciones: ``problema`` implementa el contrato ``Problema`` y sus estados son hashables.
+    Postcondiciones: se devuelve la primera solución extraída de la frontera, o un resultado de fracaso cuando la
+    frontera se agota; los estados recibidos no cambian. Con un observador, se registran las mismas expansiones que
+    cuenta la métrica, sin alterar la frontera, el camino ni los desempates.
+    Complejidad: O(V + E) temporal y O(V + X_t) espacial en búsqueda en grafo, con X_t eventos almacenados. En el
+    modelo clásico de árbol, explorar hasta la profundidad d con ramificación b cuesta O(b^d).
     Uso de IA: Si.
-    Intervencion de IA: Codex implemento BFS y agrego la inyeccion opcional del observador E9.3.
-    Validacion del estudiante: Se revisó manualmente la implementación de BFS contra los criterios de aceptación de
-    E4.2. Se verificó el uso de frontera FIFO, el marcado de estados al descubrirlos, la prevención de ciclos
-    mediante el EstadoJuego completo, la comprobación del objetivo al extraer de la frontera, la reconstrucción del
-    camino y las acciones, y la semántica de las métricas de E4.1. También se verificó que BFS priorice la cantidad
-    de movimientos y no el costo del terreno, aunque el costo real del camino se reporte en ResultadoBusqueda. Se
-    ejecutaron las pruebas específicas de BFS, las pruebas de algoritmos y la suite completa.
+    Intervencion de IA: Codex: implementación de BFS (E4.2) e inyección opcional del observador (E9.3).
+    Validacion del estudiante: pruebas de tests/algoritmos/test_busqueda_anchura.py: objetivo inicial sin expansión,
+    reconstrucción de acciones y costo, preferencia por menos movimientos frente a una ruta larga más barata, rodeo de
+    obstáculos, descarte de ciclos y ramas convergentes, y determinismo en otras dimensiones.
     """
     medidor = MedidorBusqueda("BFS", observador_expansiones=observador_expansiones)
     raiz = Nodo(problema.estado_inicial)
