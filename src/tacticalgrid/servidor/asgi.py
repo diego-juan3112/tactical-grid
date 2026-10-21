@@ -1,18 +1,17 @@
-"""Aplicacion ASGI minima para ejecutar TacticalGrid mediante Uvicorn."""
+"""Aplicación ASGI mínima para ejecutar TacticalGrid con Uvicorn."""
 
 
 async def aplicacion(alcance: dict, recibir, enviar) -> None:
-    """Responde una confirmacion tecnica sin acceder al dominio ni a Pygame.
+    """Responder una confirmación técnica sin acceder al dominio ni a Pygame.
 
     Proposito: exponer un punto de entrada ASGI real y aislado para Uvicorn.
-    Precondiciones: Uvicorn invoca la funcion con los objetos del protocolo ASGI.
-    Postcondiciones: completa eventos de ciclo de vida o responde HTTP 200 en texto plano.
+    Precondiciones: Uvicorn invoca la función con los objetos del protocolo ASGI.
+    Postcondiciones: se completan los eventos de ciclo de vida o se responde HTTP 200 en texto plano.
     Complejidad: O(1) temporal y espacial por solicitud.
     Uso de IA: Si.
-    Intervencion de IA: Codex genero el esqueleto ASGI minimo, sin framework web adicional; Claude
-    (Sonnet 5) tradujo los 7 encabezados de esta documentacion a espanol para cumplir la convencion de
-    AGENTS.md.
-    Validacion del estudiante: revisado y aprobado por el equipo; cubierto por una prueba ASGI automatizada.
+    Intervencion de IA: Codex: esqueleto ASGI mínimo, sin framework web adicional. Claude (Sonnet 5): traducción al
+    español de los encabezados de esta documentación.
+    Validacion del estudiante: prueba ASGI de tests/servidor/test_asgi.py.
     """
     if alcance["type"] == "lifespan":
         await _gestionar_ciclo_vida(recibir, enviar)
@@ -36,7 +35,7 @@ async def aplicacion(alcance: dict, recibir, enviar) -> None:
 
 
 async def _gestionar_ciclo_vida(recibir, enviar) -> None:
-    """Completa los eventos de inicio y cierre que Uvicorn envia a ASGI."""
+    """Completar los eventos de inicio y cierre que Uvicorn envía a la aplicación ASGI."""
     while True:
         evento = await recibir()
         if evento["type"] == "lifespan.startup":

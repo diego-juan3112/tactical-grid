@@ -1,4 +1,4 @@
-"""Contrato comun de resultados que reportan todos los algoritmos de busqueda."""
+"""Contrato común de resultados que reportan todos los algoritmos de búsqueda."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -12,12 +12,12 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class ResultadoBusqueda:
-    """Metricas y camino de una busqueda, equivalentes a la estructura de resultados del enunciado.
+    """Métricas y camino de una búsqueda, equivalentes a la estructura de resultados del enunciado.
 
-    ``camino`` incluye la posicion inicial y la final; ``acciones`` conserva las transiciones aplicadas para
-    que la verificacion de soluciones pueda comprobar cada movimiento y recalcular el costo. Si no hay
-    solucion, ``camino`` y ``acciones`` quedan vacios y ``costo`` es ``None``. ``traza_expansiones`` es opcional
-    y conserva eventos reales solo cuando el llamador activo su observador.
+    ``camino`` incluye las posiciones inicial y final; ``acciones`` conserva las transiciones aplicadas, para que la
+    verificación de soluciones compruebe cada movimiento y recalcule el costo. Sin solución, ``camino`` y ``acciones``
+    quedan vacíos y ``costo`` es ``None``. ``traza_expansiones`` es opcional y solo contiene eventos reales cuando el
+    llamador activa su observador.
     """
 
     algoritmo: str
@@ -33,22 +33,22 @@ class ResultadoBusqueda:
 
     @property
     def longitud(self) -> int:
-        """Numero de movimientos del camino (0 si no hay solucion o si el inicio ya era objetivo)."""
+        """Número de movimientos del camino: 0 si no hay solución o si el inicio ya era el objetivo."""
         return len(self.acciones)
 
     def a_diccionario(self) -> dict[str, object]:
-        """Exporta el resultado con las claves del ejemplo del enunciado, mas ``longitud`` y ``tiempo_segundos``.
+        """Exportar el resultado con las claves del ejemplo del enunciado, más ``longitud`` y ``tiempo_segundos``.
 
-        Proposito: ofrecer a la interfaz, a los logs y a los experimentos (E10.3) una estructura identica para
+        Proposito: ofrecer a la interfaz, a los registros y a los experimentos (E10.3) una estructura idéntica para
         todos los algoritmos, serializable directamente con ``json.dumps``.
         Precondiciones: ninguna.
-        Postcondiciones: devuelve un diccionario nuevo; ``camino`` se expresa como lista de pares
-        ``[fila, columna]`` como en el enunciado. No modifica el resultado.
-        Complejidad: O(L) temporal y espacial, donde L es la longitud del camino.
+        Postcondiciones: se devuelve un diccionario nuevo, con ``camino`` como lista de pares ``[fila, columna]`` igual
+        que en el enunciado. El resultado no cambia.
+        Complejidad: O(L) temporal y espacial, con L la longitud del camino.
         Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) propuso la implementacion y su documentacion en E4.1.
-        Validacion del estudiante: cubierto por las pruebas de tests/algoritmos/test_resultado_busqueda.py, que
-        comparan la salida con las claves del enunciado y la serializan a JSON.
+        Intervencion de IA: Claude (Opus 5.5): implementación y documentación (E4.1).
+        Validacion del estudiante: pruebas de tests/algoritmos/test_resultado_busqueda.py: claves del enunciado,
+        serialización a JSON y resultado sin solución.
         """
         return {
             "algoritmo": self.algoritmo,

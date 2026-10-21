@@ -1,4 +1,4 @@
-"""Preparacion comun de busquedas solicitadas por la interfaz grafica."""
+"""Preparación común de las búsquedas solicitadas por la interfaz gráfica."""
 
 from collections.abc import Mapping
 
@@ -32,19 +32,19 @@ def preparar_busqueda(
     k: int | None = None,
     heuristica: str = "manhattan",
 ) -> ResultadoBusqueda | None:
-    """Resuelve parametros y ejecuta una unica busqueda para la interfaz.
+    """Resolver los parámetros y ejecutar una única búsqueda para la interfaz.
 
-    Proposito: conectar controles o argumentos graficos con las APIs estructuradas de navegacion y busqueda.
-    Precondiciones: ``escenario`` esta validado, ``estado`` le pertenece y ``algoritmo`` es admitido o ``None``.
-    Postcondiciones: sin algoritmo devuelve ``None``; con algoritmo devuelve su resultado con una traza acotada. A*
-    acepta ``manhattan`` o la heuristica HTO preparada; el resto de algoritmos conserva su estrategia original.
-    Los valores explicitos tienen prioridad sobre ``prueba`` y el estado recibido no se modifica.
-    Complejidad: costo del algoritmo mas O(min(X, L_t)) espacial para X expansiones y limite L_t.
+    Proposito: conectar los controles o argumentos gráficos con las API estructuradas de navegación y búsqueda.
+    Precondiciones: ``escenario`` está validado, ``estado`` le pertenece y ``algoritmo`` es admitido o ``None``.
+    Postcondiciones: sin algoritmo se devuelve ``None``; con algoritmo, su resultado con una traza acotada. A* acepta
+    ``manhattan`` o la heurística HTO preparada; los demás algoritmos conservan su estrategia original. Los valores
+    explícitos tienen prioridad sobre ``prueba`` y el estado recibido no cambia.
+    Complejidad: el costo del algoritmo más O(min(X, L_t)) espacial para X expansiones y límite L_t.
     Uso de IA: Si.
-    Intervencion de IA: Codex extrajo el ejecutor E9.2/E9.3 y agrego seleccion explicita de heuristica A* en esta
-    continuacion, reutilizando HTO existente.
-    Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de los cinco algoritmos y
-    regresion.
+    Intervencion de IA: Codex: extracción del ejecutor de E9.2 y E9.3 y selección explícita de la heurística de A*,
+    reutilizando la HTO existente.
+    Validacion del estudiante: pruebas de tests/interfaz/test_aplicacion.py: cada algoritmo ejecutado una vez sobre el
+    estado inicial, prioridad de la consola sobre el JSON, ``k`` leído del JSON y rechazo de combinaciones inválidas.
     """
     if algoritmo is None:
         if unidad is not None or objetivo is not None or k is not None:
@@ -96,7 +96,7 @@ def resolver_objetivo(
     objetivo: tuple[int, int] | None,
     configuracion: Mapping[str, object],
 ) -> Posicion:
-    """Convierte el objetivo explicito o del JSON al tipo de posicion del dominio."""
+    """Convertir el objetivo explícito o el del JSON al tipo de posición del dominio."""
     if objetivo is not None:
         return Posicion(*objetivo)
     datos = configuracion.get("objetivo")

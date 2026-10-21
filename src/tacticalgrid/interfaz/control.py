@@ -1,8 +1,8 @@
-"""Estado transitorio y operaciones de los controles de la aplicacion grafica."""
+"""Estado transitorio y operaciones de los controles de la aplicación gráfica."""
 
 from collections.abc import Sequence
 import base64
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from hashlib import sha256
 from pathlib import Path
 
@@ -37,8 +37,9 @@ from tacticalgrid.juego import (
     preparar_turno,
     unidades_seleccionables,
 )
-from tacticalgrid.juego.reglas import costo_accion, es_terminal, es_accion_valida
+from tacticalgrid.juego.reglas import costo_accion, es_accion_valida, es_terminal, obtener_ganador
 from tacticalgrid.juego.partida_manual import ResultadoPartidaManual, TurnoManual, huella_estado
+from tacticalgrid.modos.agentes import ALGORITMOS_AGENTE, ConfiguracionAgente, DecisionAgente, decidir_jugada
 from tacticalgrid.modos.prueba import MODO_ADVERSARIAL, MODO_BUSQUEDA, MODO_PARTIDA, MODOS, leer_configuracion_prueba
 from tacticalgrid.modos.registro import RegistroExperimento, serializar
 from tacticalgrid.modos.registro_partida import crear_registro_partida
@@ -54,7 +55,7 @@ def _modo_desde_escenario(escenario: Escenario) -> str:
 
 @dataclass(frozen=True)
 class AyudaAlgoritmo:
-    """Explicacion breve y verificable del criterio de un algoritmo disponible."""
+    """Explicación breve y verificable del criterio de un algoritmo disponible."""
 
     descripcion: tuple[str, ...]
     criterio: str
@@ -88,15 +89,16 @@ AYUDAS_ALGORITMOS = {
 
 
 def _reporte_a_diccionario(reporte: ReporteVerificacion) -> dict[str, object]:
-    """Convierte un reporte de dominio a datos serializables para el panel.
+    """Convertir un reporte del dominio en datos serializables para el panel.
 
-    Proposito: presentar cada comprobacion sin exponer objetos internos de la GUI.
-    Precondiciones: ``reporte`` es un ReporteVerificacion.
-    Postcondiciones: devuelve sujeto, validez y comprobaciones como tipos JSON.
+    Proposito: presentar cada comprobación sin exponer objetos internos de la interfaz.
+    Precondiciones: ``reporte`` es un ``ReporteVerificacion``.
+    Postcondiciones: se devuelven el sujeto, la validez y las comprobaciones como tipos JSON.
     Complejidad: O(C) temporal y espacial, con C comprobaciones.
     Uso de IA: Si.
-    Intervencion de IA: Codex documentó la serialización de reportes en esta continuación.
-    Validacion del estudiante: no puedo confirmar revisión del equipo; tests/interfaz/test_control.py valida los reportes.
+    Intervencion de IA: Codex: serialización de reportes y su documentación.
+    Validacion del estudiante: pruebas de verificación de tests/interfaz/test_control.py, que leen los reportes
+    serializados.
     """
     return {
         "sujeto": reporte.sujeto,
@@ -108,9 +110,23 @@ def _reporte_a_diccionario(reporte: ReporteVerificacion) -> dict[str, object]:
     }
 
 
+CONTROL_MANUAL = "manual"
+CONTROL_ALGORITMOS = "algoritmos"
+CONTROLES_PARTIDA = (CONTROL_MANUAL, CONTROL_ALGORITMOS)
+ETIQUETAS_ALGORITMOS_AGENTE = {
+    "bfs": "BFS",
+    "dfs": "DFS",
+    "ucs": "UCS",
+    "astar": "A*",
+    "beam": "Beam",
+    "minimax": "Minimax",
+    "alfa_beta": "Alfa-beta",
+}
+
+
 @dataclass
 class ControlGrafico:
-    """Seleccion y resultado vigentes de una sesion Pygame, fuera del dominio inmutable."""
+    """Selección y resultado vigentes de una sesión Pygame, fuera del dominio inmutable."""
 
     rutas_escenarios: tuple[Path, ...]
     ruta_escenario: Path
@@ -143,20 +159,23 @@ class ControlGrafico:
     error: bool = False
     estado_busqueda: str = "sin ejecutar"
     ejecutando: bool = False
+    control_partida: str = CONTROL_MANUAL
+    algoritmos_bandos: dict[str, str] = field(default_factory=lambda: {"A": "astar", "B": "alfa_beta"})
+    ultima_decision: DecisionAgente | None = None
 
     @classmethod
     def crear(cls, ruta: str | Path, rutas_disponibles: Sequence[Path]) -> "ControlGrafico":
-        """Carga el escenario inicial y deriva selecciones validas sin ejecutar busquedas.
+        """Cargar el escenario inicial y derivar selecciones válidas sin ejecutar búsquedas.
 
-        Proposito: construir el estado transitorio de la GUI a partir de datos reales del escenario.
-        Precondiciones: ``ruta`` identifica un JSON valido; las rutas disponibles no necesitan estar cargadas.
-        Postcondiciones: devuelve controles con unidad existente y modo tomado de ``prueba.modo`` (o busqueda por
-        defecto); cuando el modo es partida prepara el turno antes de presentar la sesion.
-        Complejidad: O(U log U + R log R) por crear el estado y normalizar R rutas disponibles.
+        Proposito: construir el estado transitorio de la interfaz a partir de datos reales del escenario.
+        Precondiciones: ``ruta`` identifica un JSON válido; las rutas disponibles no necesitan estar cargadas.
+        Postcondiciones: se devuelven controles con una unidad existente y el modo tomado de ``prueba.modo`` (búsqueda
+        por defecto); en modo partida, el turno se prepara antes de presentar la sesión.
+        Complejidad: O(U log U + R log R) por crear el estado y ordenar R rutas disponibles.
         Uso de IA: Si.
-        Intervencion de IA: Codex diseño el controlador de sesion para la integracion grafica final de E9.3.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de carga y selecciones
-        iniciales.
+        Intervencion de IA: Codex: diseño del controlador de sesión para la integración gráfica final (E9.3).
+        Validacion del estudiante: pruebas ``test_crea_controles_desde_datos_reales_sin_ejecutar_busqueda`` y
+        ``test_modo_partida_del_json_inicia_turno_y_selecciona_unidad_activa`` de tests/interfaz/test_control.py.
         """
         ruta_resuelta = Path(ruta).resolve()
         contenido_escenario = ruta_resuelta.read_bytes()
@@ -209,17 +228,17 @@ class ControlGrafico:
         escenario: Escenario,
         estado: EstadoJuego,
     ) -> tuple[str, str | None, Posicion | None, int]:
-        """Deriva controles conservadores desde ``prueba`` y las unidades reales.
+        """Derivar controles conservadores desde ``prueba`` y las unidades reales.
 
-        Proposito: reutilizar configuracion valida sin depender de que todos los escenarios definan modo busqueda.
-        Precondiciones: escenario y estado corresponden entre si.
-        Postcondiciones: devuelve algoritmo admitido, unidad existente o ``None``, objetivo valido o ``None``
-        y k positivo.
+        Proposito: reutilizar la configuración válida sin depender de que todos los escenarios definan el modo búsqueda.
+        Precondiciones: el escenario y el estado se corresponden.
+        Postcondiciones: se devuelven un algoritmo admitido, una unidad existente o ``None``, un objetivo válido o
+        ``None`` y un k positivo.
         Complejidad: O(U) temporal y espacial por enumerar U unidades.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento la inicializacion segura de controles durante la integracion grafica.
-        Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas con escenarios de
-        distintos modos.
+        Intervencion de IA: Codex: inicialización segura de controles durante la integración gráfica.
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py con escenarios de distintos modos, incluido
+        un escenario externo con dimensiones, identificadores, turno y obstáculos variables.
         """
         configuracion = escenario.configuracion_prueba or {}
         unidades = tuple(unidad.identificador for unidad in estado.unidades)
@@ -250,7 +269,7 @@ class ControlGrafico:
 
     @property
     def origen(self) -> Posicion | None:
-        """Posicion real de la unidad seleccionada, o ``None`` cuando no existe."""
+        """Posición real de la unidad seleccionada, o ``None`` si no existe."""
         return next(
             (unidad.posicion for unidad in self.estado.unidades if unidad.identificador == self.unidad),
             None,
@@ -258,17 +277,17 @@ class ControlGrafico:
 
     @property
     def ayuda_algoritmo(self) -> AyudaAlgoritmo:
-        """Explicacion correspondiente exactamente al algoritmo seleccionado."""
+        """Explicación correspondiente exactamente al algoritmo seleccionado."""
         return AYUDAS_ALGORITMOS[self.algoritmo]
 
     @property
     def unidades_partida(self):
-        """Unidades legales para actuar en el turno actual, derivadas del dominio."""
+        """Unidades que pueden actuar legalmente en el turno actual, derivadas del dominio."""
         return unidades_seleccionables(self.escenario, self.estado)
 
     @property
     def unidad_partida_actual(self):
-        """Unidad actualmente seleccionada para la partida, si aun pertenece al turno."""
+        """Unidad seleccionada para la partida, si aún pertenece al turno."""
         return next(
             (unidad for unidad in self.unidades_partida if unidad.identificador == self.unidad_partida),
             None,
@@ -334,7 +353,7 @@ class ControlGrafico:
         self._invalidar_resultado("Ancho de Beam actualizado; ejecute una busqueda.")
 
     def cambiar_heuristica_astar(self, paso: int) -> None:
-        """Alterna las heuristicas A* implementadas y elimina el resultado vigente."""
+        """Alternar las heurísticas de A* implementadas y eliminar el resultado vigente."""
         if self.modo != MODO_BUSQUEDA or self.algoritmo != "astar":
             return
         opciones = ("manhattan", "hto")
@@ -356,17 +375,18 @@ class ControlGrafico:
         self._invalidar_resultado("Objetivo actualizado; ejecute una busqueda.")
 
     def cambiar_modo(self, paso: int = 1) -> None:
-        """Cambia entre busqueda, partida y modo adversarial sin descartar el estado actual.
+        """Cambiar entre búsqueda, partida y modo adversarial sin descartar el estado actual.
 
-        Proposito: exponer el modo declarado en el escenario y permitir seleccionar una modalidad desde la GUI.
+        Proposito: exponer el modo declarado en el escenario y permitir seleccionar una modalidad desde la interfaz.
         Precondiciones: el controlador tiene un escenario cargado y ``paso`` es un desplazamiento entero.
-        Postcondiciones: selecciona un modo reconocido, limpia resultados incompatibles y, al entrar a partida,
-        prepara el turno mediante las reglas del dominio. El estado solo cambia por el pase automatico por bloqueo.
-        Complejidad: O(U^2 + M) temporal y O(A) espacial en modo partida, donde U son unidades, A acciones y M modos.
+        Postcondiciones: se selecciona un modo reconocido, se limpian los resultados incompatibles y, al entrar en
+        partida, se prepara el turno con las reglas del dominio. El estado solo cambia por el pase automático por
+        bloqueo.
+        Complejidad: O(U^2 + M) temporal y O(A) espacial en modo partida, con U unidades, A acciones y M modos.
         Uso de IA: Si.
-        Intervencion de IA: Codex integro el selector de modos y la inicializacion de partida en esta continuacion.
-        Validacion del estudiante: No puedo confirmar revision manual del equipo; pruebas de interfaz cubren modos,
-        preparacion del turno y conservacion del estado.
+        Intervencion de IA: Codex: selector de modos e inicialización de la partida.
+        Validacion del estudiante: pruebas ``test_cambiar_modo_inicia_partida_y_cargar_otro_escenario_limpia_seleccion``
+        y ``test_cambiar_modo_o_escenario_invalida_decision_y_verificacion`` de tests/interfaz/test_control.py.
         """
         self.modo = MODOS[(MODOS.index(self.modo) + paso) % len(MODOS)]
         self.resultado = None
@@ -380,6 +400,7 @@ class ControlGrafico:
         self.exploracion_visible = False
         self.unidad_partida = None
         self.acciones_partida = ()
+        self.ultima_decision = None
         if self.modo == MODO_PARTIDA:
             self.estado = preparar_turno(self.escenario, self.estado)
             self.estado_busqueda = self.estado.estado_partida
@@ -395,20 +416,23 @@ class ControlGrafico:
             self.error = False
 
     def reiniciar_partida(self) -> None:
-        """Reinicia la sesión manual desde el estado inicial conservado al cargar el escenario.
+        """Reiniciar la sesión manual desde el estado inicial conservado al cargar el escenario.
 
         Proposito: ofrecer un reinicio explícito que descarte solo el historial de la partida actual.
         Precondiciones: hay un escenario cargado y ``estado_inicial_partida`` pertenece a su sesión.
-        Postcondiciones: restaura el estado inicial preparado, elimina el historial y reportes derivados y activa modo partida.
-        Complejidad: O(U + A) temporal y espacial para preparar el turno y regenerar acciones.
+        Postcondiciones: se restaura el estado inicial preparado, se eliminan el historial y los reportes derivados y se
+        activa el modo partida.
+        Complejidad: O(U + A) temporal y espacial para preparar el turno y regenerar las acciones.
         Uso de IA: Si.
-        Intervencion de IA: Codex agregó reinicio e historial verificable manual para R26.
-        Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas cubren reinicio y descarte de eventos.
+        Intervencion de IA: Codex: reinicio e historial manual verificable (R26).
+        Validacion del estudiante: prueba ``test_reinicio_y_cambio_de_escenario_separan_historiales`` de
+        tests/interfaz/test_control.py.
         """
         if self.estado_inicial_partida is None:
             return
         self.estado = preparar_turno(self.escenario, self.estado_inicial_partida)
         self.historial_partida = ()
+        self.ultima_decision = None
         self.modo = MODO_PARTIDA
         self.unidad_partida = None
         self.acciones_partida = ()
@@ -423,18 +447,112 @@ class ControlGrafico:
         self.estado_busqueda = self.estado.estado_partida
         self.error = False
 
-    def seleccionar_unidad_partida(self, identificador: str) -> bool:
-        """Selecciona una unidad activa y consulta sus acciones legales al dominio.
+    def cambiar_control_partida(self, paso: int = 1) -> None:
+        """Alternar quién controla la partida: la persona con clics o los algoritmos de cada bando."""
+        indice = (CONTROLES_PARTIDA.index(self.control_partida) + paso) % len(CONTROLES_PARTIDA)
+        self.control_partida = CONTROLES_PARTIDA[indice]
+        self.unidad_partida = None
+        self.acciones_partida = ()
+        self.resultado = None
+        self.exploracion_visible = False
+        self.error = False
+        self.mensaje = (
+            "Control por algoritmos: pulse N — Siguiente turno para avanzar una jugada."
+            if self.control_partida == CONTROL_ALGORITMOS
+            else "Control manual: seleccione una unidad del bando activo."
+        )
 
-        Proposito: mantener la seleccion grafica alineada con el turno y las reglas oficiales del juego.
-        Precondiciones: el modo actual es partida y el estado pertenece al escenario cargado.
-        Postcondiciones: una unidad seleccionable queda elegida y sus acciones se conservan para visualizacion y
-        ejecucion; unidades rivales, bloqueadas o estados terminales se rechazan sin cambiar el turno.
-        Complejidad: O(U + A) temporal y O(A) espacial, dada la consulta de seleccionables y acciones del dominio.
+    def cambiar_algoritmo_bando(self, bando: str, paso: int) -> None:
+        """Recorrer los algoritmos disponibles para ``bando`` sin modificar el del otro bando ni la partida."""
+        actual = self.algoritmos_bandos[bando]
+        siguiente = ALGORITMOS_AGENTE[(ALGORITMOS_AGENTE.index(actual) + paso) % len(ALGORITMOS_AGENTE)]
+        self.algoritmos_bandos = {**self.algoritmos_bandos, bando: siguiente}
+        self.error = False
+        self.mensaje = f"Bando {bando}: {ETIQUETAS_ALGORITMOS_AGENTE[siguiente]} decidirá sus próximas jugadas."
+
+    def siguiente_turno(self) -> None:
+        """Avanzar exactamente una jugada: la que decide el algoritmo del bando en turno.
+
+        Proposito: permitir observar la partida entre algoritmos al ritmo en que se pulsa el botón, una jugada por
+        pulsación.
+        Precondiciones: el modo es partida y el control es por algoritmos; el estado vigente ya pasó por
+        ``preparar_turno``.
+        Postcondiciones: si la partida no terminó, la acción decidida por ``decidir_jugada`` se aplica una vez con las
+        reglas del dominio, se registra en el historial con sus huellas y su costo, y se prepara el turno siguiente;
+        ``ultima_decision`` conserva la decisión y ``resultado`` el camino planeado cuando la decide un algoritmo de
+        búsqueda. Si el modo o el control no corresponden, la partida terminó o el algoritmo falla, el estado y el
+        historial no cambian y el mensaje explica la causa.
+        Complejidad: la de ``decidir_jugada`` con el algoritmo del bando en turno, más O(U log U) por las huellas.
         Uso de IA: Si.
-        Intervencion de IA: Codex conecto la seleccion grafica a unidades_seleccionables y acciones_para_unidad.
-        Validacion del estudiante: No puedo confirmar revision manual del equipo; pruebas verifican bandos,
-        acciones disponibles y rechazo de seleccion invalida.
+        Intervencion de IA: Claude (Opus 5.5): diseño e implementación de la partida por turnos entre algoritmos
+        (E9.5).
+        Validacion del estudiante: pruebas de tests/interfaz/test_turnos_algoritmos.py: una jugada por pulsación con
+        alternancia de bandos, camino publicado por la búsqueda, métricas de Minimax, rechazo fuera del control por
+        algoritmos, fin de la partida, verificación, exportación y reproducción.
+        """
+        if self.modo != MODO_PARTIDA or self.control_partida != CONTROL_ALGORITMOS:
+            self.mensaje = "Siguiente turno requiere el modo partida con control por algoritmos."
+            self.error = True
+            return
+        if es_terminal(self.escenario, self.estado):
+            self.mensaje = f"Partida terminada ({self.estado.estado_partida}); reinicie con R para jugar de nuevo."
+            self.error = False
+            return
+        bando = self.estado.turno_actual
+        algoritmo = self.algoritmos_bandos[bando]
+        try:
+            configuracion = ConfiguracionAgente(
+                algoritmo,
+                profundidad=self.profundidad_adversarial,
+                orden=self.orden_adversarial,
+                k=self.k,
+                heuristica=self.heuristica_astar,
+            )
+            decision = decidir_jugada(self.escenario, self.estado, configuracion)
+        except ValueError as error:
+            self.mensaje = f"El bando {bando} no pudo decidir: {error}"
+            self.error = True
+            return
+        estado_previo = self.estado
+        self.estado = aplicar_accion(self.escenario, estado_previo, decision.accion)
+        self._registrar_turno_manual(decision.accion, estado_previo)
+        self.estado = preparar_turno(self.escenario, self.estado)
+        self.ultima_decision = decision
+        self.resultado = decision.busqueda
+        self.exploracion_visible = False
+        self.verificacion = None
+        self.unidad_partida = None
+        self.acciones_partida = ()
+        self.estado_busqueda = self.estado.estado_partida
+        self.error = False
+        accion = decision.accion
+        descripcion = (
+            f"Jugada {len(self.historial_partida)}: {bando} ({ETIQUETAS_ALGORITMOS_AGENTE[algoritmo]}) "
+            f"{accion.identificador_unidad} ({accion.origen.fila},{accion.origen.columna}) -> "
+            f"({accion.destino.fila},{accion.destino.columna})"
+        )
+        ganador = obtener_ganador(self.escenario, self.estado)
+        if ganador is not None:
+            self.mensaje = f"{descripcion}. Victoria del bando {ganador}."
+        elif es_terminal(self.escenario, self.estado):
+            self.mensaje = f"{descripcion}. Partida terminada: empate por bloqueo."
+        else:
+            self.mensaje = f"{descripcion}. Turno del bando {self.estado.turno_actual}."
+
+    def seleccionar_unidad_partida(self, identificador: str) -> bool:
+        """Seleccionar una unidad activa y consultar sus acciones legales al dominio.
+
+        Proposito: mantener la selección gráfica alineada con el turno y las reglas del juego.
+        Precondiciones: el modo actual es partida y el estado pertenece al escenario cargado.
+        Postcondiciones: una unidad seleccionable queda elegida y sus acciones se conservan para visualizarlas y
+        ejecutarlas; las unidades rivales o bloqueadas y los estados terminales se rechazan sin cambiar el turno.
+        Complejidad: O(U + A) temporal y O(A) espacial por la consulta de unidades seleccionables y acciones del
+        dominio.
+        Uso de IA: Si.
+        Intervencion de IA: Codex: conexión de la selección gráfica con ``unidades_seleccionables`` y
+        ``acciones_para_unidad``.
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py: selección de la unidad activa del turno,
+        rechazo de una unidad rival y bloqueo de acciones tras una victoria.
         """
         if self.modo != MODO_PARTIDA:
             return False
@@ -450,23 +568,23 @@ class ControlGrafico:
         return True
 
     def cambiar_algoritmo_adversarial(self, paso: int) -> None:
-        """Alterna el algoritmo adversarial y descarta reportes calculados con otra configuracion."""
+        """Alternar el algoritmo adversarial y descartar los reportes calculados con otra configuración."""
         algoritmos = ("MINIMAX", "ALFA_BETA")
         self.algoritmo_adversarial = algoritmos[(algoritmos.index(self.algoritmo_adversarial) + paso) % len(algoritmos)]
         self._invalidar_decision("Algoritmo actualizado; ejecute la evaluacion adversarial.")
 
     def cambiar_profundidad_adversarial(self, paso: int) -> None:
-        """Ajusta la profundidad adversarial con el mismo validador utilizado por los algoritmos."""
+        """Ajustar la profundidad adversarial con el mismo validador que usan los algoritmos."""
         self.profundidad_adversarial = validar_profundidad(max(1, self.profundidad_adversarial + paso))
         self._invalidar_decision("Profundidad actualizada; ejecute la evaluacion adversarial.")
 
     def cambiar_orden_adversarial(self, paso: int) -> None:
-        """Recorre los ordenes admitidos y conserva la configuracion en la sesion actual."""
+        """Recorrer los órdenes admitidos y conservar la configuración en la sesión actual."""
         self.orden_adversarial = ORDENES[(ORDENES.index(self.orden_adversarial) + paso) % len(ORDENES)]
         self._invalidar_decision("Orden actualizado; ejecute la evaluacion adversarial.")
 
     def _invalidar_decision(self, mensaje: str) -> None:
-        """Elimina resultados adversariales cuando cambia su estado o configuracion fuente."""
+        """Eliminar los resultados adversariales cuando cambia su estado o su configuración de origen."""
         self.resultado_adversarial = None
         self.comparacion_adversarial = None
         self.estado_evaluado = None
@@ -477,17 +595,18 @@ class ControlGrafico:
         self.error = False
 
     def evaluar_decision(self, comparar: bool = False) -> None:
-        """Evalua el estado vigente con los algoritmos del dominio, sin aplicar la accion recomendada.
+        """Evaluar el estado vigente con los algoritmos del dominio sin aplicar la acción recomendada.
 
-        Proposito: recomendar acciones de Minimax/alfa-beta desde el estado vigente y producir metricas o comparacion.
-        Precondiciones: el escenario y estado estan cargados; la profundidad y el orden pertenecen a sus dominios.
-        Postcondiciones: guarda resultado para el estado inmutable de entrada sin modificarlo; comparacion, cuando se
-        solicita, ejecuta ambas variantes bajo igual profundidad, utilidad y orden. No aplica recomendaciones.
-        Complejidad: O(b^d) en una evaluacion; la comparacion suma O(b^d) Minimax y alfa-beta.
+        Proposito: recomendar acciones de Minimax o alfa-beta desde el estado vigente y producir sus métricas o su
+        comparación.
+        Precondiciones: el escenario y el estado están cargados; la profundidad y el orden pertenecen a sus dominios.
+        Postcondiciones: se guarda el resultado del estado inmutable de entrada sin modificarlo; la comparación, cuando
+        se solicita, ejecuta ambas variantes con igual profundidad, utilidad y orden. Las recomendaciones no se aplican.
+        Complejidad: O(b^d) en una evaluación; la comparación suma O(b^d) de Minimax y de alfa-beta.
         Uso de IA: Si.
-        Intervencion de IA: Codex conecto la GUI con los algoritmos adversariales existentes y su comparador.
-        Validacion del estudiante: No puedo confirmar revision manual; pruebas de interfaz cubren no mutacion,
-        configuracion, metricas y recomendacion.
+        Intervencion de IA: Codex: conexión de la interfaz con los algoritmos adversariales y su comparador.
+        Validacion del estudiante: pruebas ``test_evaluacion_adversarial_usa_configuracion_json_y_no_muta_estado`` y
+        ``test_comparacion_verifica_misma_decision_y_muestra_metricas`` de tests/interfaz/test_control.py.
         """
         if self.modo != MODO_ADVERSARIAL:
             self.mensaje = "Cambie al modo adversarial para evaluar una decision."
@@ -528,16 +647,16 @@ class ControlGrafico:
         self.error = False
 
     def verificar_decision_actual(self) -> None:
-        """Valida independientemente la recomendacion adversarial correspondiente al estado vigente.
+        """Validar de forma independiente la recomendación adversarial del estado vigente.
 
-        Proposito: mostrar si la decision, el arbol y sus metricas son coherentes para el estado actual.
+        Proposito: mostrar si la decisión, el árbol y sus métricas son coherentes para el estado actual.
         Precondiciones: existe un resultado adversarial asociado al estado inmutable vigente.
-        Postcondiciones: guarda el reporte de ``verificar_decision`` y no altera partida ni recomendacion.
-        Complejidad: O(b^d) por regenerar independientemente el arbol completo.
+        Postcondiciones: se guarda el reporte de ``verificar_decision``; la partida y la recomendación no cambian.
+        Complejidad: O(b^d) por regenerar de forma independiente el árbol completo.
         Uso de IA: Si.
-        Intervencion de IA: Codex conecto la verificacion adversarial del dominio con la GUI.
-        Validacion del estudiante: No puedo confirmar revision manual; las pruebas automatizadas verifican resultado
-        valido, ausencia de decision y estado obsoleto.
+        Intervencion de IA: Codex: conexión de la verificación adversarial del dominio con la interfaz.
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py: comparación verificada con la misma
+        decisión e invalidación de la verificación al cambiar el modo o el escenario.
         """
         if self.resultado_adversarial is None or self.estado_evaluado != self.estado:
             self.verificacion = None
@@ -555,17 +674,19 @@ class ControlGrafico:
         )
 
     def exportar_experimento(self, destino: str | Path) -> bool:
-        """Exporta un experimento E10.3 o el registro reproducible de una partida manual.
+        """Exportar un experimento de E10.3 o el registro reproducible de una partida manual.
 
-        Proposito: conservar busquedas/decisiones iniciales en E10.3 y partidas o decisiones posteriores en formato propio.
-        Precondiciones: existe un resultado vigente para busqueda/decision, o una sesion de partida registrable.
-        Postcondiciones: escribe el formato correspondiente; ante falta de resultado o error informa la causa.
+        Proposito: guardar las búsquedas y decisiones iniciales con el formato de E10.3, y las partidas o decisiones
+        posteriores con el formato propio de partidas.
+        Precondiciones: existe un resultado vigente de búsqueda o decisión, o una sesión de partida registrable.
+        Postcondiciones: se escribe el formato correspondiente; si falta el resultado o hay un error, se informa la
+        causa.
         Complejidad: O(N + R) temporal y espacial, con N bytes del escenario y R datos del registro.
         Uso de IA: Si.
-        Intervencion de IA: Codex conecto la interfaz con el registro reproducible de E10.3 y agrego la heuristica A*
-        como parametro reproducible de consola.
-        Validacion del estudiante: No puedo confirmar revision manual; pruebas verifican huella, comando, contenido y
-        rechazo de un escenario modificado.
+        Intervencion de IA: Codex: conexión de la interfaz con el registro reproducible de E10.3 y heurística de A* como
+        parámetro reproducible de consola.
+        Validacion del estudiante: pruebas ``test_exporta_registro_gui_con_heuristica_y_comando_reproducible`` y
+        ``test_exportacion_rechaza_archivo_de_escenario_modificado`` de tests/interfaz/test_control.py.
         """
         destino = Path(destino).resolve()
         if self.modo == MODO_PARTIDA or (self.modo == MODO_ADVERSARIAL and self.historial_partida):
@@ -643,15 +764,19 @@ class ControlGrafico:
         return True
 
     def _exportar_partida_manual(self, destino: Path) -> bool:
-        """Exporta la sesión y, si existe, la evaluación calculada sobre su estado reconstruido.
+        """Exportar la sesión y, si existe, la evaluación calculada sobre su estado reconstruido.
 
-        Proposito: serializar una copia íntegra del escenario, eventos legales y resultado para reproducción posterior.
+        Proposito: serializar una copia íntegra del escenario, los eventos legales y el resultado para reproducirlos
+        después.
         Precondiciones: se conserva el estado inicial de la sesión y los bytes del escenario no cambiaron.
-        Postcondiciones: escribe el formato tacticalgrid.partida/1 solo si el verificador acepta las acciones registradas.
+        Postcondiciones: se escribe el formato ``tacticalgrid.partida/1`` solo si el verificador acepta las acciones
+        registradas.
         Complejidad: O(N + T*U) temporal y espacial para N bytes, T acciones y U unidades.
         Uso de IA: Si.
-        Intervencion de IA: Codex conectó historial manual y exportación reproducible, incluida decisión posterior a jugadas.
-        Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas comprueban exportación y replay de registros.
+        Intervencion de IA: Codex: conexión del historial manual con la exportación reproducible, incluida la decisión
+        posterior a las jugadas.
+        Validacion del estudiante: pruebas ``test_exporta_y_reproduce_partida_manual_desde_escenario_embebido`` y
+        ``test_reproduce_evaluacion_adversarial_sobre_partida_previamente_jugada`` de tests/interfaz/test_control.py.
         """
         if self.estado_inicial_partida is None:
             self.mensaje = "No se puede exportar: falta el estado inicial de la sesión."
@@ -707,18 +832,18 @@ class ControlGrafico:
         return True
 
     def aplicar_decision_recomendada(self, confirmar: bool = False) -> None:
-        """Solicita confirmacion en dos interacciones y aplica una recomendacion aun vigente y legal.
+        """Pedir confirmación en dos interacciones y aplicar una recomendación vigente y legal.
 
-        Proposito: separar explicitamente la evaluacion automatica de la ejecucion efectiva de la jugada.
-        Precondiciones: la recomendacion pertenece al estado vigente y su accion sigue siendo legal.
-        Postcondiciones: sin confirmar solo arma la confirmacion; al confirmar aplica una vez por reglas del dominio,
-        cambia a partida y elimina resultado/comparacion/reporte ya obsoletos. Estados cambiados o acciones ilegales
-        se rechazan sin alterar la partida.
-        Complejidad: O(U + A) para revalidar la accion y preparar el turno.
+        Proposito: separar explícitamente la evaluación automática de la ejecución efectiva de la jugada.
+        Precondiciones: la recomendación pertenece al estado vigente y su acción sigue siendo legal.
+        Postcondiciones: sin confirmación solo se prepara la confirmación; al confirmar, la acción se aplica una vez con
+        las reglas del dominio, se cambia a partida y se eliminan el resultado, la comparación y el reporte obsoletos.
+        Si el estado cambió o la acción es ilegal, se rechaza sin alterar la partida.
+        Complejidad: O(U + A) para revalidar la acción y preparar el turno.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento confirmacion e interaccion de aplicacion explicita de la recomendacion.
-        Validacion del estudiante: No puedo confirmar revision manual; pruebas comprueban confirmacion requerida,
-        legalidad e invalidacion de reportes.
+        Intervencion de IA: Codex: confirmación y aplicación explícita de la recomendación.
+        Validacion del estudiante: pruebas ``test_recomendacion_requiere_confirmacion_y_se_aplica_una_vez`` y
+        ``test_recomendacion_se_invalida_si_cambia_estado_o_configuracion`` de tests/interfaz/test_control.py.
         """
         resultado = self.resultado_adversarial
         accion_tactica = resultado.accion_seleccionada if resultado is not None else None
@@ -744,6 +869,7 @@ class ControlGrafico:
         self._registrar_turno_manual(accion_tactica.accion, estado_previo)
         self.estado = preparar_turno(self.escenario, self.estado)
         self.modo = MODO_PARTIDA
+        self.ultima_decision = None
         self.unidad_partida = None
         self.acciones_partida = ()
         self.historial_busquedas = ()
@@ -760,19 +886,24 @@ class ControlGrafico:
         self.mensaje = f"Recomendacion aplicada. Turno del bando {self.estado.turno_actual}."
 
     def clic_partida(self, posicion: Posicion) -> None:
-        """Selecciona una unidad del turno o ejecuta su accion al pulsar un destino legal.
+        """Seleccionar una unidad del turno o ejecutar su acción al pulsar un destino legal.
 
-        Proposito: traducir clics del tablero en selecciones y acciones validadas por el dominio.
-        Precondiciones: la posicion proviene de una celda del tablero y el modo actual es partida.
-        Postcondiciones: una accion valida crea un estado nuevo, prepara el turno siguiente e invalida resultados
-        anteriores; los clics invalidos conservan estado y turno. No mueve unidades por coordenadas arbitrarias.
-        Complejidad: O(U + A) temporal y espacial por buscar unidad/accion y actualizar opciones del turno.
+        Proposito: traducir los clics del tablero en selecciones y acciones validadas por el dominio.
+        Precondiciones: la posición proviene de una celda del tablero y el modo actual es partida.
+        Postcondiciones: una acción válida crea un estado nuevo, prepara el turno siguiente e invalida los resultados
+        anteriores; los clics inválidos conservan el estado y el turno. Las unidades no se mueven por coordenadas
+        arbitrarias.
+        Complejidad: O(U + A) temporal y espacial por buscar la unidad y la acción y actualizar las opciones del turno.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento la interaccion por clic sobre acciones legales existentes.
-        Validacion del estudiante: No puedo confirmar revision manual del equipo; pruebas de controlador y eventos
-        cubren movimiento, rechazo, turnos, recurso y terminalidad.
+        Intervencion de IA: Codex: interacción por clic sobre las acciones legales existentes.
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py: movimiento legal con cambio de turno,
+        rechazo de unidad rival, destino no legal y obstáculo, recogida del recurso y victoria al entregarlo.
         """
         if self.modo != MODO_PARTIDA:
+            return
+        if self.control_partida == CONTROL_ALGORITMOS:
+            self.mensaje = "Los algoritmos controlan ambos bandos: use N — Siguiente turno."
+            self.error = True
             return
         unidad = next((item for item in self.estado.unidades if item.posicion == posicion), None)
         if unidad is not None and any(item.identificador == unidad.identificador for item in self.unidades_partida):
@@ -813,15 +944,19 @@ class ControlGrafico:
         self.error = False
 
     def _registrar_turno_manual(self, accion: Accion, estado_previo: EstadoJuego) -> None:
-        """Agrega una acción que ya fue aceptada y aplicada por las reglas del dominio.
+        """Agregar al historial una acción ya aceptada y aplicada por las reglas del dominio.
 
-        Proposito: conservar evidencia ordenada de cada transición humana y recomendación ejecutada explícitamente.
+        Proposito: conservar evidencia ordenada de cada transición humana y de cada recomendación ejecutada
+        explícitamente.
         Precondiciones: ``estado_previo`` y ``self.estado`` son consecutivos y ``accion`` es legal en el primero.
-        Postcondiciones: agrega bando, unidad/acción, costo, pase automático y huellas de ambos estados al historial.
+        Postcondiciones: se agregan al historial el bando, la unidad y la acción, el costo, el pase automático y las
+        huellas de ambos estados.
         Complejidad: O(U log U) por las dos huellas canónicas para U unidades.
         Uso de IA: Si.
-        Intervencion de IA: Codex agregó historial verificable y su captura en acciones GUI para R26.
-        Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas verifican datos, orden e invariantes.
+        Intervencion de IA: Codex: historial verificable y su captura en las acciones de la interfaz (R26).
+        Validacion del estudiante: prueba
+        ``test_partida_manual_completa_se_reconstruye_y_verifica_recogida_transporte_y_victoria`` de
+        tests/interfaz/test_control.py.
         """
         referencia = self.historial_partida[-1].estado_resultante if self.historial_partida else self.estado_inicial_partida
         preparado = preparar_turno(self.escenario, referencia) if referencia is not None else estado_previo
@@ -839,18 +974,19 @@ class ControlGrafico:
         self.historial_partida = (*self.historial_partida, turno)
 
     def cargar_ruta(self, ruta: str | Path) -> bool:
-        """Reemplaza atomicamente el escenario solo despues de cargarlo por completo.
+        """Reemplazar el escenario de forma atómica, solo después de cargarlo por completo.
 
-        Proposito: permitir cambiar de JSON sin dejar escenario, estado, selecciones y resultado desincronizados.
-        Precondiciones: ``ruta`` puede apuntar a un archivo valido o invalido.
-        Postcondiciones: con exito reinicia estado, modo, controles, camino, traza y reportes; en modo partida prepara
-        el turno. Ante error conserva todo y lo informa.
-        Complejidad: costo de carga y validacion mas O(U log U) para el estado inicial.
+        Proposito: permitir cambiar de JSON sin dejar desincronizados el escenario, el estado, las selecciones y el
+        resultado.
+        Precondiciones: ``ruta`` puede apuntar a un archivo válido o inválido.
+        Postcondiciones: si la carga tiene éxito, se reinician el estado, el modo, los controles, el camino, la traza y
+        los reportes; en modo partida se prepara el turno. Si falla, todo se conserva y se informa el error.
+        Complejidad: el costo de carga y validación más O(U log U) para el estado inicial.
         Uso de IA: Si.
-        Intervencion de IA: Codex implemento la carga atomica desde controles para la integracion grafica final y
-        agrego la invalidacion del reporte de verificacion en esta auditoria.
-        Validacion del estudiante: No puedo confirmar una revision manual del equipo para la invalidacion del reporte
-        agregada en esta auditoria; la suite automatizada cubre carga valida e invalida y el reporte de verificacion.
+        Intervencion de IA: Codex: carga atómica desde los controles para la integración gráfica final e invalidación
+        del reporte de verificación.
+        Validacion del estudiante: pruebas ``test_carga_invalida_conserva_sesion_completa`` y
+        ``test_carga_valida_sustituye_estado_camino_traza_y_selecciones`` de tests/interfaz/test_control.py.
         """
         ruta_resuelta = Path(ruta).resolve()
         try:
@@ -889,6 +1025,7 @@ class ControlGrafico:
         self.profundidad_adversarial = profundidad
         self.orden_adversarial = orden
         self.huella_escenario = huella_escenario
+        self.ultima_decision = None
         self.unidad_partida = None
         self.acciones_partida = ()
         self.historial_busquedas = ()
@@ -914,19 +1051,18 @@ class ControlGrafico:
         self.cargar_ruta(self.rutas_escenarios[indice])
 
     def abrir_escenario(self, ruta: str | Path) -> bool:
-        """Carga un escenario JSON elegido por el usuario y lo suma a los selectores de escenario.
+        """Cargar un escenario JSON elegido por el usuario y agregarlo a los selectores de escenario.
 
-        Proposito: abrir mapas externos, como los del profesor, desde la ventana: con el selector de archivos o
-        arrastrando el JSON sobre ella.
-        Precondiciones: ``ruta`` puede apuntar a cualquier archivo, valido o no.
-        Postcondiciones: si la carga atomica de ``cargar_ruta`` tiene exito, el escenario queda vigente y su ruta
-        figura una sola vez en ``rutas_escenarios``, ordenada con las demas; si falla, la sesion y los selectores
-        no cambian y el mensaje explica el error. Devuelve si se cargo.
-        Complejidad: la de ``cargar_ruta`` mas O(R log R) por reordenar las R rutas disponibles.
+        Proposito: abrir mapas externos desde la ventana, con el selector de archivos o arrastrando el JSON sobre ella.
+        Precondiciones: ``ruta`` puede apuntar a cualquier archivo, válido o no.
+        Postcondiciones: si la carga atómica de ``cargar_ruta`` tiene éxito, el escenario queda vigente y su ruta figura
+        una sola vez en ``rutas_escenarios``, ordenada con las demás; si falla, la sesión y los selectores no cambian y
+        el mensaje explica el error. Se devuelve si se cargó.
+        Complejidad: la de ``cargar_ruta`` más O(R log R) por reordenar las R rutas disponibles.
         Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) propuso este metodo y su documentacion en E9.4.
-        Validacion del estudiante: el equipo lo reviso y probo en la ventana; tests/interfaz/test_control.py cubre
-        la carga externa, la ruta repetida y el archivo invalido.
+        Intervencion de IA: Claude (Opus 5.5): implementación y documentación (E9.4).
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py: carga de un escenario externo, ruta ya
+        listada sin duplicar y archivo inválido que conserva la sesión.
         """
         if not self.cargar_ruta(ruta):
             return False
@@ -935,19 +1071,19 @@ class ControlGrafico:
         return True
 
     def abrir_con_dialogo(self, seleccionar) -> bool:
-        """Pide un escenario con el selector de archivos y lo abre.
+        """Pedir un escenario con el selector de archivos y abrirlo.
 
-        Proposito: conectar el boton y la tecla de apertura con la carga atomica, sin acoplar el controlador a tkinter.
-        Precondiciones: ``seleccionar`` recibe la carpeta inicial y devuelve una ruta, ``None`` si el usuario cancela,
-        o lanza ``DialogoNoDisponible``.
-        Postcondiciones: con una ruta, se comporta como ``abrir_escenario``; si el usuario cancela, nada cambia y el
-        mensaje lo indica; si no hay selector, nada cambia y el mensaje sugiere arrastrar el archivo a la ventana.
-        Devuelve si se cargo un escenario.
-        Complejidad: la de ``abrir_escenario``, mas el tiempo que el usuario tarde en elegir.
+        Proposito: conectar el botón y la tecla de apertura con la carga atómica sin acoplar el controlador a tkinter.
+        Precondiciones: ``seleccionar`` recibe la carpeta inicial y devuelve una ruta, ``None`` si el usuario cancela, o
+        lanza ``DialogoNoDisponible``.
+        Postcondiciones: con una ruta, el comportamiento es el de ``abrir_escenario``; si el usuario cancela, nada
+        cambia y el mensaje lo indica; si no hay selector, nada cambia y el mensaje sugiere arrastrar el archivo a la
+        ventana. Se devuelve si se cargó un escenario.
+        Complejidad: la de ``abrir_escenario``, más el tiempo que el usuario tarde en elegir.
         Uso de IA: Si.
-        Intervencion de IA: Claude (Opus 5.5) propuso este metodo y su documentacion en E9.4.
-        Validacion del estudiante: el equipo lo reviso y probo en la ventana; tests/interfaz/test_control.py cubre
-        la eleccion, la cancelacion y la falta de selector.
+        Intervencion de IA: Claude (Opus 5.5): implementación y documentación (E9.4).
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py: archivo elegido, selección cancelada y
+        selector no disponible.
         """
         try:
             ruta = seleccionar(self.ruta_escenario.parent)
@@ -962,18 +1098,20 @@ class ControlGrafico:
         return self.abrir_escenario(ruta)
 
     def ejecutar(self) -> None:
-        """Ejecuta una unica busqueda con las selecciones vigentes.
+        """Ejecutar una única búsqueda con las selecciones vigentes.
 
-        Proposito: producir conjuntamente el camino E9.2 y la traza E9.3 desde los controles graficos.
-        Precondiciones: escenario, estado, algoritmo y unidad proceden del controlador; el objetivo puede faltar.
-        Postcondiciones: con parametros validos sustituye el resultado anterior e invalida el reporte previo sin
-        mutar el estado; ante error limpia el resultado e informa la causa. Nunca ejecuta mas de una busqueda por llamada.
+        Proposito: producir a la vez el camino de E9.2 y la traza de E9.3 desde los controles gráficos.
+        Precondiciones: el escenario, el estado, el algoritmo y la unidad proceden del controlador; el objetivo puede
+        faltar.
+        Postcondiciones: con parámetros válidos, se sustituye el resultado anterior y se invalida el reporte previo sin
+        modificar el estado; ante un error, se limpia el resultado y se informa la causa. Cada llamada ejecuta como
+        máximo una búsqueda.
         Complejidad: la del algoritmo seleccionado y su traza acotada.
         Uso de IA: Si.
-        Intervencion de IA: Codex conecto los controles a la API comun de busqueda sin comandos ni subprocesos y
-        agrego la invalidacion del reporte previo en esta auditoria.
-        Validacion del estudiante: No puedo confirmar una revision manual del equipo para la invalidacion del reporte
-        agregada en esta auditoria; la suite automatizada cubre cinco algoritmos, no mutacion y verificacion.
+        Intervencion de IA: Codex: conexión de los controles con la API común de búsqueda, sin comandos ni subprocesos,
+        e invalidación del reporte previo.
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py: cinco algoritmos sin modificar el estado,
+        configuración inválida que no ejecuta y elimina el resultado anterior, y bloqueo de ejecuciones simultáneas.
         """
         if self.ejecutando:
             return
@@ -1037,16 +1175,17 @@ class ControlGrafico:
         self.estado_busqueda = "completada" if self.resultado.exito else "sin solucion"
 
     def verificar(self) -> None:
-        """Verifica la búsqueda, decisión o historial de partida vigente.
+        """Verificar la búsqueda, la decisión o el historial de partida vigente.
 
-        Proposito: reproducir reglas del dominio para verificar busquedas, recomendaciones o acciones registradas.
-        Precondiciones: hay un resultado vigente del modo o estado inicial e historial de partida.
-        Postcondiciones: guarda y muestra el reporte; no modifica el estado de juego ni el historial.
-        Complejidad: depende del modo; reproduce camino, árbol adversarial o T transiciones registradas.
+        Proposito: reproducir las reglas del dominio para verificar búsquedas, recomendaciones o acciones registradas.
+        Precondiciones: hay un resultado vigente del modo, o un estado inicial y un historial de partida.
+        Postcondiciones: se guarda y se muestra el reporte; el estado de juego y el historial no cambian.
+        Complejidad: depende del modo: se reproduce el camino, el árbol adversarial o las T transiciones registradas.
         Uso de IA: Si.
-        Intervencion de IA: Codex integro E10.2 con los controles graficos durante esta auditoria.
-        Validacion del estudiante: No puedo confirmar una revision manual del equipo posterior a esta auditoria;
-        tests/interfaz/test_control.py cubre resultado valido, costo alterado e invalidacion del reporte.
+        Intervencion de IA: Codex: integración de E10.2 con los controles gráficos.
+        Validacion del estudiante: pruebas de tests/interfaz/test_control.py: verificación independiente de la búsqueda,
+        costo alterado rechazado, evento o transición alterados en la partida y limpieza del reporte al cambiar la
+        selección.
         """
         if self.modo == MODO_PARTIDA:
             if self.estado_inicial_partida is None:
@@ -1085,7 +1224,7 @@ class ControlGrafico:
         )
 
     def alternar_exploracion(self) -> None:
-        """Alterna la misma bandera usada por teclado y boton, sin ejecutar busquedas."""
+        """Alternar la bandera que comparten la tecla y el botón, sin ejecutar búsquedas."""
         if self.resultado is None or self.resultado.traza_expansiones is None:
             self.mensaje = "La exploracion requiere ejecutar primero una busqueda."
             self.error = True

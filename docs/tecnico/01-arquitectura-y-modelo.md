@@ -35,7 +35,7 @@ E1.1 define `EstadoJuego` y `Unidad` como objetos inmutables y hashables. Las un
 
 ## Acciones, sucesores, objetivo y costo — E1.2
 
-E1.2 define acciones, sucesores, condición objetivo y costo. Cada acción mueve una unidad del bando en turno una celda ortogonal a una celda dentro del mapa, transitable y libre; al entrar en la celda del recurso libre la unidad lo recoge, y el recurso viaja con ella. Un bando gana cuando su portador llega a su propia base. El costo de una acción es el costo del terreno destino declarado en `tipos_terreno`, por lo que cambiar un costo en el JSON cambia el comportamiento sin tocar código. Los algoritmos de búsqueda consumen el contrato `Problema`; `ProblemaNavegacion` lleva una unidad a una celda objetivo ignorando al adversario.
+E1.2 define acciones, sucesores, condición objetivo y costo. Una acción de movimiento lleva una unidad del bando en turno una celda ortogonal a una celda dentro del mapa, transitable y libre; al entrar en la celda del recurso libre la unidad lo recoge, y el recurso viaja con ella. Un bando gana cuando su portador llega a su propia base. El costo de una acción es el costo del terreno destino declarado en `tipos_terreno`, por lo que cambiar un costo en el JSON cambia el comportamiento sin tocar código. La otra acción, interceptar al portador rival adyacente, se agregó en E8.1 y se describe en [decisión adversarial](04-decision-adversarial.md). Los algoritmos de búsqueda consumen el contrato `Problema`; `ProblemaNavegacion` lleva una unidad a una celda objetivo ignorando al adversario.
 
 ## Reglas deterministas de borde — E1.3
 
@@ -43,7 +43,7 @@ Una unidad sin movimientos legales no genera acciones; las demás unidades del m
 
 La ausencia de ruta se determina en las historias de búsqueda. Cuando una búsqueda no encuentra solución, `ResultadoBusqueda` representa fracaso (`exito = false`) con `camino` y `acciones` vacíos, y `costo = None`. Ese resultado no modifica `EstadoJuego`: unidades, turno, recurso y `estado_partida` permanecen iguales. El contrato no agrega un algoritmo de búsqueda a la capa de juego.
 
-E1.3 no elimina unidades. Una intercepción ya establecida transfiere atómicamente `portador_recurso` a la unidad adversaria y mantiene `posicion_recurso = null`; conserva las unidades y el turno. Si el nuevo portador ya está en la base de su bando, esa misma transición registra inmediatamente su victoria. La acción futura que origine la intercepción será responsable de alternar el turno mediante el flujo normal. Estas reglas son deterministas porque el mismo estado y escenario producen el mismo pase, empate o transferencia sin azar ni estado externo, y cada resultado se representa en un nuevo `EstadoJuego` inmutable.
+E1.3 no elimina unidades. Una intercepción ya establecida transfiere atómicamente `portador_recurso` a la unidad adversaria y mantiene `posicion_recurso = null`; conserva las unidades y el turno. Si el nuevo portador ya está en la base de su bando, esa misma transición registra inmediatamente su victoria. La acción `interceptar` de E8.1 usa esta transferencia y `aplicar_accion` alterna el turno mediante el flujo normal. Estas reglas son deterministas porque el mismo estado y escenario producen el mismo pase, empate o transferencia sin azar ni estado externo, y cada resultado se representa en un nuevo `EstadoJuego` inmutable.
 
 ## Validación de escenarios — E2.2
 
@@ -55,14 +55,14 @@ E2.3 agrega un set propio de escenarios en `escenarios/` para desarrollar y depu
 
 ## Bucle de turnos — E3.1
 
-El dominio ofrece un flujo síncrono y paso a paso en `juego/partida.py`; el consumidor (jugador, interfaz, prueba o IA futura) decide cuándo repetirlo y qué opción elegir. No hay un bucle de partida interno ni concurrencia o lógica de tiempo real.
+El dominio ofrece un flujo síncrono y paso a paso en `juego/partida.py`; el consumidor (jugador, interfaz, prueba o algoritmo) decide cuándo repetirlo y qué opción elegir. No hay un bucle de partida interno ni concurrencia o lógica de tiempo real.
 
 1. `preparar_turno(escenario, estado)` devuelve sin cambios un estado terminal; de lo contrario reutiliza `resolver_bloqueo_turno()` para mantener el turno, pasarlo una vez o declarar empate por bloqueo total.
 2. `unidades_seleccionables()` expone solo unidades del bando activo con al menos una acción legal. Una unidad bloqueada no es seleccionable; `acciones_para_unidad()` para esa unidad activa devuelve una tupla vacía.
 3. El consumidor elige una unidad y una de las acciones de `acciones_para_unidad()`. Esta consulta filtra `acciones_validas()` y no duplica reglas de movimiento. Una unidad adversaria o inexistente produce `ValueError`.
 4. `aplicar_accion()` valida y ejecuta la acción según E1.2, crea un nuevo estado y alterna el turno exactamente una vez. E3.1 no vuelve a cambiarlo.
 
-La selección es transitoria y no integra `EstadoJuego`, por lo que no altera su identidad lógica ni su hash. El pase automático pertenece a E1.3; si ambos bandos están bloqueados, la partida termina en `empate_bloqueo`. `resolver_intercepcion()` conserva el turno por sí sola. A y B utilizan las mismas reglas. MAX y MIN son roles adversariales futuros: no conceden más o menos acciones, profundidad o inteligencia. La integración de E2.1 comienza con un `Escenario` cargado; `crear_estado_inicial(escenario)` construye el estado sin que el módulo de partida lea JSON.
+La selección es transitoria y no integra `EstadoJuego`, por lo que no altera su identidad lógica ni su hash. El pase automático pertenece a E1.3; si ambos bandos están bloqueados, la partida termina en `empate_bloqueo`. `resolver_intercepcion()` conserva el turno por sí sola. A y B utilizan las mismas reglas. MAX y MIN son roles adversariales de Minimax: no conceden más o menos acciones, profundidad o inteligencia. La integración de E2.1 comienza con un `Escenario` cargado; `crear_estado_inicial(escenario)` construye el estado sin que el módulo de partida lea JSON.
 
 ## Recoger y transportar el recurso — E3.2
 

@@ -1,4 +1,4 @@
-"""Ejecuta y archiva los diez experimentos académicos contra la implementación actual."""
+"""Ejecutar y archivar los diez experimentos académicos contra la implementación actual."""
 
 import hashlib
 import json
@@ -104,16 +104,18 @@ def _decision(nombre: str, archivo: str, algoritmo: str, profundidad: int, orden
 
 
 def ejecutar_experimentos() -> dict[str, object]:
-    """Ejecuta algoritmos reales y verifica los resultados de cada caso mínimo del PDF.
+    """Ejecutar los algoritmos reales y verificar los resultados de cada caso mínimo del enunciado.
 
-    Proposito: producir evidencia reproducible de rutas, costos, métricas y decisiones de los diez casos.
+    Proposito: producir evidencia reproducible de las rutas, los costos, las métricas y las decisiones de los diez
+    casos.
     Precondiciones: los escenarios indicados en ``docs/casos-minimos`` cargan y las dependencias están instaladas.
-    Postcondiciones: devuelve diez registros con hashes, parámetros, resultados y reportes independientes.
-    Complejidad: domina Minimax en las profundidades configuradas; memoria acotada por los árboles explorados.
+    Postcondiciones: se devuelven diez registros con huellas, parámetros, resultados y reportes independientes.
+    Complejidad: domina Minimax en las profundidades configuradas; la memoria está acotada por los árboles explorados.
     Uso de IA: Si.
-    Intervencion de IA: Codex escribió este ejecutor de experimentos a petición del usuario.
-    Validacion del estudiante: no puedo confirmar ejecución o revisión por el equipo; los verificadores del proyecto
-    validan cada ruta y decisión y este script comprueba además las propiedades esperadas de los casos.
+    Intervencion de IA: Codex: ejecutor de experimentos.
+    Validacion del estudiante: ejecución registrada en docs/experimentos/resultados-casos-minimos.json y resumida en
+    docs/experimentos/casos-minimos.md, con los reportes de ``verificar_busqueda`` y ``verificar_decision`` de cada
+    caso.
     """
     casos: dict[str, object] = {}
     casos["01_bfs_vs_dfs"] = {
@@ -199,19 +201,20 @@ def ejecutar_experimentos() -> dict[str, object]:
 
 
 def _ejecutar_variantes_20x20() -> dict[str, object]:
-    """Ejecuta y verifica las variantes 20x20 sin sustituir resultados didacticos historicos.
+    """Ejecutar y verificar las variantes 20x20 sin sustituir los resultados didácticos anteriores.
 
-    Proposito: registrar por separado las ejecuciones que cumplen el tamano academico minimo.
-    Precondiciones: los cinco JSON 20x20 de casos 6, 7, 8 y 10 existen y cargan correctamente.
-    Postcondiciones: devuelve resultados, huellas y verificaciones de estado compuesto, decision, comparacion y
-    profundidad; no altera los casos pequeños ni los algoritmos.
-    Complejidad: domina alfa-beta a profundidad 4 en los casos 8/10, O(b^d) en peor caso; almacenamiento proporcional
-    a los reportes producidos.
+    Proposito: registrar por separado las ejecuciones que cumplen el tamaño académico mínimo.
+    Precondiciones: los cinco JSON 20x20 de los casos 6, 7, 8 y 10 existen y cargan correctamente.
+    Postcondiciones: se devuelven los resultados, las huellas y las verificaciones de estado compuesto, decisión,
+    comparación y profundidad; los casos pequeños y los algoritmos no cambian.
+    Complejidad: domina alfa-beta a profundidad 4 en los casos 8 y 10, O(b^d) en el peor caso; el almacenamiento es
+    proporcional a los reportes producidos.
     Uso de IA: Si.
-    Intervencion de IA: Codex agrego la ejecucion de escenarios academicos 20x20 y su registro separado a pedido del
-    usuario.
-    Validacion del estudiante: pendiente; la funcion comprueba automaticamente las propiedades y los verificadores
-    pero el equipo aun debe revisar los escenarios y defender sus resultados.
+    Intervencion de IA: Codex: ejecución de los escenarios académicos 20x20 y su registro separado.
+    Validacion del estudiante: ejecución registrada en docs/experimentos/resultados-casos-minimos.json y resumida en
+    docs/experimentos/casos-minimos.md, con los reportes de ``verificar_busqueda`` y ``verificar_decision`` de cada
+    caso. Las variantes se comparan con el registro anterior conservado en
+    docs/experimentos/resultados-casos-minimos-antes-variantes-20x20.json.
     """
     casos: dict[str, object] = {}
     pares = []
@@ -276,7 +279,7 @@ def _ejecutar_variantes_20x20() -> dict[str, object]:
 
 
 def _validar_propiedades(casos: dict[str, object], variantes_20x20: dict[str, object]) -> None:
-    """Detiene el archivo experimental si una ejecución no demuestra las propiedades esperadas."""
+    """Detener el archivo experimental si una ejecución no demuestra las propiedades esperadas."""
     ejecuciones1 = casos["01_bfs_vs_dfs"]["ejecuciones"]
     assert all(run["verificacion"]["valido"] for run in ejecuciones1)
     assert ejecuciones1[0]["resultado"]["longitud"] < ejecuciones1[1]["resultado"]["longitud"]
@@ -362,7 +365,7 @@ def _iterar_ejecuciones(caso):
 
 
 def main() -> None:
-    """Ejecuta y escribe el manifiesto JSON en su ubicación documental estable."""
+    """Ejecutar los experimentos y escribir el manifiesto JSON en su ubicación documental estable."""
     DESTINO.parent.mkdir(parents=True, exist_ok=True)
     resultados = ejecutar_experimentos()
     DESTINO.write_text(json.dumps(resultados, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

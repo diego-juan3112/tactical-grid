@@ -19,11 +19,10 @@ campaña experimental definitiva están implementadas, auditadas y revisadas por
 - pruebas funcionales, de regresión, integración, casos límite y propiedades con oráculos independientes;
 - script comparativo y campaña experimental definitiva con evidencia persistente verificable.
 
-**Integración posterior de interfaz:**
+**Selección de la heurística:**
 
-- al cerrar E6.2, la consola y la interfaz todavía ejecutaban A* con Manhattan; HTO se seleccionaba desde la API y
-  `scripts/comparar_heuristicas_e62.py`. La integración posterior permite alternar Manhattan/HTO en la GUI y elegir
-  `--heuristica hto` en la consola. La campaña E6.2 y sus resultados no cambian.
+- la consola elige HTO con `--algoritmo a_estrella --heuristica hto`, la interfaz gráfica con el control
+  `Heurística A*`, y la API y `scripts/comparar_heuristicas_e62.py` mediante `heuristica_preparada`.
 
 La propuesta adapta técnicas conocidas: distancias mínimas en grafos sin pesos y BFS inverso. No presenta esos
 conceptos como una invención. El aporte propuesto por el equipo consiste en definir la relajación apropiada para
@@ -429,7 +428,8 @@ igualdad de todos los valores heurísticos, sino que ambas indujeron el mismo co
 - Inicio: A1 en `(1, 2)`.
 - Objetivo: `(9, 10)`.
 - Manhattan inicial: 16.
-- Ruta mínima en movimientos: 16, con costo 42; resultado verificado por prueba.
+- Ruta mínima en movimientos: 16; la más barata de esa longitud cuesta 42 (BFS devuelve una de costo 45); resultado
+  verificado por prueba.
 - Ruta de costo mínimo: 34 movimientos y costo 34; resultado verificado por prueba.
 
 La estimación inicial coincide con Manhattan. El escenario sirve para medir el costo del preprocesamiento y mostrar
@@ -447,7 +447,8 @@ cuando el costo mínimo es muy inferior a los costos que aparecen en las rutas v
 
 ### 11.1. Pruebas automatizadas
 
-La última verificación ejecutó 327 pruebas del proyecto: 34 corresponden al archivo específico de HTO y 36 al de A*;
+La verificación de la campaña (14 de octubre de 2026) ejecutó 327 pruebas del proyecto: 34 corresponden al archivo
+específico de HTO y 36 al de A*;
 estos subconjuntos forman parte del total y no se suman nuevamente. Todas aprobaron. La evidencia cubre:
 
 - distancias topológicas, obstáculos, componentes desconectados y objetivo no transitable;
@@ -481,9 +482,9 @@ busqueda_a_estrella(problema, *, heuristica_preparada=None)
 
 La integración no duplica el motor: conserva `EstadoJuego` como identidad, la prioridad `f=g+h`, la cola, el
 desempate por inserción, las reinserciones por mejoras estrictas y la reconstrucción. `ResultadoBusqueda.algoritmo`
-continúa informando `A_ESTRELLA`; la etiqueta Manhattan/HTO pertenece a los registros experimentales externos. La
-CLI y la interfaz actuales también permiten seleccionar HTO; la campaña que sigue conserva la configuración y los
-resultados originales de E6.2.
+continúa informando `A_ESTRELLA`; la etiqueta Manhattan/HTO pertenece a los registros experimentales externos y al
+parámetro `heuristica` del registro de consola. La consola (`--heuristica hto`) y la interfaz (`Heurística A*`)
+construyen la HTO y la pasan por `heuristica_preparada`.
 
 ### 11.3. Metodología de la campaña definitiva
 
@@ -617,8 +618,7 @@ Las seis decisiones se implementaron, se probaron y el equipo las revisó.
 5. **Conservar Manhattan como comportamiento predeterminado.**
    - Implementado: omitir `heuristica_preparada` o pasar `None` usa Manhattan; HTO se selecciona explícitamente.
    - Probado, auditado y medido: compatibilidad de invocaciones, selección y etiquetado experimental externo.
-   - Estado al cerrar E6.2: la consola y la interfaz no ofrecían elegir HTO. La CLI y la GUI actuales sí exponen esa
-     selección; véanse `src/tacticalgrid/consola.py` y `src/tacticalgrid/interfaz/control.py`.
+   - Selección: `--heuristica hto` en la consola y el control `Heurística A*` en la interfaz.
 
 6. **Inyectar la heurística en A* sin duplicar el algoritmo.**
    - Implementado: `heuristica_preparada` modifica únicamente la evaluación de `h`; se conservan motor, `g+h`, cola,

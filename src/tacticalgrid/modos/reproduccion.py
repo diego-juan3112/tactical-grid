@@ -29,16 +29,18 @@ class ResultadoReproduccion:
 
 
 def reproducir_registro_partida(escenario: Escenario, registro: Mapping[str, object]) -> ResultadoReproduccion:
-    """Valida integridad, aplica acciones legales y repite una evaluación adversarial archivada.
+    """Validar la integridad, aplicar las acciones legales y repetir la evaluación adversarial archivada.
 
     Proposito: reconstruir una sesión desde el estado inicial derivado del JSON y comprobar cada transición registrada.
-    Precondiciones: ``escenario`` ya fue validado y ``registro`` contiene el formato tacticalgrid.partida/1.
-    Postcondiciones: devuelve el estado reconstruido y reportes válidos; ante formato, hash, secuencia o resultado
-    discrepante lanza ``ValueError`` con la causa concreta. Las comparaciones ignoran solamente el tiempo.
-    Complejidad: O(T*U + B^d), con T jugadas, U unidades y evaluación opcional con factor de ramificación B/profundidad d.
+    Precondiciones: ``escenario`` está validado y ``registro`` tiene el formato ``tacticalgrid.partida/1``.
+    Postcondiciones: se devuelven el estado reconstruido y los reportes válidos; ante un formato, huella, secuencia o
+    resultado discrepante se lanza ``ValueError`` con la causa concreta. Las comparaciones ignoran solo el tiempo.
+    Complejidad: O(T*U + B^d), con T jugadas, U unidades y una evaluación opcional con factor de ramificación B y
+    profundidad d.
     Uso de IA: Si.
-    Intervencion de IA: Codex agregó reproducción verificable de partidas GUI en esta continuación.
-    Validacion del estudiante: no puedo confirmar revisión del equipo; pruebas cubren alteraciones, truncado y decisiones.
+    Intervencion de IA: Codex: reproducción verificable de partidas jugadas en la interfaz gráfica.
+    Validacion del estudiante: pruebas de tests/interfaz/test_control.py: reproducción de una partida manual y de una
+    evaluación adversarial, y rechazo de un registro alterado y de un escenario incompatible.
     """
     if registro.get("formato") != FORMATO_PARTIDA or registro.get("version") != 1:
         raise ValueError("Formato de registro de partida no admitido.")
