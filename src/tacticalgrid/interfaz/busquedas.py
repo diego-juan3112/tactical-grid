@@ -13,6 +13,7 @@ from tacticalgrid.algoritmos import (
     busqueda_profundidad,
     validar_ancho_haz,
 )
+from tacticalgrid.algoritmos.heuristica_obstaculos import HeuristicaObstaculos
 from tacticalgrid.escenario import Posicion
 from tacticalgrid.escenario.escenario import Escenario
 from tacticalgrid.juego import EstadoJuego, ProblemaNavegacion
@@ -29,16 +30,19 @@ def preparar_busqueda(
     unidad: str | None = None,
     objetivo: tuple[int, int] | None = None,
     k: int | None = None,
+    heuristica: str = "manhattan",
 ) -> ResultadoBusqueda | None:
     """Resuelve parametros y ejecuta una unica busqueda para la interfaz.
 
     Proposito: conectar controles o argumentos graficos con las APIs estructuradas de navegacion y busqueda.
     Precondiciones: ``escenario`` esta validado, ``estado`` le pertenece y ``algoritmo`` es admitido o ``None``.
-    Postcondiciones: sin algoritmo devuelve ``None``; con algoritmo devuelve su resultado con una traza acotada.
+    Postcondiciones: sin algoritmo devuelve ``None``; con algoritmo devuelve su resultado con una traza acotada. A*
+    acepta ``manhattan`` o la heuristica HTO preparada; el resto de algoritmos conserva su estrategia original.
     Los valores explicitos tienen prioridad sobre ``prueba`` y el estado recibido no se modifica.
     Complejidad: costo del algoritmo mas O(min(X, L_t)) espacial para X expansiones y limite L_t.
     Uso de IA: Si.
-    Intervencion de IA: Codex extrajo sin cambios el ejecutor E9.2/E9.3 para compartirlo con los controles graficos.
+    Intervencion de IA: Codex extrajo el ejecutor E9.2/E9.3 y agrego seleccion explicita de heuristica A* en esta
+    continuacion, reutilizando HTO existente.
     Validacion del estudiante: revisado y aprobado por el equipo; cubierta por pruebas de los cinco algoritmos y
     regresion.
     """
@@ -50,6 +54,10 @@ def preparar_busqueda(
         raise ValueError(f"Algoritmo no admitido: {algoritmo!r}.")
     if algoritmo != "beam" and k is not None:
         raise ValueError("--k solo puede usarse con --algoritmo beam.")
+    if heuristica not in ("manhattan", "hto"):
+        raise ValueError("La heuristica A* debe ser 'manhattan' o 'hto'.")
+    if algoritmo != "astar" and heuristica != "manhattan":
+        raise ValueError("La seleccion de heuristica solo aplica a A*.")
 
     configuracion = escenario.configuracion_prueba
     if not isinstance(configuracion, Mapping) or configuracion.get("modo") != "busqueda":
@@ -75,6 +83,12 @@ def preparar_busqueda(
         "ucs": busqueda_costo_uniforme,
         "astar": busqueda_a_estrella,
     }
+    if algoritmo == "astar" and heuristica == "hto":
+        return busqueda_a_estrella(
+            problema,
+            heuristica_preparada=HeuristicaObstaculos(problema),
+            observador_expansiones=observador,
+        )
     return funciones[algoritmo](problema, observador_expansiones=observador)
 
 

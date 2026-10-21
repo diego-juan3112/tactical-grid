@@ -16,9 +16,9 @@ optimizar su costo, usar conocimiento heurístico y, finalmente, enfrentarse a u
   con poda alfa-beta.
 - **Escenarios externos en JSON**, validados por completo antes de usarse. Ningún mapa, posición ni costo está
   escrito en el código.
-- **Tres modos de prueba:** `busqueda`, `adversarial` y `partida`, desde la consola o el propio escenario.
-- **Respuestas verificables y reproducibles:** el verificador comprueba cada resultado con las reglas del juego, y
-  cada ejecución puede exportarse en JSON con el comando que la repite.
+- **Tres modos de prueba en GUI y consola:** búsquedas, partida manual por turnos y recomendaciones Minimax/alfa-beta.
+- **Respuestas verificables y reproducibles:** la GUI verifica búsquedas, decisiones e historiales manuales; `J`
+  exporta resultados y `--reproducir-registro` reconstruye partidas y decisiones posteriores a movimientos.
 
 Proyecto de Sistemas Inteligentes I, Ingeniería de Sistemas y Computación, Universidad de Caldas.
 
@@ -72,9 +72,14 @@ python main.py
 python main.py --gui escenarios/ruta_corta_vs_economica.json --algoritmo ucs --unidad A1 --objetivo 2 8
 ```
 
-En el panel se elige el escenario, el algoritmo (`bfs`, `dfs`, `ucs`, `astar` o `beam`), la unidad y el ancho `k` de
-Beam Search. Un clic en el tablero elige el objetivo. `Enter` ejecuta la búsqueda y `E` muestra u oculta las celdas
-exploradas.
+En el panel se elige escenario y modo. Búsqueda ofrece BFS, DFS, UCS, A* con Manhattan/HTO y Beam; `Enter` ejecuta,
+`E` muestra la exploración, `V` verifica y `J` exporta. Partida permite seleccionar unidades activas y solo ejecutar
+acciones legales; `V` verifica el historial y `R` reinicia. Adversarial recomienda con Minimax o alfa-beta sin mover
+unidades; compara con `C`, verifica con `V` y aplica una recomendación confirmada con `A`.
+
+### Guía rápida de la interfaz gráfica
+
+Consulta la [guía rápida](docs/guia-rapida-interfaz.md) para aprender los controles de Búsqueda, Partida y Adversarial.
 
 Para abrir un escenario propio, como el del profesor, usa el botón **O — Abrir JSON** (o la tecla `O`), o arrastra el
 archivo `.json` sobre la ventana. Si el archivo tiene errores, el panel los explica y el escenario actual no cambia.
@@ -110,6 +115,9 @@ python main.py --consola escenarios/estado_compuesto_portador.json --modo partid
 
 `python main.py --consola --help` lista todas las opciones.
 
+La GUI exporta historiales de partida en un archivo independiente del contrato de escenario. Para validar y repetir
+uno, ejecuta `python main.py --consola --reproducir-registro ruta/al/registro.tg.json`.
+
 ### Escenarios externos
 
 Cualquier archivo con el formato JSON común del enunciado se carga sin cambiar el código:
@@ -134,8 +142,13 @@ termina con código 1.
 | `estado_compuesto_libre.json` | 5 × 5 | Mismas casillas que el siguiente, con el recurso libre. |
 | `estado_compuesto_portador.json` | 5 × 5 | Mismas casillas, pero A1 lleva el recurso. |
 | `decision_adversarial.json` | 3 × 6 | Tomar el recurso parece bueno, pero el rival lo intercepta. |
+| `caso_06_estado_compuesto_*_20x20.json` | 20 × 20 | Variantes académicas de estado compuesto; muros exteriores conservan la topología didáctica. |
+| `caso_07_decision_adversarial_20x20.json` | 20 × 20 | Variante académica para decisiones a profundidades 1–4. |
+| `caso_08_minimax_alfa_beta_20x20.json` | 20 × 20 | Variante académica para equivalencia y poda Minimax/alfa-beta. |
+| `caso_10_profundidad_20x20.json` | 20 × 20 | El mismo estado de caso 8, medido a distintas profundidades. |
 
-Las propiedades de cada escenario se comprueban en `tests/escenario/test_escenarios_propios.py`.
+Las propiedades de los escenarios principales se comprueban en `tests/escenario/test_escenarios_propios.py`; las
+variantes adversariales 20 × 20 se comparan con sus originales en `tests/algoritmos/test_casos_adversariales_20x20.py`.
 
 ## Pruebas
 
@@ -144,7 +157,8 @@ python -m pytest
 ```
 
 La suite cubre escenario, juego, algoritmos, modos, interfaz (con el controlador de video *dummy*) y la convención de
-documentación de métodos. Las cifras de los diez casos mínimos están fijadas en pruebas.
+documentación de métodos. Las cifras de los diez casos mínimos se fijan en pruebas; las variantes 20 × 20 comprueban
+además las propiedades y la equivalencia con sus mapas didácticos.
 
 ## Documentación
 
@@ -153,9 +167,11 @@ documentación de métodos. Las cifras de los diez casos mínimos están fijadas
 | Documento | Contenido |
 |---|---|
 | [Documento técnico](docs/entregables/documento-tecnico.docx) | Modelado del problema, representación de estados, reglas, costos, heurísticas, función de utilidad, metodología experimental, resultados, complejidad, limitaciones y uso de IA. |
-| [Manual de usuario](docs/entregables/manual-de-usuario.docx) | Instalación en Windows y Linux, interfaz gráfica, modos de consola, escenarios externos, verificación y exportación de resultados, con capturas de cada paso. |
+| [Manual de usuario](docs/entregables/manual-de-usuario.docx) | Instalación en Windows y Linux, búsquedas, modos, escenarios externos, verificación, exportación y reproducción. Las capturas existentes son históricas; la sección actualizada de partida/adversarial espera capturas de la validación manual. |
 
-Ambos se editan directamente en Word y siguen el diseño editorial de [DESIGN.md](DESIGN.md).
+Ambos siguen el diseño editorial aplicado a la versión 1.0. La especificación estaba en `DESIGN.md` del commit base
+`0097097`; está eliminada en el árbol de trabajo actual y no se restauró. Su recuperación queda separada de esta
+actualización documental.
 
 ### Detalle técnico
 
@@ -170,6 +186,10 @@ verificados.
 | [04 · Decisión adversarial](docs/tecnico/04-decision-adversarial.md) | E8.1–E8.6 | Acciones tácticas, función de utilidad, Minimax, poda alfa-beta, métricas y orden de acciones. |
 | [05 · Modos, verificación y registro](docs/tecnico/05-modos-verificacion-y-registro.md) | E10.1–E10.3 | Modos `busqueda`, `partida` y `adversarial`, verificador de soluciones y registro reproducible. |
 | [06 · Interfaz](docs/tecnico/06-interfaz.md) | E9.1–E9.3 | Tablero, camino, capa de exploración y presentación gráfica. |
+| [Guía de validación manual](docs/tecnico/guia-validacion-manual.md) | Continuación GUI | Pasos, resultados esperados y campos para evidencias del equipo en escritorio real. |
+| [Catálogo de escenarios](docs/tecnico/catalogo-escenarios.md) | R04/R06 | Clasificación por escenario principal, caso experimental y fixture gráfico. |
+| [Experimentos de los diez casos](docs/experimentos/casos-minimos.md) | R30 | Resultados observados y procedimiento; enlaza al registro crudo reproducible. |
+| [Guion de sustentación](docs/experimentos/guia-sustentacion.md) | Continuación | Comandos demostrables, escenarios, orden de exposición y preguntas para defensa técnica. |
 
 ### Casos mínimos
 
@@ -187,7 +207,7 @@ fijadas en pruebas automatizadas.
 - [Enunciado del proyecto](docs/enunciado/primer-proyecto.pdf).
 - [Imágenes](docs/imagenes/): captura de la interfaz y evidencia del rediseño visual (`redisenio-visual/`).
 - [AGENTS.md](AGENTS.md): reglas y convenciones del proyecto, incluida la documentación de métodos.
-- [DESIGN.md](DESIGN.md): diseño editorial de los entregables en Word.
+- Diseño editorial: `git show 0097097:DESIGN.md`; la copia de trabajo actual está eliminada y se conserva su procedencia en Git.
 
 ## Arquitectura
 
@@ -227,8 +247,8 @@ escenarios.
 ## Equipo
 
 - Juan Diego Henao Quintero ([@diego-juan3112](https://github.com/diego-juan3112))
-- Ana Suárez ([@Aisc07](https://github.com/Aisc07))
-- Santiago Silva ([@SilvaG35083](https://github.com/SilvaG35083))
+- Ana Isabella Suárez Cardona ([@Aisc07](https://github.com/Aisc07))
+- Santiago Silva Guarnizo ([@SilvaG35083](https://github.com/SilvaG35083))
 
 ## Uso de IA
 

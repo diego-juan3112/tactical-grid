@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "descripcion": "Escenario pequeño para probar visualmente turno, recogida, entrega, victoria y registro manual desde Pygame.",
+  "mapa": {
+    "filas": 5,
+    "columnas": 5
+  },
+  "tipos_terreno": {
+    "llanura": {
+      "costo": 1,
+      "transitable": true
+    },
+    "bosque": {
+      "costo": 7,
+      "transitable": true
+    }
+  },
+  "terreno": [
+    ["llanura", "llanura", "llanura", "llanura", "llanura"],
+    ["llanura", "llanura", "llanura", "llanura", "llanura"],
+    ["llanura", "llanura", "bosque", "llanura", "llanura"],
+    ["llanura", "llanura", "llanura", "llanura", "llanura"],
+    ["llanura", "llanura", "llanura", "llanura", "llanura"]
+  ],
+  "bases": {
+    "A": {"fila": 0, "columna": 0},
+    "B": {"fila": 4, "columna": 4}
+  },
+  "recurso": {"fila": 0, "columna": 2},
+  "unidades": [
+    {"id": "portadora", "bando": "A", "tipo": "exploradora", "fila": 0, "columna": 1},
+    {"id": "apoyo A-2", "bando": "A", "tipo": "estandar", "fila": 1, "columna": 1},
+    {"id": "apoyo A-3", "bando": "A", "tipo": "estandar", "fila": 1, "columna": 2},
+    {"id": "defensa B-1", "bando": "B", "tipo": "estandar", "fila": 4, "columna": 0},
+    {"id": "defensa B-2", "bando": "B", "tipo": "estandar", "fila": 4, "columna": 1},
+    {"id": "defensa B-3", "bando": "B", "tipo": "estandar", "fila": 4, "columna": 2}
+  ],
+  "turno": "A",
+  "juego": {
+    "portador_recurso": null,
+    "profundidad_maxima_minimax": 4
+  },
+  "prueba": {
+    "modo": "partida",
+    "algoritmo": "minimax"
+  }
+}

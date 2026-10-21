@@ -11,15 +11,16 @@ ejecutar) y se compara con el **obtenido**. Todas las cifras de este documento, 
 `tests/algoritmos/test_casos_minimos_adversariales.py`: si cambian los algoritmos, las reglas, la utilidad o los
 escenarios, las pruebas fallan y el análisis debe revisarse.
 
-| Caso | Qué debe demostrarse (enunciado) | Escenario |
-|---|---|---|
-| 6. Estado compuesto | La misma posición física representa estados diferentes por información adicional del juego. | `estado_compuesto_libre.json` y `estado_compuesto_portador.json` (nuevos) |
-| 7. Decisión adversarial | La mejor decisión según Minimax no coincide necesariamente con avanzar directamente al recurso. | `decision_adversarial.json` (nuevo) |
-| 8. Minimax vs. alfa-beta | Seleccionan la misma acción y alfa-beta evita evaluar parte del árbol. | `recurso_en_transporte.json` |
-| 9. Orden de acciones | Cambiar el orden de sucesores modifica la cantidad de poda. | `recurso_en_transporte.json` y `campo_20x20.json` |
-| 10. Profundidad | El mismo estado se evalúa con distintas profundidades y se analizan los efectos. | `recurso_en_transporte.json` |
+| Caso | Qué debe demostrarse (enunciado) | Escenario didáctico | Variante académica 20 × 20 |
+|---|---|---|---|
+| 6. Estado compuesto | La misma posición física representa estados diferentes por información adicional del juego. | `estado_compuesto_libre.json` y `estado_compuesto_portador.json` | `caso_06_estado_compuesto_libre_20x20.json` y `caso_06_estado_compuesto_portador_20x20.json` |
+| 7. Decisión adversarial | La mejor decisión según Minimax no coincide necesariamente con avanzar directamente al recurso. | `decision_adversarial.json` | `caso_07_decision_adversarial_20x20.json` |
+| 8. Minimax vs. alfa-beta | Seleccionan la misma acción y alfa-beta evita evaluar parte del árbol. | `recurso_en_transporte.json` | `caso_08_minimax_alfa_beta_20x20.json` |
+| 9. Orden de acciones | Cambiar el orden de sucesores modifica la cantidad de poda. | `recurso_en_transporte.json` y `campo_20x20.json` | `campo_20x20.json` ya cumple 20 × 20 |
+| 10. Profundidad | El mismo estado se evalúa con distintas profundidades y se analizan los efectos. | `recurso_en_transporte.json` | `caso_10_profundidad_20x20.json` |
 
-Los escenarios nuevos respetan las reglas del enunciado y del proyecto: tres unidades por bando,
+Los escenarios didácticos pequeños se conservan y se complementan con variantes académicas que respetan las reglas:
+tres unidades por bando,
 `juego.profundidad_maxima_minimax = 4` y `prueba.modo = "adversarial"`. Los comandos de este documento indican
 `--algoritmo` para fijar el algoritmo de cada caso, aunque el escenario ya declare su modo de prueba.
 
@@ -263,6 +264,12 @@ El caso 7 muestra el otro efecto clásico de la profundidad: una jugada que pare
 ---
 
 ## Reproducibilidad
+
+Las variantes 20 × 20 conservan la región transitable original y agregan muros no transitables en la extensión. Las
+pruebas `tests/algoritmos/test_casos_adversariales_20x20.py` comparan estado, decisión, valor y contadores con los
+escenarios pequeños. Los hashes, verificaciones y métricas se guardan por separado en
+`docs/experimentos/resultados-casos-minimos.json`; la corrida anterior se preservó en
+`docs/experimentos/resultados-casos-minimos-antes-variantes-20x20.json`.
 
 Desde la raíz del repositorio, con el entorno virtual activo:
 

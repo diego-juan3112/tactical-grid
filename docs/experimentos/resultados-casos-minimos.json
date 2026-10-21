@@ -1,0 +1,5279 @@
+{
+  "formato": "tacticalgrid.experimentos-casos-minimos/1",
+  "fecha_utc": "2026-10-21T02:22:10.899487+00:00",
+  "python": "3.12.3",
+  "plataforma": "Linux-6.17.0-1032-oem-x86_64-with-glibc2.39",
+  "casos": {
+    "01_bfs_vs_dfs": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "algoritmo": "bfs",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "BFS",
+            "exito": true,
+            "camino": [
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                4,
+                2
+              ],
+              [
+                5,
+                2
+              ],
+              [
+                6,
+                2
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                8,
+                2
+              ],
+              [
+                9,
+                2
+              ],
+              [
+                9,
+                3
+              ],
+              [
+                9,
+                4
+              ],
+              [
+                9,
+                5
+              ],
+              [
+                9,
+                6
+              ],
+              [
+                9,
+                7
+              ],
+              [
+                9,
+                8
+              ],
+              [
+                9,
+                9
+              ],
+              [
+                9,
+                10
+              ]
+            ],
+            "costo": 45,
+            "estados_generados": 205,
+            "estados_expandidos": 186,
+            "maximo_frontera": 20,
+            "longitud": 16,
+            "tiempo_segundos": 0.00936210700092488
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "BFS (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "16 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 45 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "17 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "algoritmo": "dfs",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "DFS",
+            "exito": true,
+            "camino": [
+              [
+                1,
+                2
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                8,
+                0
+              ],
+              [
+                9,
+                0
+              ],
+              [
+                10,
+                0
+              ],
+              [
+                11,
+                0
+              ],
+              [
+                12,
+                0
+              ],
+              [
+                13,
+                0
+              ],
+              [
+                14,
+                0
+              ],
+              [
+                15,
+                0
+              ],
+              [
+                16,
+                0
+              ],
+              [
+                17,
+                0
+              ],
+              [
+                18,
+                0
+              ],
+              [
+                19,
+                0
+              ],
+              [
+                19,
+                1
+              ],
+              [
+                19,
+                2
+              ],
+              [
+                18,
+                2
+              ],
+              [
+                17,
+                2
+              ],
+              [
+                16,
+                2
+              ],
+              [
+                15,
+                2
+              ],
+              [
+                14,
+                2
+              ],
+              [
+                13,
+                2
+              ],
+              [
+                12,
+                2
+              ],
+              [
+                11,
+                2
+              ],
+              [
+                10,
+                2
+              ],
+              [
+                9,
+                2
+              ],
+              [
+                8,
+                2
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                6,
+                2
+              ],
+              [
+                5,
+                2
+              ],
+              [
+                4,
+                2
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                3,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                0,
+                4
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                0,
+                6
+              ],
+              [
+                1,
+                6
+              ],
+              [
+                2,
+                6
+              ],
+              [
+                3,
+                6
+              ],
+              [
+                4,
+                6
+              ],
+              [
+                5,
+                6
+              ],
+              [
+                6,
+                6
+              ],
+              [
+                7,
+                6
+              ],
+              [
+                8,
+                6
+              ],
+              [
+                9,
+                6
+              ],
+              [
+                10,
+                6
+              ],
+              [
+                11,
+                6
+              ],
+              [
+                12,
+                6
+              ],
+              [
+                13,
+                6
+              ],
+              [
+                14,
+                6
+              ],
+              [
+                15,
+                6
+              ],
+              [
+                16,
+                6
+              ],
+              [
+                17,
+                6
+              ],
+              [
+                18,
+                6
+              ],
+              [
+                19,
+                6
+              ],
+              [
+                19,
+                7
+              ],
+              [
+                19,
+                8
+              ],
+              [
+                18,
+                8
+              ],
+              [
+                17,
+                8
+              ],
+              [
+                16,
+                8
+              ],
+              [
+                15,
+                8
+              ],
+              [
+                14,
+                8
+              ],
+              [
+                13,
+                8
+              ],
+              [
+                12,
+                8
+              ],
+              [
+                11,
+                8
+              ],
+              [
+                10,
+                8
+              ],
+              [
+                9,
+                8
+              ],
+              [
+                8,
+                8
+              ],
+              [
+                7,
+                8
+              ],
+              [
+                6,
+                8
+              ],
+              [
+                5,
+                8
+              ],
+              [
+                4,
+                8
+              ],
+              [
+                3,
+                8
+              ],
+              [
+                2,
+                8
+              ],
+              [
+                1,
+                8
+              ],
+              [
+                0,
+                8
+              ],
+              [
+                0,
+                9
+              ],
+              [
+                0,
+                10
+              ],
+              [
+                1,
+                10
+              ],
+              [
+                2,
+                10
+              ],
+              [
+                3,
+                10
+              ],
+              [
+                4,
+                10
+              ],
+              [
+                5,
+                10
+              ],
+              [
+                6,
+                10
+              ],
+              [
+                7,
+                10
+              ],
+              [
+                8,
+                10
+              ],
+              [
+                9,
+                10
+              ]
+            ],
+            "costo": 283,
+            "estados_generados": 206,
+            "estados_expandidos": 102,
+            "maximo_frontera": 104,
+            "longitud": 98,
+            "tiempo_segundos": 0.004831250998904579
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "DFS (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "98 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 283 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "99 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "02_ruta_corta_vs_economica": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/ruta_corta_vs_economica.json",
+          "sha256": "24f764d4e46b449055d3238dd5cb3ac89b74ff5f6be32e08863a1334a7790194",
+          "algoritmo": "bfs",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "BFS",
+            "exito": true,
+            "camino": [
+              [
+                2,
+                0
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                2,
+                5
+              ],
+              [
+                2,
+                6
+              ],
+              [
+                2,
+                7
+              ],
+              [
+                2,
+                8
+              ]
+            ],
+            "costo": 50,
+            "estados_generados": 33,
+            "estados_expandidos": 28,
+            "maximo_frontera": 5,
+            "longitud": 8,
+            "tiempo_segundos": 0.0007812640014890349
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "BFS (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "8 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 50 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "9 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/ruta_corta_vs_economica.json",
+          "sha256": "24f764d4e46b449055d3238dd5cb3ac89b74ff5f6be32e08863a1334a7790194",
+          "algoritmo": "ucs",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "UCS",
+            "exito": true,
+            "camino": [
+              [
+                2,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                0,
+                4
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                0,
+                6
+              ],
+              [
+                0,
+                7
+              ],
+              [
+                0,
+                8
+              ],
+              [
+                1,
+                8
+              ],
+              [
+                2,
+                8
+              ]
+            ],
+            "costo": 12,
+            "estados_generados": 22,
+            "estados_expandidos": 19,
+            "maximo_frontera": 3,
+            "longitud": 12,
+            "tiempo_segundos": 0.0005568579999817302
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "UCS (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "12 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 12 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "13 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "03_obstaculo": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/obstaculo_rodeo.json",
+          "sha256": "0749bfe51402886729888a9dfdc0a62caaf25424b9e705561cde287e4fe5907d",
+          "algoritmo": "astar_manhattan",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "A_ESTRELLA",
+            "exito": true,
+            "camino": [
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ]
+            ],
+            "costo": 16,
+            "estados_generados": 40,
+            "estados_expandidos": 33,
+            "maximo_frontera": 7,
+            "longitud": 15,
+            "tiempo_segundos": 0.001173083999674418
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "A_ESTRELLA (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "15 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 16 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "16 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/obstaculo_rodeo.json",
+          "sha256": "0749bfe51402886729888a9dfdc0a62caaf25424b9e705561cde287e4fe5907d",
+          "algoritmo": "ucs",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "UCS",
+            "exito": true,
+            "camino": [
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ]
+            ],
+            "costo": 16,
+            "estados_generados": 41,
+            "estados_expandidos": 39,
+            "maximo_frontera": 7,
+            "longitud": 15,
+            "tiempo_segundos": 0.0018320520011911867
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "UCS (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "15 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 16 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "16 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "04_heuristicas": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/obstaculo_rodeo.json",
+          "sha256": "0749bfe51402886729888a9dfdc0a62caaf25424b9e705561cde287e4fe5907d",
+          "algoritmo": "astar_manhattan",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "A_ESTRELLA",
+            "exito": true,
+            "camino": [
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ]
+            ],
+            "costo": 16,
+            "estados_generados": 40,
+            "estados_expandidos": 33,
+            "maximo_frontera": 7,
+            "longitud": 15,
+            "tiempo_segundos": 0.0012573839994729497
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "A_ESTRELLA (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "15 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 16 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "16 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/obstaculo_rodeo.json",
+          "sha256": "0749bfe51402886729888a9dfdc0a62caaf25424b9e705561cde287e4fe5907d",
+          "algoritmo": "astar_hto",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "A_ESTRELLA",
+            "exito": true,
+            "camino": [
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ]
+            ],
+            "costo": 16,
+            "estados_generados": 38,
+            "estados_expandidos": 26,
+            "maximo_frontera": 12,
+            "longitud": 15,
+            "tiempo_segundos": 0.001002107999738655
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "A_ESTRELLA (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "15 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 16 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "16 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/obstaculo_rodeo.json",
+          "sha256": "0749bfe51402886729888a9dfdc0a62caaf25424b9e705561cde287e4fe5907d",
+          "algoritmo": "ucs",
+          "parametros": {},
+          "resultado": {
+            "algoritmo": "UCS",
+            "exito": true,
+            "camino": [
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                3,
+                0
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ]
+            ],
+            "costo": 16,
+            "estados_generados": 41,
+            "estados_expandidos": 39,
+            "maximo_frontera": 7,
+            "longitud": 15,
+            "tiempo_segundos": 0.0014010510003572563
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "UCS (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "15 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 16 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "16 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "05_beam": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "algoritmo": "beam",
+          "parametros": {
+            "k": 1
+          },
+          "resultado": {
+            "algoritmo": "BEAM_SEARCH_K1",
+            "exito": false,
+            "camino": [],
+            "costo": null,
+            "estados_generados": 74,
+            "estados_expandidos": 74,
+            "maximo_frontera": 1,
+            "longitud": 0,
+            "tiempo_segundos": 0.0046032829995965585
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "BEAM_SEARCH_K1 (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "fracaso_coherente",
+                "correcta": true,
+                "detalle": "sin camino, sin acciones y costo nulo"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "algoritmo": "beam",
+          "parametros": {
+            "k": 2
+          },
+          "resultado": {
+            "algoritmo": "BEAM_SEARCH_K2",
+            "exito": false,
+            "camino": [],
+            "costo": null,
+            "estados_generados": 137,
+            "estados_expandidos": 137,
+            "maximo_frontera": 2,
+            "longitud": 0,
+            "tiempo_segundos": 0.008227018999605207
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "BEAM_SEARCH_K2 (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "fracaso_coherente",
+                "correcta": true,
+                "detalle": "sin camino, sin acciones y costo nulo"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "algoritmo": "beam",
+          "parametros": {
+            "k": 4
+          },
+          "resultado": {
+            "algoritmo": "BEAM_SEARCH_K4",
+            "exito": true,
+            "camino": [
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                1,
+                5
+              ],
+              [
+                1,
+                6
+              ],
+              [
+                1,
+                7
+              ],
+              [
+                1,
+                8
+              ],
+              [
+                1,
+                9
+              ],
+              [
+                1,
+                10
+              ],
+              [
+                1,
+                11
+              ],
+              [
+                1,
+                12
+              ],
+              [
+                2,
+                12
+              ],
+              [
+                2,
+                13
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                2,
+                15
+              ],
+              [
+                2,
+                16
+              ],
+              [
+                2,
+                17
+              ],
+              [
+                2,
+                18
+              ],
+              [
+                3,
+                18
+              ],
+              [
+                4,
+                18
+              ],
+              [
+                5,
+                18
+              ],
+              [
+                6,
+                18
+              ],
+              [
+                7,
+                18
+              ],
+              [
+                8,
+                18
+              ],
+              [
+                9,
+                18
+              ],
+              [
+                10,
+                18
+              ],
+              [
+                10,
+                17
+              ],
+              [
+                10,
+                16
+              ],
+              [
+                10,
+                15
+              ],
+              [
+                10,
+                14
+              ],
+              [
+                10,
+                13
+              ],
+              [
+                10,
+                12
+              ],
+              [
+                10,
+                11
+              ],
+              [
+                10,
+                10
+              ],
+              [
+                9,
+                10
+              ]
+            ],
+            "costo": 40,
+            "estados_generados": 137,
+            "estados_expandidos": 133,
+            "maximo_frontera": 4,
+            "longitud": 34,
+            "tiempo_segundos": 0.007648788001461071
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "BEAM_SEARCH_K4 (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "34 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 40 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "35 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "algoritmo": "beam",
+          "parametros": {
+            "k": 8
+          },
+          "resultado": {
+            "algoritmo": "BEAM_SEARCH_K8",
+            "exito": true,
+            "camino": [
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                1,
+                5
+              ],
+              [
+                1,
+                6
+              ],
+              [
+                1,
+                7
+              ],
+              [
+                1,
+                8
+              ],
+              [
+                1,
+                9
+              ],
+              [
+                1,
+                10
+              ],
+              [
+                1,
+                11
+              ],
+              [
+                1,
+                12
+              ],
+              [
+                1,
+                13
+              ],
+              [
+                2,
+                13
+              ],
+              [
+                2,
+                14
+              ],
+              [
+                1,
+                14
+              ],
+              [
+                0,
+                14
+              ],
+              [
+                0,
+                15
+              ],
+              [
+                1,
+                15
+              ],
+              [
+                1,
+                16
+              ],
+              [
+                1,
+                17
+              ],
+              [
+                2,
+                17
+              ],
+              [
+                3,
+                17
+              ],
+              [
+                4,
+                17
+              ],
+              [
+                5,
+                17
+              ],
+              [
+                6,
+                17
+              ],
+              [
+                7,
+                17
+              ],
+              [
+                8,
+                17
+              ],
+              [
+                9,
+                17
+              ],
+              [
+                10,
+                17
+              ],
+              [
+                10,
+                16
+              ],
+              [
+                10,
+                15
+              ],
+              [
+                10,
+                14
+              ],
+              [
+                10,
+                13
+              ],
+              [
+                10,
+                12
+              ],
+              [
+                10,
+                11
+              ],
+              [
+                10,
+                10
+              ],
+              [
+                9,
+                10
+              ]
+            ],
+            "costo": 46,
+            "estados_generados": 284,
+            "estados_expandidos": 276,
+            "maximo_frontera": 8,
+            "longitud": 36,
+            "tiempo_segundos": 0.015115915000933455
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "BEAM_SEARCH_K8 (busqueda)",
+            "comprobaciones": [
+              {
+                "nombre": "movimientos_validos",
+                "correcta": true,
+                "detalle": "36 movimientos legales"
+              },
+              {
+                "nombre": "sin_obstaculos",
+                "correcta": true,
+                "detalle": "ninguna celda del camino es un obstaculo"
+              },
+              {
+                "nombre": "camino_coherente",
+                "correcta": true,
+                "detalle": "el camino coincide con las acciones aplicadas"
+              },
+              {
+                "nombre": "costo_coincide",
+                "correcta": true,
+                "detalle": "costo 46 igual a la suma de las transiciones"
+              },
+              {
+                "nombre": "estado_final_objetivo",
+                "correcta": true,
+                "detalle": "el estado final cumple la condicion objetivo"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "37 estados validos"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "contadores y longitud consistentes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "06_estado_compuesto": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/estado_compuesto_libre.json",
+          "sha256": "ec0cbbdb1474dd0db9c7765ccd4ebf3fc183831d78d758c06ad751db13c32798",
+          "estado": {
+            "unidades": [
+              [
+                "A1",
+                2,
+                2
+              ],
+              [
+                "A2",
+                0,
+                1
+              ],
+              [
+                "A3",
+                1,
+                0
+              ],
+              [
+                "B1",
+                4,
+                1
+              ],
+              [
+                "B2",
+                4,
+                2
+              ],
+              [
+                "B3",
+                3,
+                0
+              ]
+            ],
+            "recurso": [
+              2,
+              4
+            ],
+            "portador": null,
+            "huella_estado": "bf333b0e79d49567fdcfdfa7049e6677b00c0b952feffe383d3bee8b7738ab6d"
+          },
+          "utilidad": 4.0,
+          "decision": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 571,
+            "nodos_evaluados": 377,
+            "nodos_podados": 930,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.04128588599996874,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                2,
+                2
+              ],
+              "destino": [
+                2,
+                3
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": 78.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "4618 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "4619 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "10 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 78.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/estado_compuesto_portador.json",
+          "sha256": "3336c796d282b9fd635a9ababe408ad949318b3bd62254c2cc73e47e8288b464",
+          "estado": {
+            "unidades": [
+              [
+                "A1",
+                2,
+                2
+              ],
+              [
+                "A2",
+                0,
+                1
+              ],
+              [
+                "A3",
+                1,
+                0
+              ],
+              [
+                "B1",
+                4,
+                1
+              ],
+              [
+                "B2",
+                4,
+                2
+              ],
+              [
+                "B3",
+                3,
+                0
+              ]
+            ],
+            "recurso": null,
+            "portador": "A1",
+            "huella_estado": "87594f5718cc5f67ac7b87a596bc6b67a743f125d090549e2d898473632d2b14"
+          },
+          "utilidad": 92.0,
+          "decision": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 257,
+            "nodos_evaluados": 136,
+            "nodos_podados": 698,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.019733447001271998,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                2,
+                2
+              ],
+              "destino": [
+                1,
+                2
+              ],
+              "tactica": "avanzar"
+            },
+            "valor": 96.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "4858 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "4859 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "10 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 96.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        }
+      ],
+      "posiciones_iguales": true
+    },
+    "07_decision_adversarial": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/decision_adversarial.json",
+          "sha256": "48d59af2a892705d4b14d922610a325acbcb8f9c2b756daaff49d980e3e23691",
+          "dimensiones": [
+            3,
+            6
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 1,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 1,
+            "orden_acciones": "generacion",
+            "nodos_generados": 4,
+            "nodos_evaluados": 3,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 1,
+            "tiempo_segundos": 0.0002873350003937958,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                0,
+                1
+              ],
+              "destino": [
+                0,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": 37.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "3 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "4 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 37.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/decision_adversarial.json",
+          "sha256": "48d59af2a892705d4b14d922610a325acbcb8f9c2b756daaff49d980e3e23691",
+          "dimensiones": [
+            3,
+            6
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 2,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 2,
+            "orden_acciones": "generacion",
+            "nodos_generados": 10,
+            "nodos_evaluados": 6,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 2,
+            "tiempo_segundos": 0.0006138500011729775,
+            "accion_seleccionada": {
+              "unidad": "A3",
+              "tipo": "mover",
+              "origen": [
+                2,
+                1
+              ],
+              "destino": [
+                2,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": -37.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "9 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "10 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor -37.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/decision_adversarial.json",
+          "sha256": "48d59af2a892705d4b14d922610a325acbcb8f9c2b756daaff49d980e3e23691",
+          "dimensiones": [
+            3,
+            6
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 3,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 3,
+            "orden_acciones": "generacion",
+            "nodos_generados": 25,
+            "nodos_evaluados": 16,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 3,
+            "tiempo_segundos": 0.001517410000815289,
+            "accion_seleccionada": {
+              "unidad": "A3",
+              "tipo": "mover",
+              "origen": [
+                2,
+                1
+              ],
+              "destino": [
+                2,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": 37.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "24 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "25 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 37.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/decision_adversarial.json",
+          "sha256": "48d59af2a892705d4b14d922610a325acbcb8f9c2b756daaff49d980e3e23691",
+          "dimensiones": [
+            3,
+            6
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 68,
+            "nodos_evaluados": 44,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.0034361369998805458,
+            "accion_seleccionada": {
+              "unidad": "A3",
+              "tipo": "mover",
+              "origen": [
+                2,
+                1
+              ],
+              "destino": [
+                2,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": -39.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "67 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "68 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor -39.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "08_minimax_vs_alfa_beta": {
+      "archivo": "escenarios/recurso_en_transporte.json",
+      "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+      "parametros": {
+        "profundidad": 4,
+        "orden_acciones": "generacion"
+      },
+      "resultado": {
+        "bando_max": "A",
+        "profundidad_maxima": 4,
+        "orden_acciones": "generacion",
+        "minimax": {
+          "algoritmo": "MINIMAX",
+          "bando_max": "A",
+          "profundidad_maxima": 4,
+          "orden_acciones": "generacion",
+          "nodos_generados": 5900,
+          "nodos_evaluados": 5238,
+          "nodos_podados": 0,
+          "profundidad_alcanzada": 4,
+          "tiempo_segundos": 0.48726060499939194,
+          "accion_seleccionada": {
+            "unidad": "A1",
+            "tipo": "mover",
+            "origen": [
+              0,
+              2
+            ],
+            "destino": [
+              0,
+              3
+            ],
+            "tactica": "proteger_zona"
+          },
+          "valor": 72.0
+        },
+        "alfa_beta": {
+          "algoritmo": "ALFA_BETA",
+          "bando_max": "A",
+          "profundidad_maxima": 4,
+          "orden_acciones": "generacion",
+          "nodos_generados": 787,
+          "nodos_evaluados": 600,
+          "nodos_podados": 907,
+          "profundidad_alcanzada": 4,
+          "tiempo_segundos": 0.0645730159994855,
+          "accion_seleccionada": {
+            "unidad": "A1",
+            "tipo": "mover",
+            "origen": [
+              0,
+              2
+            ],
+            "destino": [
+              0,
+              3
+            ],
+            "tactica": "proteger_zona"
+          },
+          "valor": 72.0
+        },
+        "misma_accion": true,
+        "mismo_valor": true,
+        "reduccion_porcentual": {
+          "nodos_generados": 86.66101694915254,
+          "nodos_evaluados": 88.54524627720504,
+          "tiempo_segundos": 86.7477453877959
+        }
+      },
+      "verificaciones": [
+        {
+          "valido": true,
+          "sujeto": "MINIMAX (decision adversarial)",
+          "comprobaciones": [
+            {
+              "nombre": "acciones_consideradas_legales",
+              "correcta": true,
+              "detalle": "5899 acciones del arbol revisadas, todas legales"
+            },
+            {
+              "nombre": "tacticas_coherentes",
+              "correcta": true,
+              "detalle": "cada accion tiene el tipo tactico de E8.1"
+            },
+            {
+              "nombre": "estados_validos",
+              "correcta": true,
+              "detalle": "5900 estados del arbol validos"
+            },
+            {
+              "nombre": "accion_seleccionada_legal",
+              "correcta": true,
+              "detalle": "la accion elegida es legal en la raiz"
+            },
+            {
+              "nombre": "valores_raiz_legales",
+              "correcta": true,
+              "detalle": "8 acciones de la raiz legales y en orden"
+            },
+            {
+              "nombre": "valor_correcto",
+              "correcta": true,
+              "detalle": "valor 72.0 igual al Minimax exacto"
+            },
+            {
+              "nombre": "decision_optima",
+              "correcta": true,
+              "detalle": "la accion elegida es la primera con el mejor valor exacto"
+            },
+            {
+              "nombre": "metricas_coherentes",
+              "correcta": true,
+              "detalle": "metricas coherentes con el arbol"
+            }
+          ]
+        },
+        {
+          "valido": true,
+          "sujeto": "ALFA_BETA (decision adversarial)",
+          "comprobaciones": [
+            {
+              "nombre": "acciones_consideradas_legales",
+              "correcta": true,
+              "detalle": "5899 acciones del arbol revisadas, todas legales"
+            },
+            {
+              "nombre": "tacticas_coherentes",
+              "correcta": true,
+              "detalle": "cada accion tiene el tipo tactico de E8.1"
+            },
+            {
+              "nombre": "estados_validos",
+              "correcta": true,
+              "detalle": "5900 estados del arbol validos"
+            },
+            {
+              "nombre": "accion_seleccionada_legal",
+              "correcta": true,
+              "detalle": "la accion elegida es legal en la raiz"
+            },
+            {
+              "nombre": "valores_raiz_legales",
+              "correcta": true,
+              "detalle": "8 acciones de la raiz legales y en orden"
+            },
+            {
+              "nombre": "valor_correcto",
+              "correcta": true,
+              "detalle": "valor 72.0 igual al Minimax exacto"
+            },
+            {
+              "nombre": "decision_optima",
+              "correcta": true,
+              "detalle": "la accion elegida es la primera con el mejor valor exacto"
+            },
+            {
+              "nombre": "metricas_coherentes",
+              "correcta": true,
+              "detalle": "metricas coherentes con el arbol"
+            }
+          ]
+        }
+      ]
+    },
+    "09_orden_acciones": {
+      "recurso_en_transporte.json": [
+        {
+          "archivo": "escenarios/recurso_en_transporte.json",
+          "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+          "dimensiones": [
+            6,
+            8
+          ],
+          "algoritmo": "alfa_beta",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 787,
+            "nodos_evaluados": 600,
+            "nodos_podados": 907,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.06984358099907695,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                0,
+                2
+              ],
+              "destino": [
+                0,
+                3
+              ],
+              "tactica": "proteger_zona"
+            },
+            "valor": 72.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "5899 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "5900 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "8 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 72.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/recurso_en_transporte.json",
+          "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+          "dimensiones": [
+            6,
+            8
+          ],
+          "algoritmo": "alfa_beta",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "inverso"
+          },
+          "resultado": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "inverso",
+            "nodos_generados": 962,
+            "nodos_evaluados": 721,
+            "nodos_podados": 1115,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.08178219799992803,
+            "accion_seleccionada": {
+              "unidad": "A2",
+              "tipo": "mover",
+              "origen": [
+                3,
+                3
+              ],
+              "destino": [
+                4,
+                3
+              ],
+              "tactica": "reposicionar"
+            },
+            "valor": 72.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "5899 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "5900 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "8 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 72.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/recurso_en_transporte.json",
+          "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+          "dimensiones": [
+            6,
+            8
+          ],
+          "algoritmo": "alfa_beta",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "tactico"
+          },
+          "resultado": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "tactico",
+            "nodos_generados": 587,
+            "nodos_evaluados": 428,
+            "nodos_podados": 843,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.05110986699946807,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                0,
+                2
+              ],
+              "destino": [
+                0,
+                3
+              ],
+              "tactica": "proteger_zona"
+            },
+            "valor": 72.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "5899 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "5900 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "8 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 72.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        }
+      ],
+      "campo_20x20.json": [
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "algoritmo": "alfa_beta",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 799,
+            "nodos_evaluados": 569,
+            "nodos_podados": 1358,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.0791760060001252,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                1,
+                2
+              ],
+              "destino": [
+                1,
+                3
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": -36.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "11022 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "11023 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "11 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor -36.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "algoritmo": "alfa_beta",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "inverso"
+          },
+          "resultado": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "inverso",
+            "nodos_generados": 1965,
+            "nodos_evaluados": 1570,
+            "nodos_podados": 1825,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.18922500400003628,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                1,
+                2
+              ],
+              "destino": [
+                1,
+                3
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": -36.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "11022 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "11023 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "11 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor -36.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/campo_20x20.json",
+          "sha256": "8397ec7d965e170b5e594312c8fbc6789a6543a069486c235d429df4ef98106f",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "algoritmo": "alfa_beta",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "tactico"
+          },
+          "resultado": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "tactico",
+            "nodos_generados": 657,
+            "nodos_evaluados": 465,
+            "nodos_podados": 1150,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.06926535200000217,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                1,
+                2
+              ],
+              "destino": [
+                1,
+                3
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": -36.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "11022 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "11023 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "11 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor -36.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "10_profundidad": {
+      "ejecuciones": [
+        {
+          "minimax": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 1,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 1,
+              "orden_acciones": "generacion",
+              "nodos_generados": 9,
+              "nodos_evaluados": 8,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 1,
+              "tiempo_segundos": 0.0011244029992667492,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  2,
+                  3
+                ],
+                "tactica": "avanzar"
+              },
+              "valor": 74.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "9 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 74.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 1,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 1,
+              "orden_acciones": "generacion",
+              "nodos_generados": 9,
+              "nodos_evaluados": 8,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 1,
+              "tiempo_segundos": 0.0010887829994317144,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  2,
+                  3
+                ],
+                "tactica": "avanzar"
+              },
+              "valor": 74.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "9 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 74.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "minimax": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 2,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 2,
+              "orden_acciones": "generacion",
+              "nodos_generados": 80,
+              "nodos_evaluados": 71,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 2,
+              "tiempo_segundos": 0.006589689000975341,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "79 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "80 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 2,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 2,
+              "orden_acciones": "generacion",
+              "nodos_generados": 40,
+              "nodos_evaluados": 31,
+              "nodos_podados": 40,
+              "profundidad_alcanzada": 2,
+              "tiempo_segundos": 0.0033375889997842023,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "79 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "80 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "minimax": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 3,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 3,
+              "orden_acciones": "generacion",
+              "nodos_generados": 662,
+              "nodos_evaluados": 582,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 3,
+              "tiempo_segundos": 0.054608933000054094,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  4,
+                  3
+                ],
+                "tactica": "reposicionar"
+              },
+              "valor": 76.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "661 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "662 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 76.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 3,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 3,
+              "orden_acciones": "generacion",
+              "nodos_generados": 238,
+              "nodos_evaluados": 191,
+              "nodos_podados": 148,
+              "profundidad_alcanzada": 3,
+              "tiempo_segundos": 0.021263918999466114,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  4,
+                  3
+                ],
+                "tactica": "reposicionar"
+              },
+              "valor": 76.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "661 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "662 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 76.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "minimax": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 4,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 4,
+              "orden_acciones": "generacion",
+              "nodos_generados": 5900,
+              "nodos_evaluados": 5238,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 4,
+              "tiempo_segundos": 0.49830280800051696,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "5899 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "5900 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/recurso_en_transporte.json",
+            "sha256": "e1f031088042f8009d63836b5fc3f968977e8a22e6d90bfef94b87b2608934c4",
+            "dimensiones": [
+              6,
+              8
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 4,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 4,
+              "orden_acciones": "generacion",
+              "nodos_generados": 787,
+              "nodos_evaluados": 600,
+              "nodos_podados": 907,
+              "profundidad_alcanzada": 4,
+              "tiempo_segundos": 0.06453027499992459,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "5899 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "5900 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "variantes_20x20": {
+    "06_estado_compuesto": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/caso_06_estado_compuesto_libre_20x20.json",
+          "sha256": "a43c3f471fd091bf123856211801b67c0916aefa38c37978d50737c0cea8de30",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "estado": {
+            "unidades": [
+              [
+                "A1",
+                2,
+                2
+              ],
+              [
+                "A2",
+                0,
+                1
+              ],
+              [
+                "A3",
+                1,
+                0
+              ],
+              [
+                "B1",
+                4,
+                1
+              ],
+              [
+                "B2",
+                4,
+                2
+              ],
+              [
+                "B3",
+                3,
+                0
+              ]
+            ],
+            "recurso": [
+              2,
+              4
+            ],
+            "portador": null,
+            "huella_estado": "bf333b0e79d49567fdcfdfa7049e6677b00c0b952feffe383d3bee8b7738ab6d"
+          },
+          "utilidad": 4.0,
+          "decision": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 571,
+            "nodos_evaluados": 377,
+            "nodos_podados": 930,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.04898810700069589,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                2,
+                2
+              ],
+              "destino": [
+                2,
+                3
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": 78.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "4618 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "4619 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "10 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 78.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/caso_06_estado_compuesto_portador_20x20.json",
+          "sha256": "b4e1a53656ab41e6cfc9930b00c0901f5eec349efa3bab1433b6fdec65e555f3",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "estado": {
+            "unidades": [
+              [
+                "A1",
+                2,
+                2
+              ],
+              [
+                "A2",
+                0,
+                1
+              ],
+              [
+                "A3",
+                1,
+                0
+              ],
+              [
+                "B1",
+                4,
+                1
+              ],
+              [
+                "B2",
+                4,
+                2
+              ],
+              [
+                "B3",
+                3,
+                0
+              ]
+            ],
+            "recurso": null,
+            "portador": "A1",
+            "huella_estado": "87594f5718cc5f67ac7b87a596bc6b67a743f125d090549e2d898473632d2b14"
+          },
+          "utilidad": 92.0,
+          "decision": {
+            "algoritmo": "ALFA_BETA",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 257,
+            "nodos_evaluados": 136,
+            "nodos_podados": 698,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.019784504000199377,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                2,
+                2
+              ],
+              "destino": [
+                1,
+                2
+              ],
+              "tactica": "avanzar"
+            },
+            "valor": 96.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "ALFA_BETA (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "4858 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "4859 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "10 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 96.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        }
+      ],
+      "posiciones_iguales": true
+    },
+    "07_decision_adversarial": {
+      "ejecuciones": [
+        {
+          "archivo": "escenarios/caso_07_decision_adversarial_20x20.json",
+          "sha256": "46fe39faa94186d61af9cd629e8eec09a054c0c6fb5b1d586bcaaf6a4022fd3a",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 1,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 1,
+            "orden_acciones": "generacion",
+            "nodos_generados": 4,
+            "nodos_evaluados": 3,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 1,
+            "tiempo_segundos": 0.0003467010010353988,
+            "accion_seleccionada": {
+              "unidad": "A1",
+              "tipo": "mover",
+              "origen": [
+                0,
+                1
+              ],
+              "destino": [
+                0,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": 37.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "3 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "4 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 37.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/caso_07_decision_adversarial_20x20.json",
+          "sha256": "46fe39faa94186d61af9cd629e8eec09a054c0c6fb5b1d586bcaaf6a4022fd3a",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 2,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 2,
+            "orden_acciones": "generacion",
+            "nodos_generados": 10,
+            "nodos_evaluados": 6,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 2,
+            "tiempo_segundos": 0.0006340349991660332,
+            "accion_seleccionada": {
+              "unidad": "A3",
+              "tipo": "mover",
+              "origen": [
+                2,
+                1
+              ],
+              "destino": [
+                2,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": -37.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "9 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "10 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor -37.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/caso_07_decision_adversarial_20x20.json",
+          "sha256": "46fe39faa94186d61af9cd629e8eec09a054c0c6fb5b1d586bcaaf6a4022fd3a",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 3,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 3,
+            "orden_acciones": "generacion",
+            "nodos_generados": 25,
+            "nodos_evaluados": 16,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 3,
+            "tiempo_segundos": 0.0015435309996973956,
+            "accion_seleccionada": {
+              "unidad": "A3",
+              "tipo": "mover",
+              "origen": [
+                2,
+                1
+              ],
+              "destino": [
+                2,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": 37.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "24 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "25 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor 37.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        },
+        {
+          "archivo": "escenarios/caso_07_decision_adversarial_20x20.json",
+          "sha256": "46fe39faa94186d61af9cd629e8eec09a054c0c6fb5b1d586bcaaf6a4022fd3a",
+          "dimensiones": [
+            20,
+            20
+          ],
+          "algoritmo": "minimax",
+          "parametros": {
+            "profundidad": 4,
+            "orden_acciones": "generacion"
+          },
+          "resultado": {
+            "algoritmo": "MINIMAX",
+            "bando_max": "A",
+            "profundidad_maxima": 4,
+            "orden_acciones": "generacion",
+            "nodos_generados": 68,
+            "nodos_evaluados": 44,
+            "nodos_podados": 0,
+            "profundidad_alcanzada": 4,
+            "tiempo_segundos": 0.003740094000022509,
+            "accion_seleccionada": {
+              "unidad": "A3",
+              "tipo": "mover",
+              "origen": [
+                2,
+                1
+              ],
+              "destino": [
+                2,
+                2
+              ],
+              "tactica": "aproximarse_al_recurso"
+            },
+            "valor": -39.0
+          },
+          "verificacion": {
+            "valido": true,
+            "sujeto": "MINIMAX (decision adversarial)",
+            "comprobaciones": [
+              {
+                "nombre": "acciones_consideradas_legales",
+                "correcta": true,
+                "detalle": "67 acciones del arbol revisadas, todas legales"
+              },
+              {
+                "nombre": "tacticas_coherentes",
+                "correcta": true,
+                "detalle": "cada accion tiene el tipo tactico de E8.1"
+              },
+              {
+                "nombre": "estados_validos",
+                "correcta": true,
+                "detalle": "68 estados del arbol validos"
+              },
+              {
+                "nombre": "accion_seleccionada_legal",
+                "correcta": true,
+                "detalle": "la accion elegida es legal en la raiz"
+              },
+              {
+                "nombre": "valores_raiz_legales",
+                "correcta": true,
+                "detalle": "3 acciones de la raiz legales y en orden"
+              },
+              {
+                "nombre": "valor_correcto",
+                "correcta": true,
+                "detalle": "valor -39.0 igual al Minimax exacto"
+              },
+              {
+                "nombre": "decision_optima",
+                "correcta": true,
+                "detalle": "la accion elegida es la primera con el mejor valor exacto"
+              },
+              {
+                "nombre": "metricas_coherentes",
+                "correcta": true,
+                "detalle": "metricas coherentes con el arbol"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "08_minimax_vs_alfa_beta": {
+      "archivo": "escenarios/caso_08_minimax_alfa_beta_20x20.json",
+      "sha256": "c08645b5d315e2cc068f141fe61915ca06431d927d5161023f80c8f3250af7a1",
+      "dimensiones": [
+        20,
+        20
+      ],
+      "parametros": {
+        "profundidad": 4,
+        "orden_acciones": "generacion"
+      },
+      "resultado": {
+        "bando_max": "A",
+        "profundidad_maxima": 4,
+        "orden_acciones": "generacion",
+        "minimax": {
+          "algoritmo": "MINIMAX",
+          "bando_max": "A",
+          "profundidad_maxima": 4,
+          "orden_acciones": "generacion",
+          "nodos_generados": 5900,
+          "nodos_evaluados": 5238,
+          "nodos_podados": 0,
+          "profundidad_alcanzada": 4,
+          "tiempo_segundos": 0.5517279809992033,
+          "accion_seleccionada": {
+            "unidad": "A1",
+            "tipo": "mover",
+            "origen": [
+              0,
+              2
+            ],
+            "destino": [
+              0,
+              3
+            ],
+            "tactica": "proteger_zona"
+          },
+          "valor": 72.0
+        },
+        "alfa_beta": {
+          "algoritmo": "ALFA_BETA",
+          "bando_max": "A",
+          "profundidad_maxima": 4,
+          "orden_acciones": "generacion",
+          "nodos_generados": 787,
+          "nodos_evaluados": 600,
+          "nodos_podados": 907,
+          "profundidad_alcanzada": 4,
+          "tiempo_segundos": 0.06704148199969495,
+          "accion_seleccionada": {
+            "unidad": "A1",
+            "tipo": "mover",
+            "origen": [
+              0,
+              2
+            ],
+            "destino": [
+              0,
+              3
+            ],
+            "tactica": "proteger_zona"
+          },
+          "valor": 72.0
+        },
+        "misma_accion": true,
+        "mismo_valor": true,
+        "reduccion_porcentual": {
+          "nodos_generados": 86.66101694915254,
+          "nodos_evaluados": 88.54524627720504,
+          "tiempo_segundos": 87.84881602736915
+        }
+      },
+      "verificaciones": [
+        {
+          "valido": true,
+          "sujeto": "MINIMAX (decision adversarial)",
+          "comprobaciones": [
+            {
+              "nombre": "acciones_consideradas_legales",
+              "correcta": true,
+              "detalle": "5899 acciones del arbol revisadas, todas legales"
+            },
+            {
+              "nombre": "tacticas_coherentes",
+              "correcta": true,
+              "detalle": "cada accion tiene el tipo tactico de E8.1"
+            },
+            {
+              "nombre": "estados_validos",
+              "correcta": true,
+              "detalle": "5900 estados del arbol validos"
+            },
+            {
+              "nombre": "accion_seleccionada_legal",
+              "correcta": true,
+              "detalle": "la accion elegida es legal en la raiz"
+            },
+            {
+              "nombre": "valores_raiz_legales",
+              "correcta": true,
+              "detalle": "8 acciones de la raiz legales y en orden"
+            },
+            {
+              "nombre": "valor_correcto",
+              "correcta": true,
+              "detalle": "valor 72.0 igual al Minimax exacto"
+            },
+            {
+              "nombre": "decision_optima",
+              "correcta": true,
+              "detalle": "la accion elegida es la primera con el mejor valor exacto"
+            },
+            {
+              "nombre": "metricas_coherentes",
+              "correcta": true,
+              "detalle": "metricas coherentes con el arbol"
+            }
+          ]
+        },
+        {
+          "valido": true,
+          "sujeto": "ALFA_BETA (decision adversarial)",
+          "comprobaciones": [
+            {
+              "nombre": "acciones_consideradas_legales",
+              "correcta": true,
+              "detalle": "5899 acciones del arbol revisadas, todas legales"
+            },
+            {
+              "nombre": "tacticas_coherentes",
+              "correcta": true,
+              "detalle": "cada accion tiene el tipo tactico de E8.1"
+            },
+            {
+              "nombre": "estados_validos",
+              "correcta": true,
+              "detalle": "5900 estados del arbol validos"
+            },
+            {
+              "nombre": "accion_seleccionada_legal",
+              "correcta": true,
+              "detalle": "la accion elegida es legal en la raiz"
+            },
+            {
+              "nombre": "valores_raiz_legales",
+              "correcta": true,
+              "detalle": "8 acciones de la raiz legales y en orden"
+            },
+            {
+              "nombre": "valor_correcto",
+              "correcta": true,
+              "detalle": "valor 72.0 igual al Minimax exacto"
+            },
+            {
+              "nombre": "decision_optima",
+              "correcta": true,
+              "detalle": "la accion elegida es la primera con el mejor valor exacto"
+            },
+            {
+              "nombre": "metricas_coherentes",
+              "correcta": true,
+              "detalle": "metricas coherentes con el arbol"
+            }
+          ]
+        }
+      ]
+    },
+    "10_profundidad": {
+      "ejecuciones": [
+        {
+          "minimax": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 1,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 1,
+              "orden_acciones": "generacion",
+              "nodos_generados": 9,
+              "nodos_evaluados": 8,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 1,
+              "tiempo_segundos": 0.0013321860005817143,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  2,
+                  3
+                ],
+                "tactica": "avanzar"
+              },
+              "valor": 74.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "9 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 74.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 1,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 1,
+              "orden_acciones": "generacion",
+              "nodos_generados": 9,
+              "nodos_evaluados": 8,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 1,
+              "tiempo_segundos": 0.0013298109988681972,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  2,
+                  3
+                ],
+                "tactica": "avanzar"
+              },
+              "valor": 74.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "9 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 74.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "minimax": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 2,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 2,
+              "orden_acciones": "generacion",
+              "nodos_generados": 80,
+              "nodos_evaluados": 71,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 2,
+              "tiempo_segundos": 0.007984803998624557,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "79 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "80 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 2,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 2,
+              "orden_acciones": "generacion",
+              "nodos_generados": 40,
+              "nodos_evaluados": 31,
+              "nodos_podados": 40,
+              "profundidad_alcanzada": 2,
+              "tiempo_segundos": 0.0041509100010443944,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "79 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "80 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "minimax": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 3,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 3,
+              "orden_acciones": "generacion",
+              "nodos_generados": 662,
+              "nodos_evaluados": 582,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 3,
+              "tiempo_segundos": 0.06574966600055632,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  4,
+                  3
+                ],
+                "tactica": "reposicionar"
+              },
+              "valor": 76.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "661 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "662 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 76.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 3,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 3,
+              "orden_acciones": "generacion",
+              "nodos_generados": 238,
+              "nodos_evaluados": 191,
+              "nodos_podados": 148,
+              "profundidad_alcanzada": 3,
+              "tiempo_segundos": 0.023464044001229922,
+              "accion_seleccionada": {
+                "unidad": "A2",
+                "tipo": "mover",
+                "origen": [
+                  3,
+                  3
+                ],
+                "destino": [
+                  4,
+                  3
+                ],
+                "tactica": "reposicionar"
+              },
+              "valor": 76.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "661 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "662 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 76.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "minimax": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "minimax",
+            "parametros": {
+              "profundidad": 4,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "MINIMAX",
+              "bando_max": "A",
+              "profundidad_maxima": 4,
+              "orden_acciones": "generacion",
+              "nodos_generados": 5900,
+              "nodos_evaluados": 5238,
+              "nodos_podados": 0,
+              "profundidad_alcanzada": 4,
+              "tiempo_segundos": 0.5840222160004487,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "MINIMAX (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "5899 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "5900 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          },
+          "alfa_beta": {
+            "archivo": "escenarios/caso_10_profundidad_20x20.json",
+            "sha256": "c927819b3056b5ad4c6a4e2c6b65d092c7c44033a3b175c26ec1b2551882cc9f",
+            "dimensiones": [
+              20,
+              20
+            ],
+            "algoritmo": "alfa_beta",
+            "parametros": {
+              "profundidad": 4,
+              "orden_acciones": "generacion"
+            },
+            "resultado": {
+              "algoritmo": "ALFA_BETA",
+              "bando_max": "A",
+              "profundidad_maxima": 4,
+              "orden_acciones": "generacion",
+              "nodos_generados": 787,
+              "nodos_evaluados": 600,
+              "nodos_podados": 907,
+              "profundidad_alcanzada": 4,
+              "tiempo_segundos": 0.07220400000005611,
+              "accion_seleccionada": {
+                "unidad": "A1",
+                "tipo": "mover",
+                "origen": [
+                  0,
+                  2
+                ],
+                "destino": [
+                  0,
+                  3
+                ],
+                "tactica": "proteger_zona"
+              },
+              "valor": 72.0
+            },
+            "verificacion": {
+              "valido": true,
+              "sujeto": "ALFA_BETA (decision adversarial)",
+              "comprobaciones": [
+                {
+                  "nombre": "acciones_consideradas_legales",
+                  "correcta": true,
+                  "detalle": "5899 acciones del arbol revisadas, todas legales"
+                },
+                {
+                  "nombre": "tacticas_coherentes",
+                  "correcta": true,
+                  "detalle": "cada accion tiene el tipo tactico de E8.1"
+                },
+                {
+                  "nombre": "estados_validos",
+                  "correcta": true,
+                  "detalle": "5900 estados del arbol validos"
+                },
+                {
+                  "nombre": "accion_seleccionada_legal",
+                  "correcta": true,
+                  "detalle": "la accion elegida es legal en la raiz"
+                },
+                {
+                  "nombre": "valores_raiz_legales",
+                  "correcta": true,
+                  "detalle": "8 acciones de la raiz legales y en orden"
+                },
+                {
+                  "nombre": "valor_correcto",
+                  "correcta": true,
+                  "detalle": "valor 72.0 igual al Minimax exacto"
+                },
+                {
+                  "nombre": "decision_optima",
+                  "correcta": true,
+                  "detalle": "la accion elegida es la primera con el mejor valor exacto"
+                },
+                {
+                  "nombre": "metricas_coherentes",
+                  "correcta": true,
+                  "detalle": "metricas coherentes con el arbol"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

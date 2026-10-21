@@ -181,6 +181,21 @@ class EvaluadorUtilidad:
         return self._costos[destino]
 
     def _costo(self, origen: Posicion, destino: Posicion) -> int | float:
+        """Obtiene el costo minimo desde ``origen`` hasta ``destino`` en el escenario.
+
+        Proposito: consultar la distancia ponderada usada por la utilidad, respetando los muros y los costos JSON.
+        Precondiciones: ambos argumentos son Posicion del escenario; ``destino`` es transitable y el escenario ya fue
+        validado. La llamada interna calcula y cachea distancias si el destino aun no esta preparado.
+        Postcondiciones: devuelve el costo optimo si ``origen`` alcanza el destino; si no, devuelve uno mas que el
+        mayor costo alcanzable de ese mapa. No modifica el escenario.
+        Complejidad: O(1) temporal en cache y O(V log V + E) temporal/ O(V) espacial si calcula el mapa; V son celdas
+        transitables y E sus adyacencias. Para un origen inalcanzable, el maximo agrega O(V) temporal.
+        Uso de IA: Si.
+        Intervencion de IA: Claude (Opus 5.5) implemento el calculo de distancias de la utilidad E8.2; Codex documento
+        este metodo en la correccion de hallazgos.
+        Validacion del estudiante: no hay constancia de revision del equipo en los archivos consultados. Las pruebas
+        de tests/algoritmos/test_utilidad.py comprueban distancias y costos, pero no acreditan una revision estudiantil.
+        """
         mapa = self._costos_hacia(destino)
         if origen in mapa:
             return mapa[origen]

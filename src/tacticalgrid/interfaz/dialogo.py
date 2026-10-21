@@ -43,3 +43,41 @@ def pedir_ruta_escenario(directorio_inicial: Path) -> Path | None:
     finally:
         raiz.destroy()
     return Path(elegido) if elegido else None
+
+
+def pedir_ruta_registro(directorio_inicial: Path) -> Path | None:
+    """Muestra el selector nativo para guardar un registro JSON de experimento.
+
+    Proposito: obtener una ruta de salida elegida por el usuario sin acoplar la aplicacion a una ubicacion fija.
+    Precondiciones: se llama desde el hilo de Pygame y ``directorio_inicial`` existe o es una ruta utilizable.
+    Postcondiciones: devuelve la ruta elegida o ``None`` al cancelar; no escribe archivos y siempre destruye la raiz
+    de Tkinter. Lanza ``DialogoNoDisponible`` si falta Tkinter o una pantalla.
+    Complejidad: O(1) propia; el tiempo de seleccion depende del usuario.
+    Uso de IA: Si.
+    Intervencion de IA: Codex conecto el selector de guardado al registro exportable de experimentos.
+    Validacion del estudiante: No puedo confirmar revision manual; pruebas del dialogo verifican seleccion,
+    cancelacion y cierre de la raiz.
+    """
+    try:
+        import tkinter
+        from tkinter import filedialog
+    except ImportError as error:
+        raise DialogoNoDisponible("tkinter no esta instalado") from error
+    try:
+        raiz = tkinter.Tk()
+    except tkinter.TclError as error:
+        raise DialogoNoDisponible("no hay pantalla para el selector de archivos") from error
+    try:
+        raiz.withdraw()
+        raiz.attributes("-topmost", True)
+        elegido = filedialog.asksaveasfilename(
+            parent=raiz,
+            title="Guardar registro reproducible",
+            initialdir=str(directorio_inicial),
+            initialfile="experimento-tacticalgrid.json",
+            defaultextension=".json",
+            filetypes=[("Resultados JSON", "*.json"), ("Todos los archivos", "*.*")],
+        )
+    finally:
+        raiz.destroy()
+    return Path(elegido) if elegido else None
